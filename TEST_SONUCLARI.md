@@ -4,6 +4,27 @@ Tarih: 14 Kasım 2026
 
 Güncel durum: **v2.3 — 44 otomatik test geçti; 38 gerçek Chrome ekran görüntüsü incelendi.** En son hedefli revizyonun ayrıntıları bu dosyanın son bölümündedir. Önceki bölümlerdeki test sayıları ilgili turun tarihsel kaydıdır.
 
+## Son bakım doğrulaması — 14 Kasım 2026
+
+- GitHub'da erişilemeyen 18 `artifacts/` bağlantısı düzeltildi. İki kayıt depodaki birebir aynı görsele yönlendirildi; diğer 16 yol yerel kayıt açıklaması olarak korundu. Yerel dosyalar silinmedi.
+- `.gitignore` sanal ortamları, ortam değişkenlerini, Streamlit sırlarını ve Python/test önbelleklerini kapsayacak şekilde güncellendi. `.env.example` ve `.env.*.example` örnekleri için istisna eklendi.
+- `.github/workflows/tests.yml`, `main` dalına push ve bu dalı hedefleyen pull request olaylarında Python 3.12 ile bağımlılık kurulumu, bağımlılık uyumu, sözdizimi ve otomatik test kontrollerini çalıştıracak şekilde hazırlandı.
+- Python 3.12.10 ortamında **44 otomatik testin tamamı geçti** (10,069 saniye). `pip check` bağımlılık sorunu bildirmedi; iş akışındaki `compileall` komutu hatasız tamamlandı. Streamlit'in bağımsız test çalıştırmasına ilişkin `missing ScriptRunContext` uyarıları test başarısızlığı oluşturmadı.
+- Kurulu Streamlit 1.67.0, Pandas 3.1.1, Plotly 7.1.0, openpyxl 3.1.5 ve matplotlib 3.11.2 sürümleri `requirements.txt` aralıklarıyla uyumludur. Yeni paket kurulmadı.
+- README'nin beş yerel bağlantısı (üç ekran görüntüsü dahil), test raporunun beş yayımlanan bağlantısı ve Markdown kod bloğu sınırları doğrulandı. README kurulum komutları mevcut giriş dosyası ve bağımlılık dosyasıyla uyumludur; ağ erişimi gerektiren kurulum komutları çalıştırılmadı.
+- İş akışının tetikleyicileri, Python sürümü, komutları ve girintileri yerelde kontrol edildi. **GitHub Actions üzerinde çalıştırılmadı**; temiz Ubuntu ortamında bağımlılık kurulumu ve uzak çalıştırma sonucu henüz doğrulanmadı.
+- Korunan dosyaların SHA-256 özetleri yedekle karşılaştırıldı. README, uygulama kodu, tasarım, hesaplamalar, test kodu, bağımlılıklar, `main.py`, `pareto_grafigi.png` ve yayımlanan ekran görüntüleri değiştirilmedi. Git commit/push veya canlı site güncellemesi yapılmadı.
+
+## GitHub üzerinden erişim
+
+`artifacts/` dizini ayrıntılı yerel test kayıtlarını içerir ve `.gitignore` nedeniyle depoya dahil edilmez. Bu kayıtlar yerelde korunur; GitHub'da kırık bağlantı oluşmaması için yayımlanmayan dosya yolları bu raporda kod biçiminde belirtilir. Birebir eşleşen ekran görüntüleri depodaki kopyalarına bağlanır.
+
+Depoda yayımlanan ekran görüntüleri:
+
+- [Ana analiz paneli](assets/screenshots/analysis-dashboard.png)
+- [Pareto grafiği](assets/screenshots/pareto-analysis.png)
+- [ABC Rehberi](assets/screenshots/abc-guide.png)
+
 ## Çalıştırma
 
 ```powershell
@@ -139,18 +160,18 @@ Kullanıcı yalnızca yüklü Edge/Chrome ile localhost testi için açık izin 
 - İncelenen kart/grafik/tablo kapsayıcılarında sayfa dışına yatay taşma görülmedi. Geniş veri tabloları mobilde kendi içinde yatay kaydırılır.
 - CDP kaydında yakalanmamış JavaScript istisnası: **0**. Sayfadan dış alan adına istek: **0**.
 - Yükleme alanının üstü masaüstünde yaklaşık 354 px, mobilde 382 px; her iki görünümde ilk ekrandan dosya seçilebilir.
-- Gerçek fareyle yakınlaştırmada x aralığı `[-0.6, 4.6]` → yaklaşık `[0.435, 1.997]`; kaydırmada yaklaşık `[-2.162, 3.038]`; sıfırlama başlangıç aralığına döndürdü. Sayısal kayıt: [interactions.json](artifacts/visual-review/interactions.json).
-- Kamera düğmesinden indirilen [PNG](artifacts/visual-review/downloads/abc_pareto_analizi.png) dosyası okunup doğrulandı: **2880×1600**, geçerli PNG.
+- Gerçek fareyle yakınlaştırmada x aralığı `[-0.6, 4.6]` → yaklaşık `[0.435, 1.997]`; kaydırmada yaklaşık `[-2.162, 3.038]`; sıfırlama başlangıç aralığına döndürdü. Sayısal kayıt: interactions.json (`artifacts/visual-review/interactions.json`; yalnızca yerel kayıt).
+- Kamera düğmesinden indirilen PNG (`artifacts/visual-review/downloads/abc_pareto_analizi.png`; yalnızca yerel kayıt) dosyası okunup doğrulandı: **2880×1600**, geçerli PNG.
 
 Örnek görüntüler:
 
-- [Masaüstü ana panel](artifacts/visual-review/02-desktop-loaded.png)
-- [Masaüstü Pareto](artifacts/visual-review/03-desktop-pareto.png)
-- [Mobil başlangıç](artifacts/visual-review/10-mobile-empty.png)
-- [Mobil kompakt Pareto](artifacts/visual-review/13b-mobile-pareto-plot.png)
-- [Rehber grup kartları](artifacts/visual-review/09b-desktop-group-cards.png)
+- [Masaüstü ana panel](assets/screenshots/analysis-dashboard.png) (özgün yerel kayıt: `artifacts/visual-review/02-desktop-loaded.png`)
+- Masaüstü Pareto (`artifacts/visual-review/03-desktop-pareto.png`; yalnızca yerel kayıt)
+- Mobil başlangıç (`artifacts/visual-review/10-mobile-empty.png`; yalnızca yerel kayıt)
+- Mobil kompakt Pareto (`artifacts/visual-review/13b-mobile-pareto-plot.png`; yalnızca yerel kayıt)
+- Rehber grup kartları (`artifacts/visual-review/09b-desktop-group-cards.png`; yalnızca yerel kayıt)
 
-Önceki ekran görüntüleri `artifacts/visual-review/before/` altında; son ölçümler [audit.json](artifacts/visual-review/audit.json) dosyasında. Görsel testin tekrar çalıştırılabilir kaydı `browser_check.py` içindedir; harici tarayıcı çalıştırdığı için kullanıcının verdiği izin kapsamına tabidir.
+Önceki ekran görüntüleri `artifacts/visual-review/before/` altında; son ölçümler audit.json (`artifacts/visual-review/audit.json`; yalnızca yerel kayıt) dosyasında. Görsel testin tekrar çalıştırılabilir kaydı `browser_check.py` içindedir; harici tarayıcı çalıştırdığı için kullanıcının verdiği izin kapsamına tabidir.
 
 Bu turda değişen uygulama dosyaları: `app.py`, `ui.py`, `abc_charts.py`, `assets/theme.css`, `pages/1_ABC_Rehberi.py`, `test_app.py`. Belgeler güncellendi; `browser_check.py` ve proje içi test çıktıları eklendi. Önceki uygulama/belge dosyaları `backups/before_browser_fixes_20261114/` ve önceki revizyon yedeklerinde korunur. ABC hesaplamaları ve Excel raporlama değiştirilmedi.
 
@@ -173,7 +194,7 @@ Bu turda değişen uygulama dosyaları: `app.py`, `ui.py`, `abc_charts.py`, `ass
 
 İlk iki konu ayrı, tam genişlikte, çerçeveli panellerdir. Numara başlıktan ayrılıp küçük renkli etikete taşındı; başlıklar **ABC Analizi Nedir?** ve **Pareto İlkesi** oldu. Başlıklar 24 px ve güçlü ağırlıktadır. Bilgilendirme paneli mavi, Pareto/hesaplama paneli mor, çözümlü örnek turkuaz, sınırlamalar amber vurgu kullanır. Metin genişliği yaklaşık 86 karakter birimiyle sınırlanır; paragraflar ve özetler korunur. Paneller arasında yaklaşık 22 px boşluk vardır.
 
-Dört sekme 15 px yarı kalın yazı, yaklaşık 51,5 px masaüstü yüksekliği, yuvarlatılmış çerçeve, mavi-mor aktif yüzey ve görünür odak kullanır. Mobilde yatay sekme kaydırması ve tam etiketler korunur. Klavyede sağ okla **Hesaplama Adımları** sekmesine geçiş denendi; odak çizgisi `2px solid rgb(34,211,238)` olarak doğrulandı. Kayıt: [tabs.json](artifacts/targeted-review/tabs.json).
+Dört sekme 15 px yarı kalın yazı, yaklaşık 51,5 px masaüstü yüksekliği, yuvarlatılmış çerçeve, mavi-mor aktif yüzey ve görünür odak kullanır. Mobilde yatay sekme kaydırması ve tam etiketler korunur. Klavyede sağ okla **Hesaplama Adımları** sekmesine geçiş denendi; odak çizgisi `2px solid rgb(34,211,238)` olarak doğrulandı. Kayıt: tabs.json (`artifacts/targeted-review/tabs.json`; yalnızca yerel kayıt).
 
 Formüller mor çerçeveli KaTeX kutularında, adımlar yerel açılır panellerde sunulur. İki çözümlü örnek, beş ikonlu mühendislik paneli ve amber sınırlama paneli korunmuştur. Eski 26 açıklama/formül metni normalize edilerek yeni kaynakla karşılaştırıldı; eksik içerik bulunmadı.
 
@@ -196,16 +217,16 @@ Kullanıcının önceki açık tarayıcı izni kapsamında, kişisel profilden b
 
 7 ürünlü, uzun adlar içeren 60 ürünlü ve 2×10⁻¹⁰ TL düzeyindeki küçük değerli CSV'ler gerçek dosya yükleme bileşeninden yüklendi; her biri hem masaüstünde hem mobilde incelendi. Test dosyaları `artifacts/targeted-review/fixtures/` içindedir ve kullanıcı verisi içermez.
 
-Gerçek fareyle yakınlaştırma, kaydırma, sıfırlama ve kamera düğmesinden PNG indirme tekrar doğrulandı. PNG **2880×1600** boyutunda geçerli bir dosyadır. A grubu gerçek kaldırma düğmesinden filtrelendiğinde kalan kümülatif paylar yaklaşık **%96,71** ve **%100** kaldı; yeniden normalize edilmedi. Kayıtlar: [interactions.json](artifacts/targeted-review/interactions.json), [filter.json](artifacts/targeted-review/filter.json), [audit.json](artifacts/targeted-review/audit.json).
+Gerçek fareyle yakınlaştırma, kaydırma, sıfırlama ve kamera düğmesinden PNG indirme tekrar doğrulandı. PNG **2880×1600** boyutunda geçerli bir dosyadır. A grubu gerçek kaldırma düğmesinden filtrelendiğinde kalan kümülatif paylar yaklaşık **%96,71** ve **%100** kaldı; yeniden normalize edilmedi. Kayıtlar: interactions.json (`artifacts/targeted-review/interactions.json`; yalnızca yerel kayıt), filter.json (`artifacts/targeted-review/filter.json`; yalnızca yerel kayıt), audit.json (`artifacts/targeted-review/audit.json`; yalnızca yerel kayıt).
 
 Örnek görüntüler:
 
-- [Rehber panelleri ve belirgin sekmeler](artifacts/targeted-review/06-desktop-guide-1.png)
-- [Klavye odağı ve formül kutusu](artifacts/targeted-review/06c-desktop-keyboard-focus.png)
-- [Yedi alanlı bilgi kutusu](artifacts/targeted-review/03a-desktop-tooltip.png)
-- [60 ürünlü masaüstü Pareto](artifacts/targeted-review/20-desktop-sixty.png)
-- [60 ürünlü mobil Pareto](artifacts/targeted-review/21-mobile-sixty.png)
-- [Küçük değerli mobil Pareto](artifacts/targeted-review/21-mobile-tiny.png)
+- [Rehber panelleri ve belirgin sekmeler](assets/screenshots/abc-guide.png) (özgün yerel kayıt: `artifacts/targeted-review/06-desktop-guide-1.png`)
+- Klavye odağı ve formül kutusu (`artifacts/targeted-review/06c-desktop-keyboard-focus.png`; yalnızca yerel kayıt)
+- Yedi alanlı bilgi kutusu (`artifacts/targeted-review/03a-desktop-tooltip.png`; yalnızca yerel kayıt)
+- 60 ürünlü masaüstü Pareto (`artifacts/targeted-review/20-desktop-sixty.png`; yalnızca yerel kayıt)
+- 60 ürünlü mobil Pareto (`artifacts/targeted-review/21-mobile-sixty.png`; yalnızca yerel kayıt)
+- Küçük değerli mobil Pareto (`artifacts/targeted-review/21-mobile-tiny.png`; yalnızca yerel kayıt)
 
 ### Korunanlar ve kalan sınırlar
 

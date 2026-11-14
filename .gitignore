@@ -7,6 +7,19 @@ browser_check.py
 modernize.py
 polish.py
 
-# Python cache
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables and Streamlit secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+.streamlit/secrets.toml
+
+# Python bytecode and test cache
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+app_v05.py
