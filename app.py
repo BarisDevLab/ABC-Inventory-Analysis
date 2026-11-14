@@ -6,31 +6,31 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from plotly.subplots import make_subplots
-from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
 # ==========================================
-# ABC STOK ANALİZ SİSTEMİ
-# Sürüm 0.7 - BarisDevLab
+# ABC STOK ANALİZ SİSTEMİ - v0.8
+# BarisDevLab
 # ==========================================
 
 st.set_page_config(
-    page_title="ABC Stok Analizi",
+    page_title="ABC Stok Analiz Sistemi",
     page_icon="📊",
     layout="wide"
 )
 
-RENK = {
-    "A": "#3B82F6",
-    "B": "#F59E0B",
-    "C": "#10B981"
-}
-
-GEREKLI = [
+SUTUNLAR = [
     "Ürün",
     "Yıllık Tüketim",
     "Birim Fiyat (TL)"
 ]
+
+RENKLER = {
+    "A": "#3B82F6",
+    "B": "#F59E0B",
+    "C": "#10B981"
+}
 
 MIME = (
     "application/vnd.openxmlformats-officedocument."
@@ -38,16 +38,26 @@ MIME = (
 )
 
 
+# TÜRKÇE SAYI BİÇİMLENDİRME
+
+def tr_sayi(sayi, basamak=2):
+    sonuc = f"{sayi:,.{basamak}f}"
+    return (
+        sonuc.replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
+    )
+
+
 # ==========================================
-# EXCEL OLUŞTURMA
+# EXCEL RAPORU
 # ==========================================
 
-def excel_dosyasi(tablo, sayfa_adi):
+def excel_uret(tablo, sayfa_adi):
     bellek = io.BytesIO()
 
     with pd.ExcelWriter(
-        bellek,
-        engine="openpyxl"
+        bellek, engine="openpyxl"
     ) as yazici:
 
         tablo.to_excel(
@@ -59,85 +69,101 @@ def excel_dosyasi(tablo, sayfa_adi):
         sayfa = yazici.sheets[sayfa_adi]
         sayfa.freeze_panes = "A2"
         sayfa.auto_filter.ref = sayfa.dimensions
+        sayfa.sheet_view.showGridLines = False
 
-        # Başlıkların biçimlendirilmesi
         for hucre in sayfa[1]:
             hucre.fill = PatternFill(
                 "solid",
                 fgColor="193453"
             )
             hucre.font = Font(
-                color="FFFFFF",
-                bold=True
+                name="Calibri",
+                bold=True,
+                color="FFFFFF"
             )
             hucre.alignment = Alignment(
-                horizontal="center"
+                horizontal="center",
+                vertical="center"
             )
 
-        # Sütun genişlikleri ve sayı biçimleri
+        sayfa.row_dimensions[1].height = 28
+
+        genislikler = {
+            "Ürün": 30,
+            "Yıllık Tüketim": 20,
+            "Birim Fiyat (TL)": 23,
+            "Yıllık Değer (TL)": 25,
+            "Değer Payı (%)": 20,
+            "Kümülatif Pay (%)": 22,
+            "ABC Grubu": 17,
+            "Ürün Sayısı": 19,
+            "Toplam Değer (TL)": 25
+        }
+
         for no, baslik in enumerate(
-            tablo.columns, 1
+            tablo.columns, start=1
         ):
-            uzunluk = max(
-                [len(str(baslik))]
-                + [
-                    len(str(v))
-                    for v in tablo[baslik].head(200)
-                ]
-            )
-
             harf = get_column_letter(no)
 
-            sayfa.column_dimensions[harf].width = min(
-                max(uzunluk + 3, 17),
-                32
+            sayfa.column_dimensions[harf].width = (
+                genislikler.get(baslik, 23)
             )
 
-            for hucreler in sayfa.iter_cols(
-                min_col=no,
-                max_col=no,
-                min_row=2
-            ):
-                for hucre in hucreler:
+            for satir in range(2, len(tablo) + 2):
+                hucre = sayfa.cell(
+                    row=satir,
+                    column=no
+                )
 
-                    if baslik in (
-                        "Değer Payı (%)",
-                        "Kümülatif Pay (%)"
-                    ):
-                        hucre.number_format = '0.00"%"'
+                hucre.alignment = Alignment(
+                    vertical="center"
+                )
 
-                    elif baslik in (
-                        "Birim Fiyat (TL)",
-                        "Yıllık Değer (TL)",
-                        "Toplam Değer (TL)"
-                    ):
-                        hucre.number_format = '#,##0.00 "TL"'
+                if satir % 2 == 0:
+                    hucre.fill = PatternFill(
+                        "solid",
+                        fgColor="F4F7FB"
+                    )
 
-                    elif baslik in (
-                        "Yıllık Tüketim",
-                        "Ürün Sayısı"
-                    ):
-                        hucre.number_format = '#,##0.##'
+                if baslik in (
+                    "Birim Fiyat (TL)",
+                    "Yıllık Değer (TL)",
+                    "Toplam Değer (TL)"
+                ):
+                    hucre.number_format = (
+                        '#,##0.00 "TL"'
+                    )
 
-                    elif (
-                        baslik == "ABC Grubu"
-                        and hucre.value in RENK
-                    ):
-                        arka_plan = {
-                            "A": "DBEAFE",
-                            "B": "FEF3C7",
-                            "C": "D1FAE5"
-                        }
+                elif baslik in (
+                    "Değer Payı (%)",
+                    "Kümülatif Pay (%)"
+                ):
+                    hucre.number_format = '0.00"%"'
 
-                        hucre.fill = PatternFill(
-                            "solid",
-                            fgColor=arka_plan[hucre.value]
-                        )
+                elif baslik in (
+                    "Yıllık Tüketim",
+                    "Ürün Sayısı"
+                ):
+                    hucre.number_format = '#,##0.##'
 
-                        hucre.font = Font(
-                            bold=True,
-                            color="111827"
-                        )
+                elif (
+                    baslik == "ABC Grubu"
+                    and hucre.value in RENKLER
+                ):
+                    arka = {
+                        "A": "DBEAFE",
+                        "B": "FEF3C7",
+                        "C": "D1FAE5"
+                    }
+
+                    hucre.fill = PatternFill(
+                        "solid",
+                        fgColor=arka[hucre.value]
+                    )
+                    hucre.font = Font(
+                        bold=True,
+                        color="17233B"
+                    )
 
     return bellek.getvalue()
 
@@ -146,18 +172,18 @@ def excel_dosyasi(tablo, sayfa_adi):
 # DOSYA OKUMA
 # ==========================================
 
-def veri_oku(dosya):
+def dosya_oku(yukleme):
 
-    if dosya.name.lower().endswith(".xlsx"):
-        return pd.read_excel(dosya)
+    if yukleme.name.lower().endswith(".xlsx"):
+        return pd.read_excel(yukleme)
 
-    ham = dosya.getvalue()
+    ham = yukleme.getvalue()
 
     for kodlama in ("utf-8-sig", "cp1254"):
         try:
+            metin = ham.decode(kodlama)
             return pd.read_csv(
-                io.BytesIO(ham),
-                encoding=kodlama,
+                io.StringIO(metin),
                 sep=None,
                 engine="python"
             )
@@ -165,37 +191,38 @@ def veri_oku(dosya):
             continue
 
     raise ValueError(
-        "CSV dosyasının metin kodlaması okunamadı."
+        "CSV karakter kodlaması okunamadı."
     )
 
 
 # ==========================================
-# VERİ DOĞRULAMA VE ABC ANALİZİ
+# ABC HESAPLAMA
 # ==========================================
 
-def analiz_yap(veriler, a_esigi, b_esigi):
+def abc_analizi(veri, a_sinir, b_sinir):
 
-    eksik = [
-        sutun for sutun in GEREKLI
-        if sutun not in veriler.columns
+    eksikler = [
+        s for s in SUTUNLAR
+        if s not in veri.columns
     ]
 
-    if eksik:
+    if eksikler:
         raise ValueError(
-            "Eksik sütunlar: " + ", ".join(eksik)
+            "Gerekli sütunlar eksik: "
+            + ", ".join(eksikler)
         )
 
-    df = veriler[GEREKLI].copy()
+    df = veri[SUTUNLAR].copy()
 
     if df.empty:
         raise ValueError(
-            "Dosyada analiz edilecek ürün bulunmuyor."
+            "Dosyada analiz edilecek satır bulunamadı."
         )
 
     if df.isna().any().any():
         raise ValueError(
-            "Dosyada boş hücreler var. "
-            "Lütfen doldurun."
+            "Dosyada boş hücre var. "
+            "Lütfen boş alanları doldurun."
         )
 
     df["Ürün"] = (
@@ -204,40 +231,36 @@ def analiz_yap(veriler, a_esigi, b_esigi):
 
     if (df["Ürün"] == "").any():
         raise ValueError(
-            "Ürün adları boş olamaz."
+            "Ürün adı boş bırakılamaz."
         )
 
-    if df["Ürün"].duplicated().any():
+    if df["Ürün"].str.casefold().duplicated().any():
         raise ValueError(
-            "Aynı ürün birden fazla satırda bulunuyor. "
-            "Ürünleri tek satırda birleştirin."
+            "Aynı ürün adı tekrar ediyor. "
+            "Her ürünü tek satırda belirtin."
         )
 
-    # Sayısal verileri kontrol et
-    for sutun in GEREKLI[1:]:
+    for sutun in SUTUNLAR[1:]:
 
         df[sutun] = pd.to_numeric(
             df[sutun],
             errors="coerce"
         )
 
-        if not df[sutun].notna().all():
+        if (
+            df[sutun].isna().any()
+            or not df[sutun].map(math.isfinite).all()
+        ):
             raise ValueError(
-                f"{sutun} sütununda "
-                "sayısal olmayan değer var."
-            )
-
-        if not df[sutun].map(math.isfinite).all():
-            raise ValueError(
-                f"{sutun} sütununda geçersiz sayı var."
+                f"'{sutun}' sütununda geçersiz sayı var. "
+                "Sayısal hücre kullanın."
             )
 
         if (df[sutun] < 0).any():
             raise ValueError(
-                f"{sutun} negatif olamaz."
+                f"'{sutun}' sütununda negatif değer var."
             )
 
-    # Yıllık tüketim değeri
     df["Yıllık Değer (TL)"] = (
         df["Yıllık Tüketim"]
         * df["Birim Fiyat (TL)"]
@@ -247,10 +270,10 @@ def analiz_yap(veriler, a_esigi, b_esigi):
         math.isfinite
     ).all():
         raise ValueError(
-            "Hesaplanan değerlerden biri çok büyük."
+            "Yıllık değer hesaplamasında "
+            "geçersiz veya çok büyük sayı var."
         )
 
-    # Büyükten küçüğe sıralama
     df = df.sort_values(
         "Yıllık Değer (TL)",
         ascending=False,
@@ -264,13 +287,11 @@ def analiz_yap(veriler, a_esigi, b_esigi):
     if not math.isfinite(toplam) or toplam <= 0:
         raise ValueError(
             "Toplam yıllık tüketim değeri "
-            "sıfırdan büyük ve geçerli olmalıdır."
+            "sıfırdan büyük olmalıdır."
         )
 
-    # Yüzde hesaplamaları
     df["Değer Payı (%)"] = (
-        df["Yıllık Değer (TL)"]
-        / toplam * 100
+        df["Yıllık Değer (TL)"] / toplam * 100
     )
 
     df["Kümülatif Pay (%)"] = (
@@ -280,21 +301,208 @@ def analiz_yap(veriler, a_esigi, b_esigi):
     )
 
     onceki = (
-        df["Kümülatif Pay (%)"]
-        - df["Değer Payı (%)"]
+        df["Değer Payı (%)"]
+        .cumsum()
+        .shift(fill_value=0)
     )
 
-    # ABC sınıflandırması
-    def grup_belirle(pay):
-        if pay < a_esigi:
-            return "A"
-        elif pay < b_esigi:
-            return "B"
-        return "C"
-
-    df["ABC Grubu"] = onceki.map(grup_belirle)
+    df["ABC Grubu"] = [
+        (
+            "C" if deger == 0
+            else "A" if pay < a_sinir
+            else "B" if pay < b_sinir
+            else "C"
+        )
+        for deger, pay in zip(
+            df["Yıllık Değer (TL)"],
+            onceki
+        )
+    ]
 
     return df, toplam
+
+
+# ==========================================
+# ETKİLEŞİMLİ PARETO GRAFİĞİ
+# ==========================================
+
+def pareto_grafigi(df, a_sinir, b_sinir):
+
+    n = len(df)
+    konum = list(range(n))
+
+    fig = make_subplots(
+        specs=[[{"secondary_y": True}]]
+    )
+
+    detay = [
+        [
+            ad,
+            grup,
+            tr_sayi(deger),
+            tr_sayi(pay)
+        ]
+        for ad, grup, deger, pay in zip(
+            df["Ürün"],
+            df["ABC Grubu"],
+            df["Yıllık Değer (TL)"],
+            df["Kümülatif Pay (%)"]
+        )
+    ]
+
+    # Sütun grafiği
+    fig.add_trace(
+        go.Bar(
+            x=konum,
+            y=df["Yıllık Değer (TL)"],
+            marker_color=(
+                df["ABC Grubu"]
+                .map(RENKLER)
+                .tolist()
+            ),
+            customdata=detay,
+            name="Yıllık tüketim değeri",
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Yıllık değer: %{customdata[2]} TL<br>"
+                "ABC grubu: %{customdata[1]}"
+                "<extra></extra>"
+            )
+        ),
+        secondary_y=False
+    )
+
+    # Kümülatif yüzde
+    fig.add_trace(
+        go.Scatter(
+            x=konum,
+            y=df["Kümülatif Pay (%)"],
+            mode="lines+markers",
+            line=dict(
+                color="#EF4444",
+                width=3
+            ),
+            marker=dict(size=8),
+            customdata=detay,
+            name="Kümülatif pay",
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Kümülatif pay: %%{customdata[3]}"
+                "<extra></extra>"
+            )
+        ),
+        secondary_y=True
+    )
+
+    # Eşikler - üst üste binen etiket yok
+    for esik, renk, ad in (
+        (a_sinir, "#F59E0B", "A eşiği"),
+        (b_sinir, "#10B981", "B eşiği")
+    ):
+        fig.add_trace(
+            go.Scatter(
+                x=[0, max(n - 1, 0)],
+                y=[esik, esik],
+                mode="lines",
+                line=dict(
+                    color=renk,
+                    width=2,
+                    dash="dash"
+                ),
+                name=f"{ad} (%{esik})",
+                hoverinfo="skip"
+            ),
+            secondary_y=True
+        )
+
+    # Çok ürün varsa eksen etiketlerini seyrekleştir
+    adim = max(1, math.ceil(n / 18))
+    gosterilen = list(range(0, n, adim))
+
+    # Sol eksen için okunaklı sayı aralıkları
+    en_buyuk = float(
+        df["Yıllık Değer (TL)"].max()
+    )
+
+    ham_adim = max(en_buyuk / 5, 0.01)
+
+    derece = 10 ** math.floor(
+        math.log10(ham_adim)
+    )
+
+    guzel_adim = next(
+        (
+            f * derece
+            for f in (1, 2, 2.5, 5, 10)
+            if f * derece >= ham_adim
+        ),
+        10 * derece
+    )
+
+    ust = math.ceil(
+        en_buyuk / guzel_adim
+    ) * guzel_adim
+
+    tikler = [
+        i * guzel_adim
+        for i in range(
+            int(round(ust / guzel_adim)) + 1
+        )
+    ]
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=540,
+        hovermode="closest",
+        margin=dict(
+            l=55,
+            r=60,
+            t=35,
+            b=95
+        ),
+        legend=dict(
+            orientation="h",
+            x=0,
+            y=-0.27
+        ),
+        bargap=0.22
+    )
+
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=gosterilen,
+        ticktext=[
+            df.loc[i, "Ürün"]
+            for i in gosterilen
+        ],
+        tickangle=-25,
+        title_text="Ürünler"
+    )
+
+    fig.update_yaxes(
+        title_text="Yıllık tüketim değeri (TL)",
+        range=[0, ust * 1.08],
+        tickmode="array",
+        tickvals=tikler,
+        ticktext=[
+            tr_sayi(x, 0) for x in tikler
+        ],
+        secondary_y=False
+    )
+
+    fig.update_yaxes(
+        title_text="Kümülatif pay (%)",
+        range=[0, 110],
+        tickmode="array",
+        tickvals=[0, 20, 40, 60, 80, 100],
+        ticktext=[
+            f"%{x}"
+            for x in (0, 20, 40, 60, 80, 100)
+        ],
+        secondary_y=True
+    )
+
+    return fig
 
 
 # ==========================================
@@ -304,31 +512,88 @@ def analiz_yap(veriler, a_esigi, b_esigi):
 st.title("📊 ABC Stok Analiz Sistemi")
 
 st.caption(
-    "Endüstri Mühendisliği · "
-    "Envanter Yönetimi ve Karar Destek · v0.7"
+    "Envanter Yönetimi ve Karar Destek "
+    "| BarisDevLab · v0.8"
 )
 
-# Yan menü
 with st.sidebar:
 
     st.header("⚙️ Analiz Ayarları")
 
-    a_esigi = st.slider(
+    a_sinir = st.slider(
         "A grubu sınırı (%)",
         50, 90, 80
     )
 
-    b_esigi = st.slider(
+    b_sinir = st.slider(
         "B grubu bitiş sınırı (%)",
-        a_esigi + 1,
+        a_sinir + 1,
         100,
-        max(95, a_esigi + 1)
+        max(95, a_sinir + 1)
     )
 
-    st.caption(
-        "Eşiği aşan ürün başladığı grupta "
-        "tutulur. Gerçekleşen grup payları "
-        "eşiklerden farklı olabilir."
+    st.info(
+        "Sınırı aşan ürün başladığı grupta kalır. "
+        "Grup payları eşiklerle birebir aynı "
+        "olmayabilir."
+    )
+
+
+# ==========================================
+# ABC ANALİZİ TANITIMI
+# ==========================================
+
+st.subheader("📖 ABC Analizi Nedir?")
+
+st.write(
+    "ABC analizi, stok kalemlerini "
+    "**yıllık tüketim değerlerine** göre "
+    "önceliklendiren bir envanter yönetimi "
+    "yöntemidir. Amaç, yönetim zamanını ve "
+    "kontrol kaynaklarını ekonomik etkisi "
+    "daha yüksek ürünlere yönlendirmektir."
+)
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.info(
+        "**A grubu — yüksek öncelik**\n\n"
+        "Toplam yıllık değerin yaklaşık "
+        "ilk %80'ine katkı yapan ürünler."
+    )
+
+with c2:
+    st.warning(
+        "**B grubu — orta öncelik**\n\n"
+        "Kümülatif değerde yaklaşık "
+        "%80–95 arasındaki ürünler."
+    )
+
+with c3:
+    st.success(
+        "**C grubu — düşük öncelik**\n\n"
+        "Kümülatif değerin son yaklaşık "
+        "%5'lik kısmındaki ürünler."
+    )
+
+with st.expander(
+    "Hesaplama yöntemi ve sonuçları nasıl yorumlamalıyım?"
+):
+    st.markdown(
+        "**Yıllık tüketim değeri = "
+        "Yıllık tüketim miktarı × Birim fiyat.** "
+        "Ürünler bu değere göre büyükten küçüğe "
+        "sıralanır, toplam içindeki payları ve "
+        "kümülatif yüzdeleri hesaplanır. "
+        "Varsayılan sınıflandırma sınırları "
+        "%80 ve %95'tir; soldaki panelden "
+        "değiştirebilirsiniz. Sınırı aşan ürün "
+        "başladığı grupta tutulur. "
+        "ABC analizi tek başına stok miktarını "
+        "veya sipariş zamanını belirlemez; "
+        "kritiklik, talep değişkenliği ve "
+        "tedarik süresi ayrıca değerlendirilmelidir."
     )
 
 
@@ -336,15 +601,21 @@ with st.sidebar:
 # VERİ YÜKLEME
 # ==========================================
 
+st.divider()
 st.subheader("📁 Veri Yükleme")
 
-# Boş Excel şablonu
-sablon = pd.DataFrame(columns=GEREKLI)
+st.caption(
+    "Excel şablonundaki sütun adlarını "
+    "değiştirmeyin. Miktar ve fiyat "
+    "alanlarına sayı girin."
+)
+
+bos_sablon = pd.DataFrame(columns=SUTUNLAR)
 
 st.download_button(
-    label="📥 Boş Excel şablonunu indir",
-    data=excel_dosyasi(
-        sablon,
+    "📥 Boş Excel şablonunu indir",
+    data=excel_uret(
+        bos_sablon,
         "Stok Şablonu"
     ),
     file_name="stok_sablonu.xlsx",
@@ -352,248 +623,132 @@ st.download_button(
 )
 
 dosya = st.file_uploader(
-    "Analiz için Excel (.xlsx) "
-    "veya CSV (.csv) yükleyin",
+    "Excel (.xlsx) veya CSV (.csv) "
+    "dosyanızı yükleyin",
     type=["xlsx", "csv"]
 )
 
-# Dosya yoksa burada dur.
-# Henüz analiz, KPI veya grafik gösterme.
+# Veri yüklenmemişse sonuç gösterme
 if dosya is None:
-
     st.info(
         "Henüz veri yüklenmedi. "
-        "Boş Excel şablonunu indirip "
-        "doldurabilir veya kendi "
-        "stok dosyanı yükleyebilirsin."
+        "Analize başlamak için "
+        "stok dosyanızı yükleyin."
     )
-
     st.stop()
 
-
-# ==========================================
-# DOSYAYI ANALİZ ET
-# ==========================================
-
 try:
-    veriler = veri_oku(dosya)
-
-    df, toplam = analiz_yap(
-        veriler,
-        a_esigi,
-        b_esigi
+    df, toplam = abc_analizi(
+        dosya_oku(dosya),
+        a_sinir,
+        b_sinir
     )
 
-except Exception as hata:
+except (
+    ValueError,
+    KeyError,
+    pd.errors.ParserError,
+    OSError
+) as hata:
     st.error(
         f"Dosya analiz edilemedi: {hata}"
     )
     st.stop()
 
+except Exception as hata:
+    st.error(
+        "Dosya işlenirken beklenmeyen "
+        f"bir sorun oluştu: {hata}"
+    )
+    st.stop()
+
 st.success(
-    f"{dosya.name} yüklendi; "
-    f"{len(df)} ürün analiz edildi."
+    f"{len(df)} ürün analiz edildi. "
+    f"Veri kaynağı: {dosya.name}"
 )
 
 
 # ==========================================
-# KPI GÖSTERGELERİ
+# GENEL STOK ÖZETİ
 # ==========================================
 
 st.divider()
 st.subheader("📈 Genel Stok Özeti")
 
-kolonlar = st.columns(5)
+kartlar = st.columns(5)
 
-kolonlar[0].metric(
-    "Toplam Yıllık Değer",
-    f"{toplam:,.2f} TL"
+kartlar[0].metric(
+    "Toplam yıllık değer",
+    f"{tr_sayi(toplam)} TL"
 )
 
-kolonlar[1].metric(
-    "Ürün Sayısı",
+kartlar[1].metric(
+    "Ürün sayısı",
     len(df)
 )
 
-for kolon, grup in zip(
-    kolonlar[2:],
+for kart, grup in zip(
+    kartlar[2:],
     ("A", "B", "C")
 ):
-    sayi = int(
-        (df["ABC Grubu"] == grup).sum()
-    )
-
-    kolon.metric(
-        f"{grup} Grubu",
-        sayi
+    kart.metric(
+        f"{grup} grubu",
+        int((df["ABC Grubu"] == grup).sum())
     )
 
 
 # ==========================================
-# ABC SINIFLANDIRMA TABLOSU
+# SINIFLANDIRMA TABLOSU
 # ==========================================
 
 st.divider()
 st.subheader("📋 ABC Sınıflandırma Tablosu")
 
 st.dataframe(
-    df,
-    hide_index=True,
-    width="stretch",
-    column_config={
-        "Birim Fiyat (TL)":
-            st.column_config.NumberColumn(
-                "Birim Fiyat (TL)",
-                format="%.2f"
-            ),
-
-        "Yıllık Değer (TL)":
-            st.column_config.NumberColumn(
-                "Yıllık Değer (TL)",
-                format="%.2f"
-            ),
-
-        "Değer Payı (%)":
-            st.column_config.NumberColumn(
-                "Değer Payı (%)",
-                format="%.2f"
-            ),
-
-        "Kümülatif Pay (%)":
-            st.column_config.NumberColumn(
-                "Kümülatif Pay (%)",
-                format="%.2f"
+    df.style.format({
+        "Yıllık Tüketim": (
+            lambda x: (
+                tr_sayi(x, 0)
+                if float(x).is_integer()
+                else tr_sayi(x)
             )
-    }
-)
-
-
-# ==========================================
-# ETKİLEŞİMLİ PARETO GRAFİĞİ
-# ==========================================
-
-st.divider()
-st.subheader("📊 Etkileşimli Pareto Grafiği")
-
-fig = make_subplots(
-    specs=[[{"secondary_y": True}]]
-)
-
-konumlar = list(range(len(df)))
-
-# ABC gruplarına göre renkli sütunlar
-fig.add_trace(
-    go.Bar(
-        x=konumlar,
-        y=df["Yıllık Değer (TL)"],
-        marker_color=(
-            df["ABC Grubu"]
-            .map(RENK)
-            .tolist()
         ),
-        customdata=df[
-            ["Ürün", "ABC Grubu"]
-        ].to_numpy(),
-        name="Yıllık tüketim değeri",
-        hovertemplate=(
-            "<b>%{customdata[0]}</b><br>"
-            "Değer: %{y:,.2f} TL<br>"
-            "Grup: %{customdata[1]}"
-            "<extra></extra>"
-        )
-    ),
-    secondary_y=False
-)
-
-# Kümülatif yüzde çizgisi
-fig.add_trace(
-    go.Scatter(
-        x=konumlar,
-        y=df["Kümülatif Pay (%)"],
-        mode="lines+markers",
-        line=dict(
-            color="#EF4444",
-            width=3
-        ),
-        marker=dict(size=8),
-        name="Kümülatif pay",
-        customdata=df["Ürün"],
-        hovertemplate=(
-            "%{customdata}: %{y:.2f}%"
-            "<extra></extra>"
-        )
-    ),
-    secondary_y=True
-)
-
-# A ve B eşik çizgileri
-for esik, renk, etiket in (
-    (a_esigi, "#F59E0B", "A sınırı"),
-    (b_esigi, "#10B981", "B sınırı")
-):
-    fig.add_hline(
-        y=esik,
-        line_dash="dash",
-        line_color=renk,
-        annotation_text=f"{etiket}: %{esik}",
-        annotation_position="top left",
-        secondary_y=True
-    )
-
-# Genel grafik tasarımı
-fig.update_layout(
-    template="plotly_dark",
-    height=540,
-    hovermode="x unified",
-    margin=dict(
-        l=35,
-        r=35,
-        t=45,
-        b=95
-    ),
-    legend=dict(
-        orientation="h",
-        y=-0.24,
-        x=0.5,
-        xanchor="center"
-    )
-)
-
-# Ürün isimleri
-fig.update_xaxes(
-    tickmode="array",
-    tickvals=konumlar,
-    ticktext=df["Ürün"].tolist(),
-    tickangle=-25,
-    title_text="Ürünler"
-)
-
-# Sol eksen: otomatik sayı aralığı
-fig.update_yaxes(
-    title_text="Yıllık Tüketim Değeri (TL)",
-    rangemode="tozero",
-    nticks=6,
-    tickformat=",.0f",
-    secondary_y=False
-)
-
-# Sağ eksen: yüzde
-fig.update_yaxes(
-    title_text="Kümülatif Pay (%)",
-    range=[0, 110],
-    dtick=20,
-    ticksuffix="%",
-    secondary_y=True
-)
-
-st.plotly_chart(
-    fig,
+        "Birim Fiyat (TL)":
+            lambda x: tr_sayi(x),
+        "Yıllık Değer (TL)":
+            lambda x: tr_sayi(x),
+        "Değer Payı (%)":
+            lambda x: f"%{tr_sayi(x)}",
+        "Kümülatif Pay (%)":
+            lambda x: f"%{tr_sayi(x)}"
+    }),
+    hide_index=True,
     width="stretch"
 )
 
 
 # ==========================================
-# ABC GRUP DAĞILIMI
+# PARETO GRAFİĞİ
+# ==========================================
+
+st.divider()
+st.subheader("📊 Etkileşimli Pareto Grafiği")
+
+st.caption(
+    "Mavi: A · Turuncu: B · Yeşil: C. "
+    "Sütunlara veya çizgiye gelerek "
+    "değerleri inceleyebilirsiniz."
+)
+
+st.plotly_chart(
+    pareto_grafigi(df, a_sinir, b_sinir),
+    width="stretch",
+    theme=None
+)
+
+
+# ==========================================
+# GRUP DAĞILIMI
 # ==========================================
 
 st.divider()
@@ -603,9 +758,7 @@ ozet = df.groupby(
     "ABC Grubu",
     as_index=False
 ).agg(**{
-    "Ürün Sayısı": (
-        "Ürün", "count"
-    ),
+    "Ürün Sayısı": ("Ürün", "count"),
     "Toplam Değer (TL)": (
         "Yıllık Değer (TL)", "sum"
     )
@@ -617,7 +770,12 @@ ozet["Değer Payı (%)"] = (
 )
 
 st.dataframe(
-    ozet,
+    ozet.style.format({
+        "Toplam Değer (TL)":
+            lambda x: tr_sayi(x),
+        "Değer Payı (%)":
+            lambda x: f"%{tr_sayi(x)}"
+    }),
     hide_index=True,
     width="stretch"
 )
@@ -628,57 +786,51 @@ st.dataframe(
 # ==========================================
 
 st.divider()
+st.subheader("🔎 Mühendislik Değerlendirmesi")
 
-st.subheader(
-    "🔎 Mühendislik Değerlendirmesi"
-)
-
-a_grubu = df[
+a_urunler = df.loc[
     df["ABC Grubu"] == "A"
 ]
 
-a_payi = (
-    a_grubu["Yıllık Değer (TL)"].sum()
+a_oran = (
+    a_urunler["Yıllık Değer (TL)"].sum()
     / toplam * 100
 )
 
 st.info(
-    f"A grubunda {len(a_grubu)} ürün bulunuyor. "
-    f"Bu ürünler yıllık toplam değerin "
-    f"%{a_payi:.2f} kısmını oluşturuyor."
+    f"A grubunda {len(a_urunler)} ürün "
+    f"bulunuyor. Bu ürünlerin toplam "
+    f"yıllık değer payı %{tr_sayi(a_oran)}."
 )
 
 st.write(
-    "**A grubu:** Daha sık kontrol "
-    "ve ayrıntılı tedarik planlaması."
+    "**A grubu:** Sıkı kontrol, talep ve "
+    "tedarik takibi.\n\n"
+    "**B grubu:** Periyodik kontrol.\n\n"
+    "**C grubu:** Daha basit kontrol politikaları."
 )
 
-st.write(
-    "**B grubu:** Orta düzey stok takibi."
-)
-
-st.write(
-    "**C grubu:** Daha basit stok kontrolü."
+st.caption(
+    "Bu öneriler genel niteliktedir; "
+    "kritik parçalarda tedarik riski ve "
+    "duruş maliyeti de değerlendirilmelidir."
 )
 
 
 # ==========================================
-# EXCEL RAPORU
+# RAPOR İNDİRME
 # ==========================================
 
 st.divider()
-st.subheader("📥 Analiz Raporu")
+st.subheader("📥 Raporu İndir")
 
 st.download_button(
-    label="📗 Biçimlendirilmiş Excel raporunu indir",
-    data=excel_dosyasi(
-        df,
-        "ABC Analizi"
-    ),
+    "📗 Biçimlendirilmiş Excel analiz raporunu indir",
+    data=excel_uret(df, "ABC Analizi"),
     file_name="abc_analiz_raporu.xlsx",
     mime=MIME
 )
 
 st.caption(
-    "BarisDevLab · ABC Stok Analizi v0.7"
+    "BarisDevLab · ABC Stok Analiz Sistemi · v0.8"
 )
