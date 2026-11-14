@@ -1,21 +1,12 @@
+# Local backups and generated test outputs
+backups/
+artifacts/
 
-# Python
+# Temporary development scripts
+browser_check.py
+modernize.py
+polish.py
+
+# Python cache
 __pycache__/
 *.pyc
-.venv/
-venv/
-
-# Gizli bilgiler
-.env
-.env.*
-.streamlit/secrets.toml
-
-# VS Code
-.vscode/
-
-# Eski sürüm yedeği
-app_v05.py
-
-# Sistem dosyaları
-.DS_Store
-Thumbs.db
