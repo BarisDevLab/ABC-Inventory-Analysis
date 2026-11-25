@@ -1,10 +1,12 @@
 # ABC Stok Analiz Sistemi
 
-**Python ve Streamlit ile stok önceliklendirme ve karar desteği.**
+**React ve TypeScript ile tarayıcıda çalışan stok önceliklendirme ve karar desteği.**
 
 Excel veya CSV biçimindeki stok verilerinizi ABC sınıflandırmasına dönüştürün, yıllık tüketim değerini hangi ürünlerin oluşturduğunu inceleyin ve biçimlendirilmiş bir Excel raporu hazırlayın. Endüstri mühendisliği alanında bir portföy projesi olarak geliştirilen bu uygulama, etkileşimli analizi yöntemi açıklayan eğitici bir rehberle birleştirir.
 
-**[Canlı uygulamayı aç](https://barisdevlab-abc-analysis.streamlit.app)** · **[GitHub deposunu incele](https://github.com/BarisDevLab/ABC-Inventory-Analysis)**
+**[Canlı uygulamayı aç](https://abc-inventory-analysis.vercel.app)** · **[GitHub deposunu incele](https://github.com/BarisDevLab/ABC-Inventory-Analysis)**
+
+Güncel sürüm **React + TypeScript + Vite** altyapısıyla geliştirilmiş, **Vercel** üzerinde yayımlanan statik bir web uygulamasıdır. ABC hesaplamaları, CSV/Excel okuma ve Excel raporu üretimi tarayıcıda gerçekleşir; kullanıcı dosyaları analiz amacıyla sunucuya gönderilmez. Python/Streamlit sürümü, geçmiş uygulama ve hesaplama referansı olarak depoda korunur.
 
 Arayüz ve öğrenme rehberi **Türkçedir**; Türkçe sayı biçimleri kullanılır ve fiyatlar Türk lirası (TL) cinsinden gösterilir. Dosya hazırlamadan uygulamayı incelemek için canlı uygulamayı açıp hazır örnek veri setini yükleyen **Örnek veriyle dene** seçeneğini kullanın.
 
@@ -19,11 +21,11 @@ Arayüz ve öğrenme rehberi **Türkçedir**; Türkçe sayı biçimleri kullanı
 - **Excel raporlama:** Ürün bazlı sonuçları, grup özetini ve uygulanan sınıflandırma hedeflerini biçimlendirilmiş bir Excel çalışma kitabına aktarın.
 - **ABC öğrenme rehberi:** Formülleri, beş hesaplama adımını, iki çözümlü örneği, mühendislik uygulamalarını ve yöntemin sınırlamalarını dört sekmede inceleyin.
 
-Yüklenen veriler ve uygulanan hedefler, **aynı Streamlit oturumu içinde** analiz paneli ile rehber arasında geçiş yaparken korunur. Bu, kalıcı depolama değil, oturum durumudur; yeni bir oturum açılması veya sunucunun yeniden başlatılması bu bilgileri sıfırlayabilir.
+Yüklenen veriler ve uygulanan hedefler, analiz paneli ile rehber arasında geçiş yaparken **React belleğinde** korunur. Dosya içeriği kalıcı tarayıcı depolamasına yazılmaz; sayfa yenilendiğinde veya yeni sekme açıldığında analiz sıfırlanır. İlk açılışta demo kendiliğinden yüklenmez. Dosya işleme, yeniden hesaplama ve Excel raporlama için Web Worker kullanılır; büyük sonuç tabloları 50 satırlık sayfalarda gösterilir. Excel raporu, Pareto filtrelerinden ve tablo sayfalamasından bağımsız olarak tüm ürünleri içerir.
 
 ## Ekran görüntüleri
 
-Görüntüler, örnek stok verileriyle yapılan yerel Chrome testlerinde alınmıştır. Bu depoda saklanırlar ve harici bir görsel barındırma hizmetine bağlı değildirler.
+Görüntüler, önceki Streamlit sürümünün örnek stok verileriyle yapılan yerel Chrome testlerinden korunmuştur; güncel React arayüzünün birebir ekran görüntüleri değildir. Bu depoda saklanırlar ve harici bir görsel barındırma hizmetine bağlı değildirler. Güncel arayüzü [canlı uygulamada](https://abc-inventory-analysis.vercel.app) inceleyebilirsiniz.
 
 ### Analiz paneli
 
@@ -47,19 +49,45 @@ Yöntem, hesaplamalar, çözümlü örnekler ve mühendislik uygulamaları için
 
 | Teknoloji | Kullanım amacı |
 |---|---|
-| **Python** | Uygulama mantığı, doğrulama ve ABC hesaplamaları |
-| **Streamlit** | Web arayüzü, sayfalar arası gezinme, dosya yükleme ve oturum durumu |
-| **Pandas** | Verileri okuma, sıralama, değer hesaplamaları ve grup özetleri |
+| **React** | Bileşen tabanlı Türkçe arayüz, gezinme ve bellek içi veri durumu |
+| **TypeScript** | Saf ABC hesaplama çekirdeği, doğrulama ve tür güvenliği |
+| **Vite** | Yerel geliştirme ve statik üretim derlemesi |
+| **Vercel** | Güncel React uygulamasının barındırılması ve GitHub bağlantılı dağıtımı |
 | **Plotly** | Etkileşimli Pareto ve dağılım grafikleri, bilgi kutuları ve PNG dışa aktarma |
-| **openpyxl** | Excel okuma ve biçimlendirilmiş çalışma kitabı oluşturma |
+| **ExcelJS** | Tarayıcıda XLSX okuma, biçimlendirilmiş rapor ve boş şablon üretimi |
+| **Vitest ve Testing Library** | Çekirdek, dosya, rapor ve React entegrasyon testleri |
+| **Python, Pandas ve openpyxl** | Korunan Python sürümü, karşılaştırmalı hesaplama ve bağımsız Excel doğrulaması |
+| **Streamlit** | Depoda korunan önceki web uygulaması |
 
 Matplotlib, `main.py` içindeki bağımsız konsol örneği için korunmuştur; web uygulamasının grafikleri Plotly ile oluşturulur.
 
 ## Yerel kurulum ve çalıştırma
 
+### Güncel React sürümü
+
+**Node.js 24.11.1 veya üzeri bir 24.x sürümü** ve npm kullanın. Kilitli bağımlılıkları geliştirme bağımlılıklarıyla birlikte kurun:
+
+```bash
+git clone https://github.com/BarisDevLab/ABC-Inventory-Analysis.git
+cd ABC-Inventory-Analysis/vercel-app
+npm ci
+npm run dev
+```
+
+Vite'ın terminalde gösterdiği adresi açın. Üretim çıktısını yerel olarak kontrol etmek için:
+
+```bash
+npm run build
+npm run preview
+```
+
+`predev` ve `prebuild` adımları güvenli ExcelJS tarayıcı paketini kaynaklardan üretir; üretilen dosyalar Git'e eklenmez. Vercel ayarları: **Root Directory `vercel-app`**, **Vite**, **Node.js 24.x**, kurulum **`npm ci`**, derleme **`npm run build`**, çıktı **`dist`**. Ayrıntılar ve uyumluluk sınırları için [React sürümü belgelerine](vercel-app/README.md) bakın.
+
+### Korunan Python/Streamlit sürümü
+
 Yerel doğrulamada kullanılan Python **3.12** sürümüyle birlikte pip paket yöneticisini kullanın. Bağımlılık sürüm aralıkları [`requirements.txt`](requirements.txt) dosyasında tanımlıdır.
 
-### 1. Depoyu klonlayın ve sanal ortam oluşturun
+#### 1. Depoyu klonlayın ve sanal ortam oluşturun
 
 ```bash
 git clone https://github.com/BarisDevLab/ABC-Inventory-Analysis.git
@@ -69,7 +97,7 @@ python -m venv .venv
 
 Sisteminizde Python'a `python3` komutuyla erişiliyorsa `python` yerine `python3` kullanın.
 
-### 2. Sanal ortamı etkinleştirin
+#### 2. Sanal ortamı etkinleştirin
 
 Windows PowerShell:
 
@@ -83,14 +111,14 @@ macOS / Linux:
 source .venv/bin/activate
 ```
 
-### 3. Bağımlılıkları yükleyin ve Streamlit'i başlatın
+#### 3. Bağımlılıkları yükleyin ve Streamlit'i başlatın
 
 ```bash
 python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-Streamlit'in terminalde gösterdiği yerel adresi açın. **Web uygulamasının giriş dosyası `app.py` dosyasıdır**; `main.py` ayrı bir konsol/Matplotlib örneğidir.
+Streamlit'in terminalde gösterdiği yerel adresi açın. **Önceki Streamlit uygulamasının giriş dosyası `app.py` dosyasıdır**; güncel React sürümü `vercel-app/` altındadır. `main.py` ayrı bir konsol/Matplotlib örneğidir.
 
 ## Kullanım
 
@@ -142,6 +170,15 @@ ABC analizi ekonomik önemi ölçer. Stok kararlarında tedarik süreleri, talep
 ## Proje yapısı
 
 ```text
+vercel-app/                 # Güncel React + TypeScript + Vite uygulaması
+  src/core/                 # Python referanslarıyla karşılaştırılan ABC çekirdeği
+  src/io/                   # Tarayıcıda CSV/XLSX okuma ve doğrulama
+  src/export/               # Excel raporu, şablon ve indirme worker'ı
+  src/components/           # Analiz paneli, tablolar ve dört sekmeli rehber
+  src/charts/               # Plotly grafikleri ve etkileşimleri
+  tests/                    # Otomatik testler ve sentetik referans veriler
+  scripts/                  # ExcelJS derlemesi ve doğrulama araçları
+  package-lock.json         # Kilitli npm bağımlılıkları
 app.py                      # Streamlit analiz paneli ve oturum akışı
 abc_core.py                 # Veri doğrulama, sınıflandırma, yorumlar ve Excel çıktısı
 abc_charts.py               # Plotly grafikleri ve grafik ayarları
@@ -156,6 +193,34 @@ main.py                     # Bağımsız konsol/Matplotlib örneği
 ```
 
 ## Test ve doğrulama
+
+### Güncel React sürümü — 25 Kasım 2026
+
+Depo dizin yapısını koruyarak `vercel-app/` içinde çalıştırın; üç referans testi üst klasördeki `abc_core.py` dosyasının kaynak hash'ini de doğrular:
+
+```bash
+cd vercel-app
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
+
+| Kontrol | Doğrulanmış sonuç |
+|---|---|
+| Temiz kurulum ve ExcelJS paketinin yeniden üretimi | Başarılı; paket ve lisans çıktılarının SHA-256 değerleri eşleşti |
+| Otomatik testler | **299 başarılı, 0 başarısız** |
+| TypeScript kontrolü ve Vite üretim derlemesi | Başarılı |
+| Bağımsız Excel doğrulaması | **17 dosya başarılı** |
+| Canlı uygulamada gerçek Chrome kontrolleri | **48 başarılı, 0 hata** |
+| GitHub Actions Python kontrolleri | Başarılı |
+| Vercel otomatik dağıtımı | Başarılı |
+
+Otomatik testler; Python referanslarıyla ABC hesaplamalarını, sınır değerlerini, Türkçe sayı/karakter işlemlerini, CSV/XLSX doğrulamasını, Excel raporu ve formül güvenliğini, React akışlarını ve grafik yaşam döngüsünü kapsar. Canlı Chrome kontrollerinde ABC analizi, hedefler, filtreleme, yakınlaştırma/kaydırma/sıfırlama, dört rehber sekmesi, sayfalar arası veri korunması, masaüstü/tablet/mobil emülasyon ve gerçek Excel/PNG indirmeleri sınandı. Canlıdan indirilen raporda üç sayfa, beş ürün, 304.000 TL toplam ve %80/%15/%5 hedefleri ayrıca doğrulandı; boş şablon yalnızca başlıklardan oluştu.
+
+5.000 ürünlük yerel ölçümde en uzun ana iş parçacığı görevi **498 ms'den 147 ms'ye**, dosyadan grafiğe süre **1.075 ms'den 259 ms'ye** düştü. Bunlar cihazlar arası performans garantisi değildir. Mobil emülasyon gerçek telefon/Safari testinin yerini tutmaz. Üretim bağımlılıklarının son npm taramasında bildirim yoktur; geliştirme araç zincirinde uygulama paketine girmeyen **dört düşük seviyeli bildirim** ve Vite'ın büyük parça uyarısı sürer. Bilinen beş dosya davranışı farkı, LF/CRLF kaynak-hash sınırı ve ayrıntılı sonuçlar [React README'sinde](vercel-app/README.md) belgelenmiştir.
+
+### Korunan Python/Streamlit testleri
 
 Mevcut test paketini proje kök klasöründe çalıştırın:
 
