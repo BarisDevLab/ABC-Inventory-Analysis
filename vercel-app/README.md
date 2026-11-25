@@ -4,6 +4,20 @@ React + TypeScript + Vite tabanlı, tamamen tarayıcıda çalışan Türkçe sto
 
 ## Güncel kalite ve güvenlik durumu — 25 Kasım 2026
 
+### Üretim güvenlik başlıkları
+
+`vercel.json`, tüm yollar için uygulanan güvenlik politikasının tek kaynağıdır. Vite üretim önizlemesi aynı başlıkları kullanır; geliştirme sunucusunun HMR akışı değiştirilmez.
+
+- CSP: `default-src 'none'`, yalnızca aynı kaynaktan betikler, `connect-src 'none'`, yalnızca aynı kaynaktan worker'lar. `unsafe-eval`, satır içi betik, blob-worker veya üçüncü taraf kaynak izni yoktur. PNG için `img-src` içinde `data:`/`blob:` gereklidir.
+- Plotly dinamik CSSOM kuralları için boş bir `<style>` düğümü oluşturur. Yalnızca boş metnin SHA-256 hash'i yetkilendirilir; genel satır içi stil bloğu izni verilmez. Grafikler ve SVG/PNG oluşturma için dinamik stil öznitelikleri `style-src-attr 'unsafe-inline'` ile sınırlı olarak açılır. Bu istisna betik çalıştırma izni değildir; kullanıcı metinleri yine kaçışlanır.
+- Çerçeveleme: `frame-ancestors 'none'`, `frame-src 'none'` ve `X-Frame-Options: DENY`. Eklentiler, form gönderimi ve temel URL değişikliği kapalıdır.
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`; kamera, mikrofon, konum, ekran yakalama ve gereksiz cihaz izinlerini kapatan Permissions-Policy kullanılır. Vercel'in mevcut HSTS başlığı değiştirilmez; CSP güvenli olmayan kaynakları HTTPS'e yükseltir.
+- Excel korumaları: 20 MiB giriş, 100 MiB bildirilen **ve gerçek açılmış ZIP boyutu**, 10.000 ZIP girdisi, 100.000 satır, 1.000 sütun, 1.000.000 hücre; şifreli/uyumsuz ZIP kontrolleri, 120 saniyelik worker zaman aşımı ve iptal/sonlandırma. 100 MiB sınırı toplam tarayıcı belleğinin üst sınırı değildir; XML/nesne oluşturma daha fazla bellek tüketebilir. Karmaşık dosyalarda kaynak tüketimi riski sürer.
+
+`scripts/browser_review.mjs`, varsayılan olarak yalnızca localhost'u; açıkça onaylanmış canlı testte `ABC_REVIEW_URL=https://abc-inventory-analysis.vercel.app` ile yalnızca bu üretim adresini kabul eder. Ayrı geçici profil kullanır. Sayfa ve worker isteklerinde yöntem, URL, gövde bulunup bulunmadığı ve gövde uzunluğu kaydedilir; istek gövdesinin içeriği kaydedilmez. Sentetik CSV/XLSX dosyalarıyla çalışır; gerçek kullanıcı dosyaları bu betiğe verilmemelidir. CSP ihlalleri, yanıt başlıkları, yükleme yöntemi/gövdesi ve sorgu parametresi içermeyen statik URL'ler ayrıca doğrulanır. Kayıtlar yalnızca Git dışında tutulan `.tmp/` dizinindedir.
+
+Başlıklar için beş yeni sözleşme testiyle toplam **304 otomatik test** bulunur. Önceki 299 test korunmuştur. İlk sıkı politika denemesi Plotly stil/zoom uyumsuzluğunu, ilk genişletilmiş ağ kaydı denemesi de worker denetim komutunun desteklenmediğini ortaya çıkardı; testler kapatılmadan politika dar stil istisnasıyla ve denetim betiği worker'a uygun kayıtla düzeltildi. Başarısız erken kayıtlar silinmedi.
+
 Aşağıdaki sonuçlar önceki aşamalardaki tarihli ölçümlerin yerini alır; eski sonuçlar ve dosya uyumluluğu sınırlamaları geçmiş kayıt olarak korunmuştur. Mevcut ABC algoritması, Excel rapor içeriği ve görsel tasarım değiştirilmedi.
 
 ### Güvenlik ve ExcelJS derlemesi

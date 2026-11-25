@@ -1,14 +1,17 @@
-// Explicitly approved localhost-only Chrome/Edge review. No browser download.
+// Explicitly approved local/production Chrome review. No browser download.
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { mkdir,readFile,writeFile,readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-const root=process.cwd(),base='http://127.0.0.1:4175';
-const run=resolve(root,'.tmp/ui-review',new Date().toISOString().replace(/[:.]/g,'-'));
+const root=process.cwd(),base=process.env.ABC_REVIEW_URL??'http://127.0.0.1:4175';
+if(!['http://127.0.0.1:4175','https://abc-inventory-analysis.vercel.app'].includes(base))throw new Error('Unapproved review origin');
+const production=base.startsWith('https:');
+const run=resolve(root,production?'.tmp/live-review':'.tmp/ui-review',new Date().toISOString().replace(/[:.]/g,'-'));
 await mkdir(resolve(run,'downloads'),{recursive:true});
 const checks=[],errors=[],requests=[],downloads=[],diagnostics=[];
-const result={run,checks,errors,requests,downloads,diagnostics};
+const networkRecords=[],responseHeaders=[];
+const result={run,base,checks,errors,requests,downloads,diagnostics,networkRecords,responseHeaders};
 const assert=(condition,message)=>{if(!condition)throw new Error(message);checks.push(message);};
 const port=await new Promise(done=>{const server=createServer();server.listen(0,'127.0.0.1',()=>{const port=server.address().port;server.close(()=>done(port));});});
 const browser=spawn(process.argv[2]??'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',[
@@ -16,7 +19,7 @@ const browser=spawn(process.argv[2]??'C:\\Program Files\\Google\\Chrome\\Applica
   `--user-data-dir=${resolve(run,'profile')}`,`--disk-cache-dir=${resolve(run,'cache')}`,`--crash-dumps-dir=${resolve(run,'crashes')}`,
   '--no-first-run','--no-default-browser-check','--disable-sync','--disable-background-networking','--disable-component-update','--disable-domain-reliability','--disable-breakpad',
   '--disable-features=Translate,MediaRouter,OptimizationHints,AutofillServerCommunication',
-  '--proxy-server=http://127.0.0.1:9','--proxy-bypass-list=localhost;127.0.0.1;[::1]',
+  ...(!production?['--proxy-server=http://127.0.0.1:9','--proxy-bypass-list=localhost;127.0.0.1;[::1]']:[]),
   '--window-size=1440,1000','about:blank',
 ],{windowsHide:true,stdio:['ignore','ignore','pipe'],env:{...process.env,TEMP:resolve(root,'.tmp'),TMP:resolve(root,'.tmp')}});
 let stderr='';browser.stderr.on('data',data=>{stderr+=data;});
@@ -40,14 +43,22 @@ try {
     if(event.method==='Runtime.consoleAPICalled'&&event.params.type==='error')diagnostics.push(event.params.args.map(arg=>arg.description??arg.value).join(' '));
     if(event.method==='Network.loadingFailed')diagnostics.push(event.params.errorText);
     if(event.method==='Target.attachedToTarget'){
-      void send('Network.enable',{},event.params.sessionId).catch(()=>{});
-      void send('Runtime.enable',{},event.params.sessionId).catch(()=>{});
+      void (async()=>{
+        try {
+          await send('Network.enable',{},event.params.sessionId);
+          await send('Runtime.enable',{},event.params.sessionId);
+        } finally { await send('Runtime.runIfWaitingForDebugger',{},event.params.sessionId); }
+      })().catch(error=>errors.push('Worker instrumentation: '+error.message));
     }
-    if(event.method==='Network.requestWillBeSent')requests.push(event.params.request.url);
+    if(event.method==='Network.requestWillBeSent'){
+      const request=event.params.request;requests.push(request.url);
+      networkRecords.push({url:request.url,method:request.method,resourceType:event.params.type,hasPostData:request.hasPostData??false,bodyBytes:request.postData?Buffer.byteLength(request.postData):0,worker:!!event.sessionId&&event.sessionId!==session});
+    }
+    if(event.method==='Network.responseReceived'&&event.params.type==='Document')responseHeaders.push(event.params.response.headers);
     if(event.method==='Browser.downloadWillBegin')downloads.push({filename:event.params.suggestedFilename,url:event.params.url});
     if(event.method==='Fetch.requestPaused'){
       const url=event.params.request.url;
-      const local=/^(http:\/\/127\.0\.0\.1:4175\/|blob:|data:)/.test(url);
+      const local=url.startsWith(base+'/')||/^(blob:|data:)/.test(url);
       void send(local?'Fetch.continueRequest':'Fetch.failRequest',{requestId:event.params.requestId,...(!local?{errorReason:'BlockedByClient'}:{})},event.sessionId).catch(()=>{});
       if(!local)errors.push('Blocked external request: '+url);
     }
@@ -55,7 +66,8 @@ try {
   await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:resolve(run,'downloads'),eventsEnabled:true},undefined);
   const target=await send('Target.createTarget',{url:'about:blank'},undefined);session=(await send('Target.attachToTarget',{targetId:target.targetId,flatten:true},undefined)).sessionId;
   await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Fetch.enable',{patterns:[{urlPattern:'http*',requestStage:'Request'}]});
-  await send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:false,flatten:true});
+  await send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true});
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__cspViolations=[];document.addEventListener('securitypolicyviolation',event=>window.__cspViolations.push({directive:event.effectiveDirective,blockedURI:event.blockedURI,disposition:event.disposition}));`});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__audit={longTasks:[],maxTimerDelay:0};let last=performance.now();setInterval(()=>{const now=performance.now();window.__audit.maxTimerDelay=Math.max(window.__audit.maxTimerDelay,now-last-50);last=now;},50);try{new PerformanceObserver(list=>{for(const entry of list.getEntries())window.__audit.longTasks.push(entry.duration);}).observe({entryTypes:['longtask']});}catch{}`});
   await viewport(1440,1000);await send('Page.navigate',{url:base});await wait("document.querySelector('.empty-state')");
   assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'First load has no automatic demo');
@@ -134,9 +146,16 @@ try {
   await click('Analizi temizle');assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'Clear returns to empty state');
   assert(errors.length===0,'No page runtime errors or blocked application requests');assert(!requests.some(url=>/^https?:/.test(url)&&!url.startsWith(base+'/')),'No external page requests');
   assert(!requests.some(url=>url.includes('exceljs.min')),'Old prebuilt ExcelJS bundle was never requested');
+  result.cspViolations=await evaluate('window.__cspViolations');
+  assert(result.cspViolations.length===0,'No CSP violations during real interaction and downloads');
+  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>['GET','HEAD'].includes(record.method)&&!record.hasPostData&&!record.bodyBytes),'No HTTP request bodies or upload methods in page and workers');
+  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
+  const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
+  assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
   result.success=true;
 }catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');await screenshot('failure');}catch{}}
 finally {
+  if(socket?.readyState===1){try{result.cspViolations=await evaluate('window.__cspViolations??[]');}catch{}}
   if(socket?.readyState===1){try{await send('Browser.close',{},undefined);}catch{}socket.close();}browser.kill();
   await writeFile(resolve(run,'review.json'),JSON.stringify(result,null,2));await writeFile(resolve(run,'browser-stderr.txt'),stderr);
   console.log(JSON.stringify({success:result.success,checks:checks.length,errors:errors.length,run,failure:result.failure},null,2));
