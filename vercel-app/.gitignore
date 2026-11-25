@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.tools/
+.tmp/
+.npm-cache/
+.vercel/
+src/generated/
+*.log
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

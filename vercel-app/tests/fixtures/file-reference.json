@@ -1,0 +1,985 @@
+{
+  "metadata": {
+    "core_sha256": "cb9ab4d38157c33e79c6889ef39392b10d5211721667b0514cd848b6a043365c",
+    "pandas": "3.1.1"
+  },
+  "cases": [
+    {
+      "name": "csv-utf-8-comma",
+      "filename": "csv-utf-8-comma.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-utf-8-semicolon",
+      "filename": "csv-utf-8-semicolon.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-utf-8-tab",
+      "filename": "csv-utf-8-tab.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-utf-8-sig-comma",
+      "filename": "csv-utf-8-sig-comma.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-utf-8-sig-semicolon",
+      "filename": "csv-utf-8-sig-semicolon.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-utf-8-sig-tab",
+      "filename": "csv-utf-8-sig-tab.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-cp1254-comma",
+      "filename": "csv-cp1254-comma.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-cp1254-semicolon",
+      "filename": "csv-cp1254-semicolon.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-cp1254-tab",
+      "filename": "csv-cp1254-tab.csv",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "csv-quotes",
+      "filename": "csv-quotes.csv",
+      "expected": {
+        "total": 11.0,
+        "products": [
+          "Rulman; büyük",
+          "Sensör \"özel\""
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          6.0,
+          5.0
+        ]
+      }
+    },
+    {
+      "name": "csv-quoted-newline",
+      "filename": "csv-quoted-newline.csv",
+      "expected": {
+        "total": 8.0,
+        "products": [
+          "İki\nsatır",
+          "Diğer"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          6.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-crlf",
+      "filename": "csv-crlf.csv",
+      "expected": {
+        "total": 4.0,
+        "products": [
+          "Motor",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          2.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-blank-lines",
+      "filename": "csv-blank-lines.csv",
+      "error": "CSV dosyası okunamadı. Sütun ayraçlarını ve satır uzunluklarını kontrol edin."
+    },
+    {
+      "name": "csv-internal-blank-lines",
+      "filename": "csv-internal-blank-lines.csv",
+      "expected": {
+        "total": 4.0,
+        "products": [
+          "Motor",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          2.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-missing-cell",
+      "filename": "csv-missing-cell.csv",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "csv-short-row",
+      "filename": "csv-short-row.csv",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "csv-late-long-row",
+      "filename": "csv-late-long-row.csv",
+      "error": "CSV dosyası okunamadı. Sütun ayraçlarını ve satır uzunluklarını kontrol edin."
+    },
+    {
+      "name": "csv-consistent-long-row",
+      "filename": "csv-consistent-long-row.csv",
+      "intentional_difference": "long-row",
+      "expected": {
+        "total": 36.0,
+        "products": [
+          "4",
+          "1"
+        ],
+        "groups": [
+          "A",
+          "B"
+        ],
+        "values": [
+          30.0,
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "csv-unclosed-quote",
+      "filename": "csv-unclosed-quote.csv",
+      "error": "CSV dosyası okunamadı. Sütun ayraçlarını ve satır uzunluklarını kontrol edin."
+    },
+    {
+      "name": "csv-quote-junk",
+      "filename": "csv-quote-junk.csv",
+      "error": "CSV dosyası okunamadı. Sütun ayraçlarını ve satır uzunluklarını kontrol edin."
+    },
+    {
+      "name": "csv-missing-header",
+      "filename": "csv-missing-header.csv",
+      "error": "Eksik sütunlar: Birim Fiyat (TL)"
+    },
+    {
+      "name": "csv-exact-duplicate-header",
+      "filename": "csv-exact-duplicate-header.csv",
+      "intentional_difference": "duplicate-header",
+      "expected": {
+        "total": 2.0,
+        "products": [
+          "a"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-trimmed-duplicate-header",
+      "filename": "csv-trimmed-duplicate-header.csv",
+      "error": "Tekrarlanan sütun başlıkları var."
+    },
+    {
+      "name": "csv-trimmed-headers",
+      "filename": "csv-trimmed-headers.csv",
+      "expected": {
+        "total": 2.0,
+        "products": [
+          "a"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-extra-column",
+      "filename": "csv-extra-column.csv",
+      "expected": {
+        "total": 8.0,
+        "products": [
+          "b",
+          "a"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          6.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-negative",
+      "filename": "csv-negative.csv",
+      "error": "'Yıllık Tüketim' negatif olamaz."
+    },
+    {
+      "name": "csv-inf",
+      "filename": "csv-inf.csv",
+      "error": "'Birim Fiyat (TL)' sütununda geçersiz sayı var."
+    },
+    {
+      "name": "csv-invalid-number",
+      "filename": "csv-invalid-number.csv",
+      "error": "'Yıllık Tüketim' sütununda geçersiz sayı var."
+    },
+    {
+      "name": "csv-blank-name",
+      "filename": "csv-blank-name.csv",
+      "error": "Ürün adı boş bırakılamaz."
+    },
+    {
+      "name": "csv-duplicate-product",
+      "filename": "csv-duplicate-product.csv",
+      "error": "Tekrarlanan ürün adları var. Her ürünü tek satırda belirtin."
+    },
+    {
+      "name": "csv-formats",
+      "filename": "csv-formats.csv",
+      "expected": {
+        "total": 7078.276,
+        "products": [
+          "a",
+          "c",
+          "b"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A"
+        ],
+        "values": [
+          3086.3999999999996,
+          2469.12,
+          1522.756
+        ]
+      }
+    },
+    {
+      "name": "csv-header-only",
+      "filename": "csv-header-only.csv",
+      "error": "Dosyada ürün bulunamadı."
+    },
+    {
+      "name": "csv-NA-values",
+      "filename": "csv-NA-values.csv",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "csv-literal-formula",
+      "filename": "csv-literal-formula.csv",
+      "expected": {
+        "total": 2.0,
+        "products": [
+          "=1+1"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "csv-nul",
+      "filename": "csv-nul.csv",
+      "intentional_difference": "nul",
+      "expected": {
+        "total": 2.0,
+        "products": [
+          "a\u0000b"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "empty",
+      "filename": "empty.csv",
+      "error": "Dosya boş. Başlıkları ve en az bir ürün satırını ekleyin."
+    },
+    {
+      "name": "whitespace",
+      "filename": "whitespace.csv",
+      "error": "Dosya boş. Başlıkları ve en az bir ürün satırını ekleyin."
+    },
+    {
+      "name": "invalid-encoding",
+      "filename": "invalid-encoding.csv",
+      "error": "CSV dosyasını UTF-8 olarak kaydedin."
+    },
+    {
+      "name": "unsupported",
+      "filename": "unsupported.xls",
+      "error": "Yalnızca Excel ve CSV dosyaları desteklenir."
+    },
+    {
+      "name": "unsupported-text",
+      "filename": "unsupported-text.txt",
+      "error": "Yalnızca Excel ve CSV dosyaları desteklenir."
+    },
+    {
+      "name": "xlsx-demo",
+      "filename": "xlsx-demo.xlsx",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-numbers",
+      "filename": "xlsx-numbers.xlsx",
+      "expected": {
+        "total": 2041.125,
+        "products": [
+          "Motor",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "C"
+        ],
+        "values": [
+          2035.125,
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-numeric-strings",
+      "filename": "xlsx-numeric-strings.xlsx",
+      "expected": {
+        "total": 3092.3999999999996,
+        "products": [
+          "Motor",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "C"
+        ],
+        "values": [
+          3086.3999999999996,
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-turkish-strings",
+      "filename": "xlsx-turkish-strings.xlsx",
+      "expected": {
+        "total": 4609.156,
+        "products": [
+          "Motor",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          3086.3999999999996,
+          1522.756
+        ]
+      }
+    },
+    {
+      "name": "xlsx-missing-cell",
+      "filename": "xlsx-missing-cell.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-empty-name",
+      "filename": "xlsx-empty-name.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-blank-name",
+      "filename": "xlsx-blank-name.xlsx",
+      "error": "Ürün adı boş bırakılamaz."
+    },
+    {
+      "name": "xlsx-header-only",
+      "filename": "xlsx-header-only.xlsx",
+      "error": "Dosyada ürün bulunamadı."
+    },
+    {
+      "name": "xlsx-missing-header",
+      "filename": "xlsx-missing-header.xlsx",
+      "error": "Eksik sütunlar: Birim Fiyat (TL)"
+    },
+    {
+      "name": "xlsx-exact-duplicate-header",
+      "filename": "xlsx-exact-duplicate-header.xlsx",
+      "intentional_difference": "duplicate-header",
+      "expected": {
+        "total": 6.0,
+        "products": [
+          "Motor"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-trimmed-duplicate-header",
+      "filename": "xlsx-trimmed-duplicate-header.xlsx",
+      "error": "Tekrarlanan sütun başlıkları var."
+    },
+    {
+      "name": "xlsx-extra-column",
+      "filename": "xlsx-extra-column.xlsx",
+      "expected": {
+        "total": 6.0,
+        "products": [
+          "Motor"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-duplicate-product",
+      "filename": "xlsx-duplicate-product.xlsx",
+      "error": "Tekrarlanan ürün adları var. Her ürünü tek satırda belirtin."
+    },
+    {
+      "name": "xlsx-negative",
+      "filename": "xlsx-negative.xlsx",
+      "error": "'Yıllık Tüketim' negatif olamaz."
+    },
+    {
+      "name": "xlsx-NA",
+      "filename": "xlsx-NA.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-only-na-row",
+      "filename": "xlsx-only-na-row.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-date-fraction",
+      "filename": "xlsx-date-fraction.xlsx",
+      "expected": {
+        "total": 6.0,
+        "products": [
+          "2024-01-02 13:14:15.123"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-date-midnight",
+      "filename": "xlsx-date-midnight.xlsx",
+      "expected": {
+        "total": 6.0,
+        "products": [
+          "2024-01-02"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-date-mixed-text",
+      "filename": "xlsx-date-mixed-text.xlsx",
+      "expected": {
+        "total": 8.0,
+        "products": [
+          "2024-01-02 13:14:15.123000",
+          "Motor"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          6.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-date-mixed-precision",
+      "filename": "xlsx-date-mixed-precision.xlsx",
+      "expected": {
+        "total": 8.0,
+        "products": [
+          "2024-01-02 13:14:15.123",
+          "2024-01-03 00:00:00.000"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          6.0,
+          2.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-formula-no-cache",
+      "filename": "xlsx-formula-no-cache.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-formula-cached",
+      "filename": "xlsx-formula-cached.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-formula-name-no-cache",
+      "filename": "xlsx-formula-name-no-cache.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-date-number",
+      "filename": "xlsx-date-number.xlsx",
+      "error": "'Yıllık Tüketim' sütununda geçersiz sayı var."
+    },
+    {
+      "name": "xlsx-date-name",
+      "filename": "xlsx-date-name.xlsx",
+      "expected": {
+        "total": 6.0,
+        "products": [
+          "2024-01-02 13:14:15"
+        ],
+        "groups": [
+          "A"
+        ],
+        "values": [
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-error",
+      "filename": "xlsx-error.xlsx",
+      "error": "Boş hücreler var. Lütfen bütün alanları doldurun."
+    },
+    {
+      "name": "xlsx-leading-zero-code",
+      "filename": "xlsx-leading-zero-code.xlsx",
+      "intentional_difference": "product-code-inference",
+      "expected": {
+        "total": 18.0,
+        "products": [
+          "2",
+          "1"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          12.0,
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-mixed-numeric-name",
+      "filename": "xlsx-mixed-numeric-name.xlsx",
+      "expected": {
+        "total": 18.0,
+        "products": [
+          "Motor",
+          "1"
+        ],
+        "groups": [
+          "A",
+          "A"
+        ],
+        "values": [
+          12.0,
+          6.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-first-sheet-only",
+      "filename": "xlsx-first-sheet-only.xlsx",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-hyperlink",
+      "filename": "xlsx-hyperlink.xlsx",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-trailing-styles",
+      "filename": "xlsx-trailing-styles.xlsx",
+      "expected": {
+        "total": 304000.0,
+        "products": [
+          "Motor",
+          "Rulman",
+          "Sensör",
+          "Kayış",
+          "Vida"
+        ],
+        "groups": [
+          "A",
+          "A",
+          "A",
+          "B",
+          "C"
+        ],
+        "values": [
+          150000.0,
+          60000.0,
+          60000.0,
+          24000.0,
+          10000.0
+        ]
+      }
+    },
+    {
+      "name": "xlsx-corrupt",
+      "filename": "xlsx-corrupt.xlsx",
+      "error": "Excel dosyası okunamadı. Geçerli ve parola koruması olmayan bir .xlsx dosyası seçin."
+    },
+    {
+      "name": "xlsx-fake-ole",
+      "filename": "xlsx-fake-ole.xlsx",
+      "error": "Excel dosyası okunamadı. Geçerli ve parola koruması olmayan bir .xlsx dosyası seçin."
+    },
+    {
+      "name": "xlsx-truncated",
+      "filename": "xlsx-truncated.xlsx",
+      "error": "Excel dosyası okunamadı. Geçerli ve parola koruması olmayan bir .xlsx dosyası seçin."
+    },
+    {
+      "name": "xlsx-non-workbook-zip",
+      "filename": "xlsx-non-workbook-zip.xlsx",
+      "error": "Excel dosyası okunamadı. Geçerli ve parola koruması olmayan bir .xlsx dosyası seçin."
+    }
+  ]
+}
