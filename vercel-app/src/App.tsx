@@ -434,7 +434,7 @@ function Dashboard({
             {notices[notice]}
           </div>
         )}
-        <div hidden={!dashboard}>
+        <div hidden={!dashboard} className={page === 'overview' ? 'overview-page' : undefined}>
           <header className="page-hero dashboard-hero">
             <div>
               <h1>{title}</h1>
@@ -481,16 +481,18 @@ function Dashboard({
               <h2 id="overview-heading" className="sr-only">
                 {t('Envanter özeti', 'Inventory overview')}
               </h2>
-              <KpiOverview analysis={analysis} />
+              <KpiOverview analysis={analysis} featured={page === 'overview'} />
               {page === 'overview' && (
                 <>
                   <div className="overview-grid">
-                    <GroupBreakdown analysis={analysis} compact={false} />
-                    <Suspense fallback={loading}>
-                      <AnalysisInsights analysis={analysis} compact />
-                    </Suspense>
+                    <LeadingProducts analysis={analysis} />
+                    <div className="overview-support">
+                      <GroupBreakdown analysis={analysis} compact={false} />
+                      <Suspense fallback={loading}>
+                        <AnalysisInsights analysis={analysis} compact />
+                      </Suspense>
+                    </div>
                   </div>
-                  <LeadingProducts analysis={analysis} />
                 </>
               )}
               {page === 'analysis' && <GroupBreakdown analysis={analysis} compact />}

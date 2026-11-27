@@ -7,8 +7,8 @@ export function visibleRows(analysis: Analysis, groups: readonly Group[], first:
   return analysis.rows.slice(first - 1, last).filter(row => groups.includes(row.group));
 }
 
-const dark = { surface: '#1a1924', text: '#dedbed', grid: '#343140', hover: '#272437' };
-const light = { surface: '#ffffff', text: '#343147', grid: '#ebe9f2', hover: '#f3effb' };
+const dark = { surface: '#1c211f', text: '#e2f1e9', grid: '#363f3a', hover: '#25362e' };
+const light = { surface: '#ffffff', text: '#23352c', grid: '#e1e9e4', hover: '#eff6f2' };
 
 export function chartStyle(language: Language, theme: Theme) {
   const palette = theme === 'dark' ? dark : light;
@@ -46,7 +46,7 @@ export function paretoModel(
   const scale = compact && maximum >= 1000 ? 1000 : 1;
   const interval = Math.max(1, Math.ceil(rows.length / (compact ? 4 : 8)));
   const shown = x.filter(index => index % interval === 0);
-  const lineColor = theme === 'dark' ? '#f598a9' : '#a43d61';
+  const lineColor = theme === 'dark' ? '#b3f3e7' : '#176b69';
   const percentageTicks = [0, 20, 40, 60, 80, 100];
   return {
     data: [

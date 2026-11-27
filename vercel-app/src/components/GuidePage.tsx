@@ -14,7 +14,7 @@ function GuideExamples() {
     [],
   );
   return (
-    <article className="panel guide-panel guide-cyan">
+    <article className="panel guide-panel">
       <h2>{t('Çözümlü ABC Analizi Örneği', 'Worked ABC example')}</h2>
       <h3>{t('Örnek 1 · %80 / %15 / %5', 'Example 1 · 80% / 15% / 5%')}</h3>
       <ProductTable
@@ -166,17 +166,19 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
           </p>
         </div>
         <div className="guide-hero-visual" aria-hidden="true">
-          <div className="guide-hero-bars">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
+          <div className="guide-flow-step">
+            <Icon name="file" />
+            <span>{t('Envanter verisi', 'Inventory data')}</span>
           </div>
-          <div className="guide-hero-key">
-            <i>A</i>
-            <i>B</i>
-            <i>C</i>
+          <Icon name="chevron" />
+          <div className="guide-flow-step">
+            <Icon name="layers" />
+            <span>{t('Sınıflandırma', 'Classification')}</span>
+          </div>
+          <Icon name="chevron" />
+          <div className="guide-flow-step">
+            <Icon name="signal" />
+            <span>{t('Stok kararı', 'Inventory decision')}</span>
           </div>
         </div>
       </header>
@@ -227,8 +229,8 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
             <>
               {tab === 0 && (
                 <>
-                  <div className="guide-intro-grid">
-                    <article className="guide-feature guide-blue">
+                  <div className="guide-bento">
+                    <article className="guide-feature">
                       <span className="section-icon">
                         <Icon name="layers" />
                       </span>
@@ -245,8 +247,19 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                           'Align the frequency of stock checks with economic importance.',
                         )}
                       </p>
+                      <button
+                        type="button"
+                        className="button guide-next"
+                        onClick={() => {
+                          setTab(1);
+                          buttons.current[1]?.focus();
+                        }}
+                      >
+                        {t('Hesaplama adımlarını aç', 'Open the calculation steps')}{' '}
+                        <Icon name="arrow" />
+                      </button>
                     </article>
-                    <article className="guide-feature pareto-feature guide-violet">
+                    <article className="guide-feature pareto-feature">
                       <span className="section-icon">
                         <Icon name="signal" />
                       </span>
@@ -269,32 +282,40 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                         </figcaption>
                       </figure>
                     </article>
+                    <section className="guide-policy-board">
+                      <div className="section-heading">
+                        <h2>{t('Grup bazlı kontrol politikaları', 'Stock control by group')}</h2>
+                      </div>
+                      <div className="group-cards">
+                        {policies.map((policy, index) => (
+                          <article
+                            key={policy.group}
+                            className={`guide-class tone-${policy.group}`}
+                          >
+                            <span className={`group-badge group-${policy.group}`}>
+                              {policy.group}
+                            </span>
+                            <h3>{policy.title}</h3>
+                            <small>
+                              {t('Varsayılan hedef', 'Default target')}{' '}
+                              {percent([80, 15, 5][index], 0)}
+                            </small>
+                            <p>{policy.description}</p>
+                          </article>
+                        ))}
+                      </div>
+                      <p className="caption guide-target-note">
+                        {t(
+                          'Hedefler ürün sayısını değil, yıllık parasal değeri ifade eder.',
+                          'Targets describe annual usage value across products.',
+                        )}
+                      </p>
+                    </section>
                   </div>
-                  <div className="section-heading">
-                    <h2>{t('Grup bazlı kontrol politikaları', 'Stock control by group')}</h2>
-                  </div>
-                  <div className="group-cards">
-                    {policies.map((policy, index) => (
-                      <article key={policy.group} className={`guide-class tone-${policy.group}`}>
-                        <span className={`group-badge group-${policy.group}`}>{policy.group}</span>
-                        <h3>{policy.title}</h3>
-                        <small>
-                          {t('Varsayılan hedef', 'Default target')} {percent([80, 15, 5][index], 0)}
-                        </small>
-                        <p>{policy.description}</p>
-                      </article>
-                    ))}
-                  </div>
-                  <p className="caption guide-target-note">
-                    {t(
-                      'Hedefler ürün sayısını değil, yıllık parasal değeri ifade eder.',
-                      'Targets describe annual usage value across products.',
-                    )}
-                  </p>
                 </>
               )}
               {tab === 1 && (
-                <article className="panel guide-panel guide-violet">
+                <article className="panel guide-panel">
                   <h2>{t('ABC Analizi Nasıl Yapılır?', 'How is ABC analysis calculated?')}</h2>
                   {steps.map(([title, text, formula], index) => (
                     <details className="guide-step" key={title} open={index === 0}>
@@ -311,7 +332,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
               {tab === 2 && <GuideExamples />}
               {tab === 3 && <GuideMethods />}
               {tab === 4 && (
-                <article className="panel guide-panel guide-blue">
+                <article className="panel guide-panel">
                   <h2>{t('Pareto Grafiği Nasıl Okunur?', 'How to read the Pareto chart')}</h2>
                   <p>
                     {t(

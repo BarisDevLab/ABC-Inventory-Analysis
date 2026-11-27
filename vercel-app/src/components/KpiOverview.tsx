@@ -3,7 +3,13 @@ import { useLocale } from '../ui/locale';
 import { Icon } from '../ui/Icon';
 import type { IconName } from '../ui/Icon';
 
-export function KpiOverview({ analysis }: { analysis: Analysis }) {
+export function KpiOverview({
+  analysis,
+  featured = false,
+}: {
+  analysis: Analysis;
+  featured?: boolean;
+}) {
   const { t, money, number, percent } = useLocale();
   const cards = [
     {
@@ -32,7 +38,7 @@ export function KpiOverview({ analysis }: { analysis: Analysis }) {
     },
   ] satisfies { key: string; label: string; value: string; note: string; icon: IconName }[];
   return (
-    <div className="kpi-grid">
+    <div className={`kpi-grid ${featured ? 'kpi-feature-grid' : ''}`}>
       {cards.map(({ key, label, value, note, icon }) => (
         <article key={key} className={`kpi kpi-${key}`} data-kpi={key} data-value={value}>
           <span className="kpi-icon">
@@ -41,6 +47,40 @@ export function KpiOverview({ analysis }: { analysis: Analysis }) {
           <div className="kpi-label">{label}</div>
           <strong className="kpi-value">{value}</strong>
           <span className="kpi-note">{note}</span>
+          {featured && key === 'total' && (
+            <div className="kpi-composition">
+              <div className="kpi-composition-label">
+                <span>{t('Değer yoğunlaşması', 'Value concentration')}</span>
+                <span>
+                  {t(
+                    `İlk ${analysis.insights.top_count} ürün`,
+                    `Top ${analysis.insights.top_count} products`,
+                  )}{' '}
+                  · {percent(analysis.insights.top_share)}
+                </span>
+              </div>
+              <div className="kpi-composition-track" aria-hidden="true">
+                {analysis.rows.slice(0, analysis.insights.top_count).map((row) => (
+                  <span key={row.sku ?? row.product} style={{ width: `${row.share}%` }} />
+                ))}
+              </div>
+            </div>
+          )}
+          {featured && key === 'products' && (
+            <div className="kpi-group-counts">
+              {analysis.summary.map(({ group, count }) => (
+                <span key={group} className={`tone-${group}`}>
+                  <span>{group}</span> <strong>{number(count, 0)}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+          {featured && key === 'a_share' && (
+            <div className="kpi-target-track" aria-hidden="true">
+              <span style={{ width: `${analysis.insights.a_share}%` }} />
+              <i style={{ left: `${analysis.targets.a}%` }} />
+            </div>
+          )}
         </article>
       ))}
     </div>
@@ -49,6 +89,9 @@ export function KpiOverview({ analysis }: { analysis: Analysis }) {
 
 export function GroupBreakdown({ analysis, compact }: { analysis: Analysis; compact: boolean }) {
   const { t, money, number, percent } = useLocale();
+  const [groupA, groupB] = analysis.summary;
+  const aShare = groupA.share;
+  const abShare = Math.min(100, aShare + groupB.share);
   return (
     <section
       className={`group-breakdown ${compact ? 'group-breakdown-inline' : 'panel'}`}
@@ -66,28 +109,42 @@ export function GroupBreakdown({ analysis, compact }: { analysis: Analysis; comp
         )}
       </header>
       {!compact && (
-        <div className="distribution-scales">
-          {(
-            [
-              [t('Değer payı', 'Value share'), 'share'],
-              [t('Ürün dağılımı', 'Product distribution'), 'count'],
-            ] as const
-          ).map(([label, key]) => (
-            <div key={key} className="distribution-scale">
-              <span>{label}</span>
-              <div className="value-spectrum" aria-hidden="true">
-                {analysis.summary
-                  .filter((row) => row[key] > 0)
-                  .map((row) => (
-                    <span
-                      key={row.group}
-                      className={`tone-${row.group}`}
-                      style={{ flexGrow: row[key] }}
-                    />
-                  ))}
-              </div>
+        <div className="breakdown-chart">
+          <div
+            className="breakdown-ring"
+            aria-hidden="true"
+            style={{
+              backgroundImage: `conic-gradient(var(--class-a) 0 ${aShare}%, var(--class-b) ${aShare}% ${abShare}%, var(--class-c) ${abShare}% 100%)`,
+            }}
+          >
+            <div>
+              <strong>{percent(aShare)}</strong>
+              <span>{t('A grubu', 'Group A')}</span>
             </div>
-          ))}
+          </div>
+          <div className="distribution-scales">
+            {(
+              [
+                [t('Değer payı', 'Value share'), 'share'],
+                [t('Ürün dağılımı', 'Product distribution'), 'count'],
+              ] as const
+            ).map(([label, key]) => (
+              <div key={key} className="distribution-scale">
+                <span>{label}</span>
+                <div className="value-spectrum" aria-hidden="true">
+                  {analysis.summary
+                    .filter((row) => row[key] > 0)
+                    .map((row) => (
+                      <span
+                        key={row.group}
+                        className={`tone-${row.group}`}
+                        style={{ flexGrow: row[key] }}
+                      />
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       <ul className="group-breakdown-items">

@@ -93,7 +93,7 @@ export function GuideMethods() {
       </div>
       <div className="guide-method-grid">
         {methods.map(({ name, icon, page, formula, description }) => (
-          <article className={`guide-method-card guide-method-${page}`} key={name}>
+          <article className="guide-method-card" key={name}>
             <span className="section-icon">
               <Icon name={icon} />
             </span>
