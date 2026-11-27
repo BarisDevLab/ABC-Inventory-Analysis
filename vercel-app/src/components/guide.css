@@ -1,0 +1,498 @@
+.guide-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 25%);
+  gap: 1.25rem;
+  align-items: center;
+  padding: clamp(1.1rem, 2.55vw, 2.15rem);
+  background: var(--active);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.guide-hero h1 {
+  margin-top: 0.6rem;
+}
+.guide-hero .section-icon {
+  background: var(--surface);
+}
+.guide-hero-visual {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.guide-flow-step {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.65rem 0.35rem;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+.guide-flow-step .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.guide-policy-board {
+  grid-column: 1 / -1;
+}
+.guide-next {
+  margin-top: 1rem;
+}
+.guide-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+.guide-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+.guide-tabs [aria-selected='true'] {
+  color: var(--primary);
+  background: var(--active);
+}
+.guide-bento,
+.guide-method-grid,
+.guide-applications {
+  display: grid;
+  gap: 0.8rem;
+}
+.guide-bento {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1.2rem;
+}
+.guide-feature,
+.guide-class,
+.guide-method-card,
+.guide-application {
+  min-width: 0;
+  background: var(--surface);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.guide-feature {
+  padding: clamp(1rem, 1.6vw, 1.4rem);
+  border-top: 3px solid var(--class-a);
+}
+.pareto-feature {
+  border-top-color: var(--class-c);
+}
+.pareto-feature .section-icon {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.guide-feature h2,
+.guide-method-card h3 {
+  margin: 0.65rem 0 0.48rem;
+}
+.guide-panel > p,
+.guide-feature > p:not(.callout),
+.guide-class p,
+.guide-method-card > p:not(.formula),
+.guide-application p {
+  color: var(--muted);
+}
+.guide-target {
+  margin: 1rem 0 0;
+}
+.guide-target .value-spectrum {
+  height: 9px;
+}
+.guide-target .tone-A {
+  flex-grow: 80;
+}
+.guide-target .tone-B {
+  flex-grow: 15;
+}
+.guide-target .tone-C {
+  flex-grow: 5;
+}
+.guide-target figcaption,
+.guide-target-note,
+.guide-class small {
+  margin-top: 0.48rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.guide-class {
+  border-top: 3px solid var(--class-color);
+}
+.guide-class-letter {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  border-radius: 6px;
+  font-weight: 750;
+}
+.guide-class-letter.group-A {
+  color: var(--primary);
+}
+.guide-class-icon {
+  display: none;
+}
+.guide-class h3 {
+  margin: 0.6rem 0 0.28rem;
+}
+.guide-class p {
+  margin-top: 0.42rem;
+}
+.guide-content .section-heading p {
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+.guide-panel p,
+.guide-panel h3 {
+  margin-top: 0.68rem;
+}
+.guide-panel .table-scroll {
+  margin-top: 0.75rem;
+}
+.callout,
+.formula {
+  padding: 0.62rem 0.72rem;
+  background: var(--soft);
+  border-radius: 6px;
+}
+.callout {
+  margin-top: 0.8rem;
+  border-inline-start: 2px solid var(--primary);
+}
+.formula {
+  color: var(--primary);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.guide-step {
+  border-bottom: 1px solid var(--line);
+  padding-block: 0.55rem;
+}
+.guide-step summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  list-style: none;
+}
+.guide-step summary::-webkit-details-marker {
+  display: none;
+}
+.guide-step summary .icon {
+  margin-inline-start: auto;
+}
+.guide-step[open] summary .icon {
+  transform: rotate(90deg);
+}
+.guide-step > p {
+  margin-inline-start: 2.45rem;
+  max-width: 70ch;
+}
+.step-count {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 6px;
+  background: var(--active);
+  color: var(--primary);
+  font-size: 0.82rem;
+}
+.guide-method-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+}
+.guide-method-card {
+  display: flex;
+  flex-direction: column;
+}
+.guide-method-card .formula {
+  margin: 0.2rem 0 0.55rem;
+}
+.guide-method-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  width: fit-content;
+  margin-top: auto;
+  padding-top: 0.72rem;
+  color: var(--primary);
+  font-weight: 630;
+  text-decoration: none;
+}
+.guide-method-card a:hover {
+  text-decoration: underline;
+}
+.guide-method-card a .icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.guide-applications {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  margin-block: 0.68rem 1rem;
+}
+.guide-application {
+  background: var(--soft);
+  border: 0;
+}
+.guide-application h4 {
+  margin: 0.5rem 0 0;
+}
+.guide-application p {
+  margin-top: 0.25rem;
+}
+.guide-limits {
+  padding: 0.85rem;
+  border-radius: 7px;
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.guide-limits h3 {
+  margin: 0;
+}
+.back-button {
+  margin-top: 0.7rem;
+}
+@media (max-width: 585px) {
+  .guide-hero,
+  .guide-bento {
+    grid-template-columns: 1fr;
+  }
+  .guide-hero-visual {
+    display: none;
+  }
+}
+
+@media (min-width: 861px) {
+  .guide-page .guide-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 32%);
+    gap: clamp(1.1rem, 3vw, 4rem);
+    align-items: center;
+    padding: clamp(1.5rem, 3vw, 3rem);
+    background:
+      radial-gradient(
+        ellipse at 94% 100%,
+        color-mix(in srgb, var(--accent-blue) var(--accent-wash), transparent),
+        transparent 62%
+      ),
+      linear-gradient(115deg, var(--feature-end), var(--feature));
+    color: var(--feature-text);
+    border: 1px solid var(--feature-line);
+    border-radius: 17px;
+    box-shadow:
+      inset 0 1px var(--feature-sheen),
+      0 10px 25px var(--feature-glow);
+  }
+  .guide-hero h1 {
+    margin-top: 0.95rem;
+    font-size: clamp(2rem, 3.55vw, 4rem);
+    letter-spacing: -0.072em;
+  }
+  .guide-hero p {
+    color: var(--feature-muted);
+  }
+  .guide-hero .section-icon,
+  .guide-flow-step {
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+    border: 1px solid var(--feature-line);
+    color: var(--feature-accent);
+  }
+  .guide-flow-step {
+    min-height: 83px;
+    padding-inline: 0.4rem;
+    color: var(--feature-text);
+  }
+  .guide-flow-step .icon,
+  .guide-hero-visual > .icon {
+    color: var(--feature-accent);
+  }
+  .guide-tabs {
+    padding: 0.3rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .guide-tabs button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .guide-tabs [aria-selected='true'] {
+    background: var(--active);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+  .guide-bento {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+  .guide-page .guide-feature,
+  .guide-page .guide-policy-board {
+    padding: clamp(1rem, 2.35vw, 2rem);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .guide-feature .section-icon {
+    border-radius: 50%;
+  }
+  .guide-feature h2 {
+    font-size: clamp(1.35rem, 2.2vw, 2.2rem);
+    letter-spacing: -0.047em;
+  }
+  .guide-feature .callout {
+    background: transparent;
+    padding-block: 0.18rem;
+  }
+  .guide-next {
+    color: var(--primary);
+    background: var(--active);
+    border-color: transparent;
+  }
+  .guide-target {
+    padding: 0.82rem;
+    border-radius: 8px;
+    background: var(--soft);
+  }
+  .guide-policy-board .section-heading {
+    margin-bottom: 0.7rem;
+  }
+  .guide-class-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .guide-class-letter {
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    background: none;
+    font-size: clamp(2.6rem, 3.5vw, 4rem);
+    line-height: 0.95;
+    letter-spacing: -0.06em;
+  }
+  :root[data-theme='dark'] .guide-class .guide-class-letter {
+    color: var(--class-color);
+  }
+  .guide-class-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid color-mix(in srgb, var(--guide-light) 35%, var(--line));
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--guide-light) var(--accent-wash), var(--surface));
+    color: var(--guide-ink);
+  }
+  .guide-class-icon .icon {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+  .main-content .guide-page :is(.guide-panel, .guide-method-card, .guide-application) {
+    border-color: var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .guide-method-card .formula {
+    font-feature-settings: 'tnum';
+    background: var(--soft);
+    color: var(--ink);
+  }
+}
+@media (min-width: 1200px) {
+  .guide-method-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .guide-method-card:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 861px) {
+  .guide-page .guide-feature {
+    --guide-light: var(--accent-blue);
+    --guide-secondary: var(--accent-cyan);
+    --guide-origin: 96% 8%;
+  }
+  .guide-page .guide-feature.pareto-feature {
+    --guide-light: var(--accent-gold);
+    --guide-secondary: var(--accent-orange);
+    --guide-origin: 18% 100%;
+  }
+  .guide-page .guide-class {
+    --guide-light: var(--class-color);
+    --guide-secondary: var(--class-color);
+    --guide-origin: 100% 84%;
+  }
+  .guide-page .guide-method-card {
+    --guide-light: var(--accent-cyan);
+    --guide-secondary: var(--accent-blue);
+    --guide-origin: 100% 100%;
+  }
+  .guide-page .guide-method-card:nth-child(6n + 2) {
+    --guide-light: var(--accent-pink);
+    --guide-secondary: var(--accent-orange);
+  }
+  .guide-page .guide-method-card:nth-child(6n + 3) {
+    --guide-light: var(--accent-gold);
+    --guide-secondary: var(--accent-orange);
+  }
+  .guide-page .guide-method-card:nth-child(6n + 4) {
+    --guide-light: var(--accent-blue);
+    --guide-secondary: var(--accent-cyan);
+  }
+  .guide-page .guide-method-card:nth-child(6n + 5) {
+    --guide-light: var(--accent-green);
+    --guide-secondary: var(--accent-cyan);
+  }
+  .guide-page .guide-method-card:nth-child(6n + 6) {
+    --guide-light: var(--accent-orange);
+    --guide-secondary: var(--accent-gold);
+  }
+  .main-content .guide-page :is(.guide-feature, .guide-class, .guide-method-card) {
+    --guide-ink: color-mix(in srgb, var(--guide-light) 48%, var(--ink));
+    border: 1px solid color-mix(in srgb, var(--guide-light) var(--card-edge), var(--line));
+    background:
+      radial-gradient(
+        ellipse at var(--guide-origin),
+        color-mix(in srgb, var(--guide-light) var(--accent-wash), transparent),
+        transparent 58%
+      ),
+      linear-gradient(
+        148deg,
+        var(--surface) 35%,
+        color-mix(in srgb, var(--guide-secondary) calc(var(--accent-wash) / 2), var(--surface))
+      );
+    box-shadow:
+      inset 0 1px color-mix(in srgb, var(--guide-light) 17%, transparent),
+      0 8px 22px color-mix(in srgb, var(--guide-light) var(--card-shadow), transparent);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+  :root[data-theme='dark'] .guide-page :is(.guide-feature, .guide-class, .guide-method-card) {
+    --guide-ink: var(--guide-light);
+  }
+  .guide-page :is(.guide-feature, .guide-method-card) .section-icon {
+    color: var(--guide-ink);
+    background: color-mix(in srgb, var(--guide-light) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--guide-light) 46%, var(--line));
+  }
+  .main-content .guide-page :is(.guide-feature, .guide-class, .guide-method-card):hover {
+    border-color: var(--guide-light);
+    box-shadow: 0 8px 25px
+      color-mix(in srgb, var(--guide-light) calc(var(--card-shadow) + 6%), transparent);
+  }
+}

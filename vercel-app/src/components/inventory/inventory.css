@@ -1,0 +1,129 @@
+.inventory-module {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.inventory-module h2 {
+  margin-block: 0 0.65rem;
+}
+
+.inventory-module details + details {
+  margin-top: 0.75rem;
+}
+
+.inventory-module summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.4rem;
+}
+
+.inventory-module .table-scroll {
+  margin-block: 1rem;
+}
+
+.inventory-module caption {
+  text-align: left;
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.inventory-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 0.75rem;
+}
+
+.inventory-controls label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inventory-controls input,
+.inventory-controls select {
+  max-width: 100%;
+  min-height: 2.5rem;
+  padding: 0.3rem 0.5rem;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--control-line);
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.inventory-editor {
+  margin-block: 0.75rem;
+}
+
+.inventory-warning {
+  border-inline-start: 3px solid var(--amber);
+  padding: 0.25rem 0.75rem;
+  margin-block: 0.75rem;
+}
+
+.inventory-history {
+  list-style: none;
+  padding: 0;
+}
+
+.inventory-history li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-block: 0.55rem;
+}
+
+.inventory-history li > div {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.inventory-history time {
+  display: block;
+}
+
+.inventory-module:not(.inventory-editor) {
+  margin-top: 1.45rem;
+}
+.inventory-module > h1 {
+  margin-bottom: 0.85rem;
+}
+.inventory-module > details {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.inventory-module > details[open] {
+  background: var(--surface);
+}
+.inventory-module > details > summary {
+  color: var(--primary);
+}
+.inventory-module > details > .inventory-controls,
+.inventory-editor .inventory-controls {
+  padding: 0.72rem;
+  background: var(--soft);
+  border-radius: 7px;
+}
+.inventory-controls label {
+  font-size: 0.84rem;
+  font-weight: 570;
+}
+.inventory-controls input::file-selector-button {
+  padding: 0.32rem 0.52rem;
+  margin-inline-end: 0.45rem;
+  border: 0;
+  border-radius: 5px;
+  background: var(--active);
+  color: var(--primary);
+  font: inherit;
+}
+.inventory-history li + li {
+  border-top: 1px solid var(--line);
+}
+.inventory-editor {
+  padding: 0 0 0.2rem;
+}

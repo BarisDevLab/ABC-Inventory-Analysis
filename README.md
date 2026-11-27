@@ -1,12 +1,21 @@
-# ABC Stok Analizi
+# Inventory Intelligence
 
-Yıllık tüketim değerine göre stokları A, B ve C gruplarına ayıran Türkçe bir React, TypeScript ve Vite uygulaması. CSV ve Excel dosyalarından analiz yapabilir, Pareto grafiğini inceleyebilir ve Excel raporu indirebilirsiniz. Dosyalar tarayıcıda işlenir ve sunucuya gönderilmez.
+Inventory Intelligence, stok değerini, talep değişkenliğini ve ikmal kararlarını aynı çalışma alanında inceleyen bir tarayıcı uygulamasıdır. Türkçe ve İngilizce arayüz, açık ve koyu tema, klavyeyle gezinme ve mobil ekran desteği sunar.
 
-[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [Geliştirme ve Vercel yapılandırması](vercel-app/README.md)
+[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [Teknik kılavuz](vercel-app/README.md)
 
-## Kurulum ve doğrulama
+## İşlevler
 
-Node.js 24.x (en az 24.11.1) ve npm gerekir. Depo kökünden başlayın.
+- **Genel bakış ve ABC analizi.** Excel veya CSV yükleyin. Çalışma sayfasını, başlık satırını, sütunları ve sayı biçimini seçin. Değer yoğunlaşmasını Pareto grafiğinde, ürün dökümünde ve Excel raporunda inceleyin.
+- **XYZ ve ABC-XYZ.** Eşit dönemlerin talebinden değişkenlik sınıfını hesaplayın. Güncel ABC sınıfıyla ürün kodu veya ürün adı üzerinden eşleştirin.
+- **Dönemsel karşılaştırma ve senaryo analizi.** İki dönemin değerlerini, ürün ekleme ve çıkarmalarını, sınıf geçişlerini görün. Alternatif ABC eşiklerini güncel veri üzerinde deneyin.
+- **Stok optimizasyonu.** EOQ, yeniden sipariş noktası ve emniyet stokunu işletme girdilerinizden hesaplayın.
+- **FSN, VED ve maliyet simülasyonu.** Hareket sıklığını ve operasyonel kritiklik düzeyini sınıflandırın. Sabit parti ve hedefe tamamlama politikalarını aynı talep serisiyle karşılaştırın.
+- **Analiz geçmişi ve rehber.** Sürümlü JSON analiz paketi aktarın, dilediğiniz analizi tarayıcı geçmişine kaydedin ve örneklerle hesaplama yöntemlerini inceleyin.
+
+## Kurulum
+
+Node.js 24.x (en az 24.11.1) ve npm gerekir.
 
 ```sh
 cd vercel-app
@@ -20,36 +29,32 @@ npm run typecheck
 npm run lint
 npm run format:check
 npm run build
-npm audit
+npm run verify:production
+npm audit --audit-level=moderate
 ```
 
-GitHub Actions, `main` dalını hedefleyen PR’larda ve `main` güncellemelerinde bu kontrolleri çalıştırır. Vercel proje kökü `vercel-app`, statik derleme çıktısı `dist` dizinidir.
+React, TypeScript ve Vite ile derlenen statik uygulamada hesaplama modülleri arayüzden bağımsızdır. Dosya okuma, ABC, dönem ve senaryo hesapları, JSON paketleme ve Excel üretimi Web Worker’da çalışır. Ekranlar gerektiğinde yüklenir. Excel okuma ve üretim worker’ları aynı ExcelJS dosyasını paylaşır. Plotly, grafik görünüm alanına yaklaşınca yüklenir. GitHub Actions kalite kontrollerini çalıştırır. Vercel proje kökü `vercel-app`, derleme çıktısı `dist` dizinidir.
 
-## Kullanım
+## Hesaplama yöntemleri
 
-1. **Örnek veriyle dene** düğmesini kullanın veya Excel şablonunu indirip doldurun.
-2. CSV ya da `.xlsx` dosyanızı seçin. Sütun başlıklarını aşağıdaki gibi yazın.
-3. A/B/C değer hedeflerini ayarlayın. Hedeflerin toplamı %100 olmalıdır.
-4. Sonuç tablolarını ve Pareto grafiğini inceleyin. Excel raporunu veya grafiği PNG olarak indirebilirsiniz. Uygulamadaki **ABC Analizi Rehberi** çözülmüş örnekler içerir.
+| Modül | Yöntem |
+| --- | --- |
+| ABC | Yıllık tüketim × birim fiyat. Azalan değer sırasındaki önceki kümülatif pay, ürünün sınıfını belirler. %80 ve %95’e tam eşit başlangıç, varsayılan eşiklerde sırasıyla B ve C’ye girer. Eşiği geçen ürün başlangıç grubunda kalır. Sıfır değerli ürünler C’ye atanır. |
+| XYZ / ABC-XYZ | CV = örneklem standart sapması / ortalama. X ve Y üst sınırları ilgili sınıfa dahildir. Sıfır talepli serinin CV’si tanımsızdır. Matris iki geçerli sınıfı birleştirir. |
+| Dönem / senaryo | Her iki dönem güncel ABC hedefleriyle sınıflandırılır. Eşleştirme iki dosyada da SKU varsa büyük/küçük harfe duyarlı kodla, aksi durumda benzersiz normalleştirilmiş adla yapılır. Senaryo, aynı veri üzerinde alternatif A/B/C hedefleriyle hesaplanır. |
+| EOQ / ROP | EOQ = √(2DS/H). İlgili yıllık maliyet DS/Q + HQ/2’dir. ROP = dönemsel ortalama talep × aynı birimdeki tedarik süresi + emniyet stoku. |
+| Emniyet stoku | Sabit ve bağımsız değişken tedarik süresi için normal modeller ve gözlenen çevrim talebine dayalı ampirik model. |
+| FSN / VED | FSN, pozitif stok çıkışı görülen dönemlerin oranını kullanır. VED, operasyon ve güvenlik etkilerinin en yükseğini kullanır. |
+| Simülasyon | Dönem başında teslimat ve sipariş, ardından talep. Eksik talep kayıp satış olarak sayılır. Maliyet, sipariş, dönem sonu stok ve eksik karşılama kalemlerinden oluşur. |
 
-| Ürün | Yıllık Tüketim | Birim Fiyat (TL) |
-| --- | ---: | ---: |
-| Motor | 100 | 1500 |
-| Rulman | 500 | 120 |
-| Sensör | 150 | 400 |
-| Kayış | 300 | 80 |
-| Vida | 2000 | 5 |
+[Model varsayımları ve girdi birimleri](vercel-app/src/inventory/README.md)
 
-Her ürün tek satırda olmalıdır. Tüketim ve birim fiyat sonlu, negatif olmayan sayılardır. CSV için UTF-8 ve Windows Türkçe (CP1254) kodlamaları ile virgül, noktalı virgül ve sekme ayraçları desteklenir. `1234.56` ve `1.234,56` aynı değeri ifade eder. Tek başına kullanılan virgül veya nokta ondalık ayıracıdır. Binlik gruplaması için `1 234` veya `1.234,00` yazın. Excel’de sayısal hücreler kullanabilirsiniz.
+## Veri ve gizlilik
 
-## ABC hesaplama yöntemi
+ABC dosyasının temel alanları ürün, yıllık tüketim ve TL birim fiyatıdır. İsteğe bağlı SKU her satırda benzersiz olmalıdır. Karşılaştırılan dönemlerde aynı para birimi, miktar birimi ve dönem uzunluğunu kullanın. Uygulama döviz veya ölçü birimi dönüşümü yapmaz. Talep geçmişi, tedarik süresi, maliyet ve kritiklik verilerini ilgili formlara girin. Gerçek sıfırları belirtin ve eksik gözlemleri tamamlayın.
 
-Her ürünün yıllık değeri tüketim miktarı ile birim fiyatın çarpımıdır. Ürün payı, yıllık değerin genel toplama bölünüp 100 ile çarpılmasıyla bulunur. Genel toplam pozitif ve sonlu olmalıdır.
+Dosyalar tarayıcıda işlenir. Uygulama stok kayıtlarını sunuculara göndermez. Tema ve dil tercihleri cihazda hatırlanır. Analiz verileri, kullanıcı açıkça kaydettiğinde, bu siteye ait tarayıcı geçmişinde saklanır. En fazla 10 kaydı tek tek veya topluca silebilirsiniz. JSON indirilen dosyayı, kullandığınız cihazda sakladığınız diğer iş dosyaları gibi koruyun. JSON paketi güncel ABC kaynağı ve hedeflerini kapsar. Diğer modüllerin form verileri sayfa yenilenince temizlenir.
 
-Ürünler yıllık değere göre azalan sırada sıralanır. Eşit değerlerde giriş sırası korunur. Varsayılan hedefler A için %80, B için %15 ve C için %5’tir. Bir ürünün grubu, o ürün eklenmeden önceki kümülatif payla belirlenir. Tam %80’den başlanıyorsa ürün B’ye, tam %95’ten başlanıyorsa C’ye girer. Eşiği aşan ürün başladığı grupta kalır ve sıfır değerli ürünler C’ye atanır. Bu nedenle gerçekleşen grup payları hedeflerden farklı olabilir.
+Giriş dosyaları 20 MiB ve 100.000 satırla sınırlıdır. Tam sınırlar ve ZIP doğrulama kuralları teknik kılavuzda yer alır. EOQ ve emniyet stoku modelleri seçilen varsayımlara duyarlıdır. Simülasyon tarihsel bir talep serisi ve sabit tedarik süresi kullanır. Excel şablonu ve rapor başlıkları mevcut dosyalarla uyumluluk için Türkçedir.
 
-Pareto filtresi hesaplanmış kümülatif yüzdeleri korur. Tablolar, dağılım grafiği ve Excel raporu tam analizi kullanır. Stok kararlarında ekonomik önemin yanı sıra tedarik süresi, talep değişkenliği ve operasyonel kritiklik de değerlendirilmelidir.
-
-## Güvenlik ve gizlilik
-
-Dosyalar yalnızca tarayıcı belleğinde işlenir. Uygulama kullanıcı dosyalarını yüklemez, kalıcı olarak saklamaz veya analitik servise iletmez. Üretimde CSP, `connect-src 'none'` ve diğer güvenlik başlıkları uygulanır. Dosya boyutu, çalışma sayfası boyutları ve açılmış ZIP verisi sınırlandırılır. Excel çıktısında ürün adları metin hücresi olarak yazılır. [Sınırlar ve teknik ayrıntılar](vercel-app/README.md#güvenlik-ve-gizlilik)
+[Sınırlar ve güvenlik başlıkları](vercel-app/README.md#güvenlik-ve-gizlilik)

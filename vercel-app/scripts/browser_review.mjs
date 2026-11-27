@@ -1,11 +1,11 @@
-// Explicitly approved local/production Chrome review. No browser download.
+// Run against the local build or an explicitly configured Vercel preview.
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { mkdir,readFile,writeFile,readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 const root=process.cwd(),base=process.env.ABC_REVIEW_URL??'http://127.0.0.1:4175';
-if(!['http://127.0.0.1:4175','https://abc-inventory-analysis.vercel.app'].includes(base))throw new Error('Unapproved review origin');
+if(!['http://127.0.0.1:4175','https://abc-inventory-analysis.vercel.app'].includes(base) && !/^https:\/\/abc-inventory-analysis-[a-z0-9-]+\.vercel\.app$/.test(base))throw new Error('Unexpected review origin');
 const production=base.startsWith('https:');
 const run=resolve(root,production?'.tmp/live-review':'.tmp/ui-review',new Date().toISOString().replace(/[:.]/g,'-'));
 await mkdir(resolve(run,'downloads'),{recursive:true});
@@ -15,7 +15,7 @@ const result={run,base,checks,errors,requests,downloads,diagnostics,networkRecor
 const assert=(condition,message)=>{if(!condition)throw new Error(message);checks.push(message);};
 const port=await new Promise(done=>{const server=createServer();server.listen(0,'127.0.0.1',()=>{const port=server.address().port;server.close(()=>done(port));});});
 const browser=spawn(process.argv[2]??'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',[
-  '--headless=new',`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1',
+  '--headless=new',...process.argv.slice(3),`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1',
   `--user-data-dir=${resolve(run,'profile')}`,`--disk-cache-dir=${resolve(run,'cache')}`,`--crash-dumps-dir=${resolve(run,'crashes')}`,
   '--no-first-run','--no-default-browser-check','--disable-sync','--disable-background-networking','--disable-component-update','--disable-domain-reliability','--disable-breakpad',
   '--disable-features=Translate,MediaRouter,OptimizationHints,AutofillServerCommunication',
@@ -29,10 +29,11 @@ async function poll(fn,label,timeout=30000){const start=Date.now();while(Date.no
 async function evaluate(expression){const response=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(response.exceptionDetails)throw new Error(response.exceptionDetails.text+' '+response.exceptionDetails.exception?.description);return response.result.value;}
 const wait=(expression,label=expression,timeout=30000)=>poll(()=>evaluate(`Boolean(${expression})`),label,timeout);
 const click=text=>evaluate(`(()=>{const button=Array.from(document.querySelectorAll('button')).find(el=>el.textContent.trim()===${JSON.stringify(text)}&&!el.disabled&&el.getBoundingClientRect().width);if(!button)throw new Error('Missing button: '+${JSON.stringify(text)});button.click();return true;})()`);
-const set=(selector,value)=>evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+const route=hash=>evaluate(`(location.hash=${JSON.stringify(hash)},true)`);
+const set=(selector,value)=>evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input),'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
 async function viewport(width,height,mobile=false){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await send('Emulation.setTouchEmulationEnabled',{enabled:mobile});await delay(500);}
 async function screenshot(name,selector){if(selector)await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(el=>el.getBoundingClientRect().width).scrollIntoView({block:'start'})`);await delay(400);const image=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(resolve(run,`${name}.png`),Buffer.from(image.data,'base64'));}
-async function upload(path){const {root:document}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:document.nodeId,selector:'#inventory-file'});await send('DOM.setFileInputFiles',{nodeId,files:[path]});}
+async function upload(path,selector='#inventory-file'){const {root:document}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:document.nodeId,selector});await send('DOM.setFileInputFiles',{nodeId,files:[path]});}
 async function download(name){await poll(async()=>{const files=await readdir(resolve(run,'downloads'));return files.includes(name);},name,45000);return readFile(resolve(run,'downloads',name));}
 try {
   const version=await poll(async()=>{const response=await fetch(`http://127.0.0.1:${port}/json/version`);return response.json();},'browser startup');result.browser=version.Browser;
@@ -69,13 +70,16 @@ try {
   await send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__cspViolations=[];document.addEventListener('securitypolicyviolation',event=>window.__cspViolations.push({directive:event.effectiveDirective,blockedURI:event.blockedURI,disposition:event.disposition}));`});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__audit={longTasks:[],maxTimerDelay:0};let last=performance.now();setInterval(()=>{const now=performance.now();window.__audit.maxTimerDelay=Math.max(window.__audit.maxTimerDelay,now-last-50);last=now;},50);try{new PerformanceObserver(list=>{for(const entry of list.getEntries())window.__audit.longTasks.push(entry.duration);}).observe({entryTypes:['longtask']});}catch{}`});
-  await viewport(1440,1000);await send('Page.navigate',{url:base});await wait("document.querySelector('.empty-state')");
+  await viewport(1440,1000);await send('Page.navigate',{url:base});await wait("document.querySelector('.upload-workspace')");
   assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'First load has no automatic demo');
   assert(!requests.some(url=>url.includes('plotly-basic')),'Plotly not requested before analysis');await screenshot('01-desktop-empty');
   assert(!requests.some(url=>/exceljs(?:\.min|-browser)/.test(url)),'ExcelJS not requested before file or report work');
+  result.initialNavigation=await evaluate("performance.getEntriesByType('navigation').map(({domContentLoadedEventEnd,loadEventEnd,transferSize})=>({domContentLoadedEventEnd,loadEventEnd,transferSize}))[0]");
   result.initialRequests=requests.filter(url=>url.startsWith(base+'/'));
-  await click('Örnek veriyle dene');await wait("document.querySelector('.plot-host')?.data?.length===4",'Pareto rendered');await wait("document.querySelectorAll('.plot-host.js-plotly-plot').length===2",'Two charts rendered');
-  assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Demo total matches Python');await screenshot('02-desktop-dashboard','.section-heading');await screenshot('03-desktop-pareto','.chart-container');
+  await route('analiz');
+  await wait("document.querySelector('h1').textContent==='ABC analizi'");
+  await click('Örnek veriyle dene');await wait("document.querySelector('.chart-container .plot-host')");await evaluate("document.querySelector('.chart-container .plot-host').scrollIntoView({block:'center'})");await wait("document.querySelector('.plot-host')?.data?.length===4",'Pareto rendered');await evaluate("document.querySelectorAll('.plot-host')[1].scrollIntoView({block:'center'})");await wait("document.querySelectorAll('.plot-host.plot-loaded').length===2",'Two charts rendered',10000);
+  assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Demo total matches Python');await screenshot('02-desktop-dashboard','.dashboard-hero');await screenshot('03-desktop-pareto','.chart-container');
   await screenshot('03b-desktop-distribution','section[aria-labelledby="distribution-heading"]');await screenshot('03c-desktop-results','section[aria-labelledby="results-heading"]');await screenshot('03d-desktop-report','section[aria-labelledby="report-heading"]');
   await click('Dağılım grafiğini PNG indir');const donutPng=await download('abc_deger_dagilimi.png');assert(donutPng.readUInt32BE(16)===2880,'Distribution PNG download works');
   await evaluate("document.querySelector('.group-filters input').click()");await wait("document.querySelector('.plot-host').data[0].y.length===2");
@@ -83,32 +87,54 @@ try {
   await click('PNG indir');const png=await download('abc_pareto_analizi.png');assert(png.readUInt32BE(16)===2880&&png.readUInt32BE(20)===1600,'Real PNG download is 2880x1600');
   await click('Excel analiz raporunu indir');const report=await download('abc_stok_analiz_raporu.xlsx');assert(report[0]===0x50&&report[1]===0x4b,'Real worker Excel report downloads');
   await click('Boş Excel şablonu indir');await download('stok_sablonu.xlsx');assert(true,'Empty template downloads');
-  await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===4");await screenshot('04-desktop-guide','.page-hero');
-  for(let index=1;index<4;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
-  assert(await evaluate("document.querySelector('[role=tabpanel]').textContent.includes('Tedarik Zinciri Yönetimi')"),'Guide engineering content present');
-  await click('← Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
+  await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===5");await screenshot('04-desktop-guide','.page-hero');
+  for(let index=1;index<5;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
+  assert(await evaluate("document.querySelector('[role=tabpanel]:not([hidden])').textContent.includes('Endüstri Mühendisliğinde Kullanımı')"),'Guide engineering content present');
+  await click('Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
   await set('#target-a',90);await click('Hedefleri uygula');assert(await evaluate("document.querySelector('[role=alert]').textContent.includes('Önceki geçerli hedefler')"),'Invalid targets retain previous settings');
   await set('#target-a',0);await set('#target-b',0);await set('#target-c',100);await click('Hedefleri uygula');await wait("document.querySelector('[data-kpi=C]').dataset.value==='5'");
   assert(await evaluate("document.querySelector('[data-kpi=a_share]').dataset.value==='%0,00'"),'Valid targets recalculate through real analysis worker');
   await set('#target-a',80);await set('#target-b',15);await set('#target-c',5);await click('Hedefleri uygula');await wait("document.querySelector('[data-kpi=A]').dataset.value==='3'");
   for(const name of ['csv-cp1254-semicolon.csv','xlsx-demo.xlsx']){await upload(resolve(root,'tests/fixtures/files',name));await wait(`document.querySelector('.file-name')?.textContent===${JSON.stringify(name)}`);assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Real file/worker upload: '+name);}
   const droppedCsv='Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nSürüklenen parça;2;3';
-  await evaluate(`(()=>{const transfer=new DataTransfer();transfer.items.add(new File([${JSON.stringify(droppedCsv)}],'drop.csv',{type:'text/csv'}));document.querySelector('.drop-zone').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));return true;})()`);
+  await evaluate(`(()=>{const transfer=new DataTransfer();transfer.items.add(new File([${JSON.stringify(droppedCsv)}],'drop.csv',{type:'text/csv'}));document.querySelector('.source-bar').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));return true;})()`);
   await wait("document.querySelector('.file-name')?.textContent==='drop.csv'");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='6,00 TL'"),'Browser drop event uses real analysis worker');
   await upload(resolve(root,'tests/fixtures/files/xlsx-demo.xlsx'));await wait("document.querySelector('.file-name')?.textContent==='xlsx-demo.xlsx'");
   await upload(resolve(root,'tests/fixtures/files/xlsx-corrupt.xlsx'));await wait("document.querySelector('.notice.error')");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Corrupt Excel preserves prior valid analysis');
   const longFile=resolve(run,'sixty.csv');await writeFile(longFile,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n'+Array.from({length:60},(_,i)=>`Uzun mühendislik ürün adı ${i+1};${60-i};12.5`).join('\n'));
-  await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'");await evaluate("document.querySelector('.group-filters input').click()");await wait("document.querySelector('.plot-host').data[0].y.length===60");
+  await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'");await wait("document.querySelector('.group-filters input')");await evaluate("(()=>{const filter=document.querySelector('.group-filters input');if(!filter.checked)filter.click();document.querySelector('.chart-container').scrollIntoView({block:'start'});})()");await wait("document.querySelector('.plot-host')?.data?.[0].y.length===60");
   assert(await evaluate("document.querySelector('.table-scroll[aria-label=\"Ürün bazlı ABC sonuçları\"] tbody').rows.length===50"),'Large table is paginated');await screenshot('05-desktop-sixty','.chart-container');
-  await click('Yakınlaştır');await evaluate("document.querySelector('.plot-host').scrollIntoView({block:'center'})");
-  const box=await evaluate("(()=>{const b=document.querySelector('.plot-host .nsewdrag').getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height};})()");
-  async function drag(x1,y1,x2,y2){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1,y:y1});await send('Input.dispatchMouseEvent',{type:'mousePressed',x:x1,y:y1,button:'left',buttons:1,clickCount:1});for(let step=1;step<=8;step++)await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1+(x2-x1)*step/8,y:y1+(y2-y1)*step/8,button:'left',buttons:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x2,y:y2,button:'left',buttons:0,clickCount:1});}
-  await drag(box.x+box.w*.15,box.y+box.h*.2,box.x+box.w*.65,box.y+box.h*.8);
-  await wait("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<40");assert(true,'Real mouse selection zooms plot');
+  await click('Yakınlaştır');await evaluate("document.querySelector('.plot-host').scrollIntoView({block:'center'})");await delay(300);
+  const dragPoint = () => evaluate(`(()=>{
+    const surface = document.querySelector('.plot-host .nsewdrag');
+    const b = surface.getBoundingClientRect();
+    for (const [fx,fy] of [[.2,.3],[.18,.35],[.25,.38],[.22,.45],[.28,.25]]) {
+      const x = b.x + b.width * fx, y = b.y + b.height * fy;
+      if (document.elementFromPoint(x,y) === surface) return {x,y,w:b.width,h:b.height};
+    }
+    throw new Error('Could not find an unobscured plot drag surface');
+  })()`);
+  async function drag(x1,y1,x2,y2) {
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1,y:y1});
+    await send('Input.dispatchMouseEvent',{type:'mousePressed',x:x1,y:y1,button:'left',buttons:1,clickCount:1});
+    await delay(50);
+    for(let step=1;step<=8;step++){
+      await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1+(x2-x1)*step/8,y:y1+(y2-y1)*step/8,button:'left',buttons:1});
+      await delay(25);
+    }
+    await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x2,y:y2,button:'left',clickCount:1});
+  }
+  let point=await dragPoint();
+  await drag(point.x,point.y,point.x+point.w*.5,point.y+point.h*.3);
+  await wait("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<40",'Real drag zoom',8000);assert(true,'Real mouse selection zooms plot');
   const priorSpan=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]");
-  await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:box.x+box.w*.5,y:box.y+box.h*.5,deltaY:-150,deltaX:0});await wait(`document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<${priorSpan}`);assert(true,'Real mouse wheel zoom works');
-  await click('Kaydır');assert(await evaluate("document.querySelector('.plot-host').layout.dragmode==='pan'"),'Pan mode works');
-  const oldLeft=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[0]");await drag(box.x+box.w*.5,box.y+box.h*.5,box.x+box.w*.65,box.y+box.h*.5);await wait(`Math.abs(document.querySelector('.plot-host').layout.xaxis.range[0]-${oldLeft})>.1`);assert(true,'Real mouse drag pans plot');
+  point=await dragPoint();
+  await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:point.x,y:point.y,deltaY:-150,deltaX:0});await wait(`document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<${priorSpan}`,'Wheel zoom',8000);assert(true,'Real mouse wheel zoom works');
+  await click('Kaydır');await wait("document.querySelector('.plot-host').layout.dragmode==='pan'");assert(await evaluate("document.querySelector('.plot-host').layout.dragmode==='pan'"),'Pan mode works');
+  const oldLeft=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[0]");
+  point=await dragPoint();
+  await drag(point.x,point.y,point.x+point.w*.15,point.y);
+  await wait(`Math.abs(document.querySelector('.plot-host').layout.xaxis.range[0]-${oldLeft})>.1`,'Real drag pan',8000);assert(true,'Real mouse drag pans plot');
   await click('Görünümü sıfırla');await wait("document.querySelector('.plot-host').layout.xaxis.range[0]===-.6");assert(true,'Reset restores chart range');
   const bar=await evaluate("(()=>{const b=document.querySelector('.plot-host .barlayer .point path').getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+Math.min(20,b.height/2)};})()");
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:bar.x,y:bar.y});await wait("document.querySelector('.plot-host .hoverlayer').textContent.includes('Yıllık tüketim miktarı')");assert(true,'Real hover shows Turkish quantity/price/value details');await screenshot('05b-desktop-tooltip');
@@ -117,17 +143,17 @@ try {
     const performanceFile=resolve(run,`performance-${count}.csv`);await writeFile(performanceFile,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n'+Array.from({length:count},(_,i)=>`Sentetik ürün ${i+1};${count-i};10`).join('\n'));
     const before=await send('Runtime.getHeapUsage');await evaluate('window.__audit={longTasks:[],maxTimerDelay:0}');
     const performanceStart=Date.now();await upload(performanceFile);
-    await wait(`document.querySelector('[data-kpi=products]').dataset.value.replaceAll('.','')==='${count}'&&document.querySelector('.plot-host .barlayer').querySelectorAll('.point path').length===${count}`,`Render ${count} products`,60000);
+    await wait(`document.querySelector('[data-kpi=products]').dataset.value.replaceAll('.','')==='${count}'&&document.querySelector('.plot-host')?.data?.[0].y[0]===${count*10}&&document.querySelector('.plot-host .barlayer').querySelectorAll('.point path').length===${Math.min(500,count)}`,`Render ${count} products`,60000);
     await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
     const elapsed=Date.now()-performanceStart,after=await send('Runtime.getHeapUsage'),responsiveness=await evaluate('window.__audit');
     result.performanceSamples.push({rows:count,fileToRenderedChartMilliseconds:elapsed,pageHeapBeforeBytes:before.usedSize,pageHeapAfterBytes:after.usedSize,...responsiveness});
     if(count===500)result.performance={rows:count,fileToRenderedChartMilliseconds:elapsed};
-    assert(true,`${count} synthetic products render without dropping chart data`);
+    assert(true,`${count} products are counted and the visible Pareto window is capped at 500`);
     await screenshot(`05c-desktop-${count}`,'.chart-container');
   }
   await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'&&document.querySelector('.plot-host').data[0].y.length===60");
   for(const [width,height,label] of [[820,1180,'tablet'],[390,844,'mobile'],[360,800,'small-mobile']]){
-    await viewport(width,height,true);await screenshot(`06-${label}-dashboard`,'.section-heading');
+    await viewport(width,height,true);await screenshot(`06-${label}-dashboard`,'.dashboard-hero');
     assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: no horizontal page overflow`);
     const compact=await evaluate("document.querySelector('.chart-toolbar label input').checked");if(!compact)await evaluate("document.querySelector('.chart-toolbar label input').click()");
     await screenshot(`07-${label}-pareto`,'.chart-container');
@@ -137,23 +163,179 @@ try {
     assert(await evaluate("document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false'&&document.activeElement.classList.contains('menu-toggle')"),`${label}: Escape closes menu and restores focus`);
     await click('☰');await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert(await evaluate("document.activeElement.closest('#sidebar')!==null"),`${label}: keyboard focus remains in open navigation`);
-    await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelector('[role=tablist]')");await screenshot(`09-${label}-guide`,'.guide-tabs');assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: guide has no page overflow`);await click('← Analiz paneline dön');
+    await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelector('[role=tablist]')");await screenshot(`09-${label}-guide`,'.guide-tabs');assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: guide has no page overflow`);await click('Analiz paneline dön');
+    await wait("document.querySelector('.chart-container').checkVisibility()");
+    await evaluate("document.querySelector('.chart-container').scrollIntoView({block:'start'})");
+    await wait("document.querySelector('.plot-host')?.data?.length===4");
   }
   await viewport(1440,1000);const tiny=resolve(run,'tiny.csv');await writeFile(tiny,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nHassas parça;1;2e-300\nİkinci;1;4e-301');await upload(tiny);await wait("document.querySelector('[data-kpi=products]').dataset.value==='2'");
   await wait("document.querySelector('.plot-host').data[0].y[0]===2e-300");assert(await evaluate("document.querySelector('.plot-host').data[0].customdata[0][2]!=='0,00'"),'Tiny values retain nonzero tooltip');await screenshot('10-desktop-tiny','.chart-container');
   const unsafe=resolve(run,'unsafe-name.csv');await writeFile(unsafe,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n<img src=x onerror="window.__injected=1">;1;10');await upload(unsafe);await wait("document.querySelector('[data-kpi=products]').dataset.value==='1'");
   assert(await evaluate("!document.querySelector('img[src=x]')&&!window.__injected"),'User product markup is text, not executable DOM');
   await click('Analizi temizle');assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'Clear returns to empty state');
+
+  if (base !== 'https://abc-inventory-analysis.vercel.app') {
+    const select = (selector, value) => evaluate(`(()=>{
+      const select=document.querySelector(${JSON.stringify(selector)});
+      select.value=${JSON.stringify(value)};
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    })()`);
+    const clickSelector = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+    const total = value => `document.querySelector('[data-kpi=total]')?.dataset.value===${JSON.stringify(value)}`;
+    const comparison = '#comparison-heading + details';
+    const library = '#library-heading + details';
+    const history = library + ' + details';
+
+    await upload(resolve(root,'tests/fixtures/files/xlsx-first-sheet-only.xlsx'));
+    await wait(total('304.000,00 TL'));
+    await select('.inventory-editor select','1');
+    await wait("document.querySelector('.inventory-editor tbody').textContent.includes('Yanlış sayfa')");
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('100.000.000,00 TL'));
+    assert(true,'Excel worksheet selection calculates the chosen sheet in the worker');
+
+    const current = resolve(run,'guncel-donem.csv');
+    await writeFile(current,'Güncel dönem raporu\nUnit Price;SKU;Product;Quantity\n1.234;002;Yeni motor;1\n1;001;Vida;15\n1;004;Giren;5');
+    await upload(current);
+    await wait("document.querySelector('.inventory-editor tbody')?.textContent.includes('Unit Price')");
+    await set('.inventory-editor input[type=number]',2);
+    await click('Başlık satırını uygula');
+    await wait("!document.querySelector('.inventory-editor button.primary').disabled");
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('21,23 TL'));
+    assert(await evaluate("document.querySelector('.inventory-warning').textContent.includes('1 belirsiz sayı')"),'Ambiguous decimals are reported beside the custom header and mapping');
+    await select('.inventory-editor select:has(option[value=tr])','tr');
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('1.254,00 TL'));
+    assert(await evaluate("document.querySelector('#results-heading').closest('section').textContent.includes('002')"),'Explicit locale reanalysis retains the SKU');
+
+    const previous = resolve(run,'onceki-donem.csv');
+    await writeFile(previous,'Ürün;Yıllık Tüketim;Birim Fiyat (TL);SKU\nVida;80;1;001\nEski motor;15;1;002\nÇıkan;5;1;003');
+    await route('donemsel-karsilastirma');
+    await wait("document.querySelector('#comparison-heading')?.textContent==='Dönemsel karşılaştırma'");
+    await upload(previous,comparison+' input[type=file]');
+    await wait(`document.querySelector('${comparison} .inventory-editor button.primary')?.disabled===false`);
+    await clickSelector(comparison+' .inventory-editor button.primary');
+    await wait(`document.querySelector('${comparison} > p:last-of-type').textContent.includes('onceki-donem.csv')`);
+    await click('Dönemleri karşılaştır');
+    await wait(`document.querySelector('${comparison}').textContent.includes('2 sınıf değiştiren · 1 eklenen · 1 çıkarılan')`);
+    assert(await evaluate(`document.querySelector('${comparison}').textContent.includes('1.154,00 TL')`),'Period comparison shows monetary deltas, additions, removals, and SKU transitions');
+    await screenshot('11-period-comparison',comparison);
+
+    await route('senaryo');
+    await wait("document.querySelector('#comparison-heading')?.textContent==='Senaryo analizi'");
+    await set(comparison+' + details label:nth-child(1) input',0);
+    await set(comparison+' + details label:nth-child(2) input',0);
+    await click('Eşikleri karşılaştır');
+    await wait(`document.querySelector('${comparison} + details').textContent.includes('1 ürünün sınıfı değişiyor')`);
+    assert(await evaluate(total('1.254,00 TL')),'Scenario leaves the primary dashboard unchanged');
+
+    await viewport(390,844,true);
+    assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),'Expanded inventory modules fit the mobile viewport');
+    await viewport(1440,1000);
+    await route('analiz-gecmisi');
+    await wait("document.querySelector('#library-heading')");
+    await clickSelector(library+' summary');
+    await click('JSON analiz paketini indir');
+    const json = JSON.parse(await download('abc-analiz-paketi.json'));
+    assert(json.version===1&&json.rows[0][3]==='002','Downloaded JSON contains the recomputable, versioned SKU analysis');
+    assert(await evaluate("indexedDB.databases().then(items=>!items.some(item=>item.name==='abc-inventory-user-history'))"),'Ordinary imports, comparisons and JSON download never persist a history database');
+    await clickSelector(history+' summary');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    await click('Analizi geçmişe kaydet');
+    await wait("document.querySelector('.inventory-history li')?.textContent.includes('guncel-donem.csv')");
+    await send('Page.reload');
+    await wait("document.querySelector('#library-heading')");
+    await clickSelector(history+' summary');
+    await wait("document.querySelector('.inventory-history li')");
+    await click('Aç');
+    await wait(total('1.254,00 TL'));
+    assert(true,'Explicitly saved analysis restores after browser reload');
+    await click('Tüm geçmişi sil');
+    await click('Silme işlemini onayla');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    await clickSelector(library+' summary');
+    await upload(resolve(run,'downloads','abc-analiz-paketi.json'),library+' input[type=file]');
+    await wait(total('1.254,00 TL'));
+    assert(true,'JSON import recalculates the saved analysis through the real worker');
+    await send('Page.reload');
+    await wait("document.querySelector('#library-heading')");
+    await clickSelector(history+' summary');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'History deletion and default non-persistence survive browser reload');
+
+    await clickSelector(library+' summary');
+    await upload(resolve(run,'downloads','abc-analiz-paketi.json'),library+' input[type=file]');
+    await wait(total('1.254,00 TL'));
+    await route('stok-karar-destegi');
+    await wait("document.querySelector('.inventory-panel:not([hidden]) textarea')");
+    const field = (name, value) => set(`.inventory-panel:not([hidden]) [name=${name}]`,value);
+    const metric = async value => {
+      await click('Hesapla');
+      await wait(`document.querySelector('.inventory-panel:not([hidden]) .inventory-results')?.textContent.includes(${JSON.stringify(value)})`);
+    };
+    await field('demand','002;10;10');
+    await field('maxX','0,25');await field('maxY','0,75');
+    await metric('10,00');
+    await click('ABC-XYZ');
+    assert(await evaluate("document.querySelector('.inventory-cell-detail').textContent.includes('Yeni motor · 002')"),'XYZ demand merges with loaded ABC inventory by SKU');
+    await route('stok-optimizasyonu');
+    await wait("document.querySelector('.inventory-panel:not([hidden]) [name=ordering]')");
+    await field('demand','1000');await field('ordering','40');await field('holding','2');
+    await metric('200,00 adet');
+    await wait("document.querySelector('.inventory-panel:not([hidden]) .plot-host')");
+    await evaluate("document.querySelector('.inventory-panel:not([hidden]) .plot-host').scrollIntoView({block:'center'})");
+    await wait("document.querySelector('.inventory-panel:not([hidden]) .plot-host')?.data?.length===3");
+    assert(true,'EOQ optimum and all three cost curves render');
+    await click('ROP');
+    await field('demand','7,5');await field('lead','2,5');await field('safety','3');
+    await metric('21,75 adet');
+    assert(true,'Reorder point preserves fractional inputs and adds safety stock');
+    await click('Emniyet stoku');
+    await select('.inventory-panel:not([hidden]) select','empirical');
+    await field('service','90');await field('leadDemand','0;10;10;30');
+    await metric('17,50 adet');
+    assert(true,'Safety stock uses the selected empirical model');
+    await route('fsn-ved');
+    await wait("document.querySelector('.inventory-panel:not([hidden]) textarea')");
+    await field('movement','Parça;1;0');await field('threshold','50');
+    await metric('50,00');
+    assert(true,'FSN classifies the known movement frequency');
+    await click('VED');
+    await field('items','Parça;düşük;yüksek;Güvenlik');
+    await metric('V · Hayati');
+    assert(true,'VED uses the highest criticality impact');
+    await route('maliyet-simulasyonu');
+    await wait("document.querySelector('.inventory-panel:not([hidden]) [name=policies]')");
+    await field('demand','3;4;7;2');await field('initial','2');await field('lead','1');
+    await field('order','2');await field('holding','1');await field('shortage','3');
+    await field('policies','Sabit parti;Q;2;5\nHedef stok;R;2;8');
+    await field('demandFactors','0');
+    await metric('29,00');
+    assert(await evaluate("document.querySelector('.inventory-panel:not([hidden]) .inventory-results').textContent.includes('25,00')"),'Cost simulation and sensitivity match the known outputs');
+    await select('.preferences select','en');
+    await wait("document.documentElement.lang==='en'&&document.querySelector('.inventory-panel:not([hidden]) .inventory-results').textContent.includes('Policy comparison')");
+    if(await evaluate("document.documentElement.dataset.theme==='light'"))await clickSelector('.theme-toggle');
+    assert(await evaluate("document.documentElement.dataset.theme==='dark'"),'English results and dark theme preserve the simulation');
+    await viewport(390,844,true);
+    for (const hash of ['genel-bakis','analiz','stok-karar-destegi','donemsel-karsilastirma','senaryo','stok-optimizasyonu','fsn-ved','maliyet-simulasyonu','analiz-gecmisi','rehber']) {
+      await route(hash);
+      await wait(`document.querySelector('nav a[aria-current=page]')?.hash==='#${hash}'&&[...document.querySelectorAll('main h1')].some(heading=>heading.checkVisibility())`);
+      assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${hash}: mobile page fits in English dark mode`);
+    }
+    await screenshot('12-mobile-guide-en-dark','.guide-tabs');
+
+  }
   assert(errors.length===0,'No page runtime errors or blocked application requests');assert(!requests.some(url=>/^https?:/.test(url)&&!url.startsWith(base+'/')),'No external page requests');
   assert(!requests.some(url=>url.includes('exceljs.min')),'Old prebuilt ExcelJS bundle was never requested');
   result.cspViolations=await evaluate('window.__cspViolations');
   assert(result.cspViolations.length===0,'No CSP violations during real interaction and downloads');
   assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>['GET','HEAD'].includes(record.method)&&!record.hasPostData&&!record.bodyBytes),'No HTTP request bodies or upload methods in page and workers');
-  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
+  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/fonts\/geist-latin(?:-ext)?\.woff2$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
   const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
   assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
   result.success=true;
-}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
+}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');result.failureState=await evaluate(`[...document.querySelectorAll('.plot-host,[role=alert],main h1')].map(el=>({class:el.className,visible:el.checkVisibility(),rect:el.getBoundingClientRect().toJSON(),data:el.data?.length,layout:el.layout?.xaxis?.range,fullLayout:el._fullLayout?.xaxis?.range,dragMode:el._fullLayout?.dragmode,alert:el.getAttribute('role')==='alert'?el.textContent:null}))`);await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
 finally {
   if(socket?.readyState===1){try{result.cspViolations=await evaluate('window.__cspViolations??[]');}catch{ /* The page may already be unavailable. */ }}
   if(socket?.readyState===1){try{await send('Browser.close',{},undefined);}catch{ /* Close the socket even if Chrome has exited. */ }socket.close();}browser.kill();

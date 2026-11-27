@@ -1,35 +1,117 @@
-import { useEffect, useRef, useState } from 'react';
-import { calculateAbc, DEFAULT_TARGETS, sampleData, validateTargets } from './core/abc';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { DEFAULT_TARGETS, validateTargets } from './core/targets';
 import type { Analysis, InputTable, Targets } from './core/abc';
-import { FILE_LIMITS } from './io/read-file';
 import { processAnalysis } from './processing/client';
 import { UploadWorkspace } from './components/UploadWorkspace';
 import { TargetSettings } from './components/TargetSettings';
-import { KpiOverview } from './components/KpiOverview';
-import { ResultsTables } from './components/ResultsTables';
-import { AnalysisInsights } from './components/AnalysisInsights';
-import { GuidePage } from './components/GuidePage';
-import { ReportDownload } from './components/ReportDownload';
-import { ChartsPanel } from './components/ChartsPanel';
+import { GroupBreakdown, KpiOverview, LeadingProducts } from './components/KpiOverview';
+import {
+  DashboardPreferences,
+  WorkspaceNav,
+  pageFromHash,
+  workspacePages,
+} from './components/WorkspaceNav';
+import type { Page } from './components/WorkspaceNav';
+import { displayError, LanguageContext, preference, savePreference, useLocale } from './ui/locale';
+import type { Language, Theme } from './ui/locale';
+
+import { Icon } from './ui/Icon';
+import { useInventoryImport } from './components/inventory/useInventoryImport';
+
+const ResultsTables = lazy(() =>
+  import('./components/ResultsTables').then((m) => ({ default: m.ResultsTables })),
+);
+const AnalysisInsights = lazy(() =>
+  import('./components/AnalysisInsights').then((m) => ({ default: m.AnalysisInsights })),
+);
+const ReportDownload = lazy(() =>
+  import('./components/ReportDownload').then((m) => ({ default: m.ReportDownload })),
+);
+const ImportEditor = lazy(() =>
+  import('./components/inventory/ImportEditor').then((m) => ({ default: m.ImportEditor })),
+);
+const GuidePage = lazy(() =>
+  import('./components/GuidePage').then((m) => ({ default: m.GuidePage })),
+);
+const ChartsPanel = lazy(() =>
+  import('./components/ChartsPanel').then((m) => ({ default: m.ChartsPanel })),
+);
+const InventoryWorkspace = lazy(() =>
+  import('./inventory/InventoryWorkspace').then((m) => ({ default: m.InventoryWorkspace })),
+);
+const ComparisonWorkspace = lazy(() =>
+  import('./components/inventory/ComparisonWorkspace').then((m) => ({
+    default: m.ComparisonWorkspace,
+  })),
+);
+const AnalysisLibrary = lazy(() =>
+  import('./components/inventory/AnalysisLibrary').then((m) => ({ default: m.AnalysisLibrary })),
+);
 
 export default function App() {
-  const [page, setPage] = useState(() =>
-    window.location.hash === '#rehber' ? 'guide' : 'analysis',
+  const [language, setLanguage] = useState(() =>
+    preference<Language>('language', ['tr', 'en'], 'tr'),
   );
+  const [theme, setTheme] = useState(() =>
+    preference<Theme>(
+      'theme',
+      ['light', 'dark'],
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    ),
+  );
+  useEffect(() => {
+    document.documentElement.lang = language;
+    savePreference('language', language);
+  }, [language]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    savePreference('theme', theme);
+  }, [theme]);
+  return (
+    <LanguageContext.Provider value={language}>
+      <Dashboard theme={theme} onTheme={setTheme} onLanguage={setLanguage} />
+    </LanguageContext.Provider>
+  );
+}
+
+function Dashboard({
+  theme,
+  onTheme,
+  onLanguage,
+}: {
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
+  onLanguage: (language: Language) => void;
+}) {
+  const { language, t, number } = useLocale();
+  const [page, setPage] = useState<Page>(() => pageFromHash(window.location.hash));
   const [mobileOpen, setMobileOpen] = useState(false),
     [targets, setTargets] = useState<Targets>({ ...DEFAULT_TARGETS });
   const [analysis, setAnalysis] = useState<Analysis | null>(null),
     [source, setSource] = useState<InputTable | null>(null);
   const [name, setName] = useState(''),
-    [busy, setBusy] = useState(false),
+    [processing, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState<
+      'cleared' | 'loaded' | 'restored' | 'targets' | 'recalculated' | ''
+    >('');
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
+  const importer = useInventoryImport(targets, (filename, result) => {
+    setSource(result.source);
+    setAnalysis(result.analysis);
+    setName(filename);
+    setIsDemo(false);
+    setError('');
+    setNotice('loaded');
+  });
+  const busy = processing || importer.busy;
+  const activeError = error || importer.error;
   const operation = useRef<AbortController | null>(null),
     main = useRef<HTMLElement>(null);
   useEffect(() => {
     const change = () => {
-      if (window.location.hash === '#rehber') setPage('guide');
-      else if (window.location.hash === '#analiz') setPage('analysis');
+      if (window.location.hash !== '#main-content') setPage(pageFromHash(window.location.hash));
       setMobileOpen(false);
     };
     window.addEventListener('hashchange', change);
@@ -40,60 +122,77 @@ export default function App() {
   }, []);
   useEffect(() => {
     main.current?.focus();
-    document.title =
-      page === 'guide' ? 'ABC Analizi Rehberi | BarisDevLab' : 'ABC Stok Analizi | BarisDevLab';
   }, [page]);
   useEffect(() => {
     if (mobileOpen) document.querySelector<HTMLAnchorElement>('#sidebar nav a')?.focus();
   }, [mobileOpen]);
-  function clear() {
+  function cancel() {
+    importer.reset();
     operation.current?.abort();
     operation.current = null;
     setBusy(false);
+  }
+  function clear() {
+    cancel();
     setAnalysis(null);
     setSource(null);
     setName('');
+    setIsDemo(false);
     setError('');
-    setNotice('Analiz temizlendi. Yeni bir dosya yükleyebilirsiniz.');
+    setNotice('cleared');
   }
-  function demo() {
-    operation.current?.abort();
-    operation.current = null;
-    setBusy(false);
-    const data = sampleData();
-    setSource(data);
-    setAnalysis(calculateAbc(data, targets));
-    setName('Örnek stok verisi');
-    setError('');
-    setNotice('Örnek veri yüklendi. 5 ürün analiz edildi.');
-  }
-  async function loadFile(file: File) {
-    operation.current?.abort();
+  async function demo() {
+    cancel();
     const controller = new AbortController();
     operation.current = controller;
+    setBusy(true);
     setError('');
     setNotice('');
-    setBusy(true);
     try {
-      if (!/\.(csv|xlsx)$/i.test(file.name))
-        throw new Error('Yalnızca Excel ve CSV dosyaları desteklenir.');
-      if (file.size > FILE_LIMITS.bytes)
-        throw new Error('Dosya boyutu 20 MB sınırını aşıyor. Daha küçük bir dosya seçin.');
-      const bytes = await file.arrayBuffer();
+      const { calculateAbc, sampleData } = await import('./core/abc');
       if (controller.signal.aborted) return;
-      const result = await processAnalysis(
-        { kind: 'file', bytes, name: file.name, targets },
-        controller.signal,
-      );
-      if (!controller.signal.aborted) {
-        setSource(result.source);
-        setAnalysis(result.analysis);
-        setName(file.name);
-        setNotice(`${file.name} yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
+      const data = sampleData();
+      setSource(data);
+      setAnalysis(calculateAbc(data, targets));
+      setName('Örnek stok verisi');
+      setIsDemo(true);
+      setNotice('loaded');
+    } catch {
+      if (!controller.signal.aborted) setError('Örnek veri yüklenemedi.');
+    } finally {
+      if (operation.current === controller) {
+        operation.current = null;
+        setBusy(false);
       }
+    }
+  }
+  function loadFile(file: File) {
+    setError('');
+    setNotice('');
+    return importer.open(file);
+  }
+  async function restorePackage(load: () => Promise<ArrayBuffer>) {
+    if (busy || operation.current)
+      throw new Error('Önce devam eden işlemin tamamlanmasını bekleyin.');
+    const controller = new AbortController();
+    operation.current = controller;
+    setBusy(true);
+    setNotice('');
+    setError('');
+    try {
+      const bytes = await load();
+      if (controller.signal.aborted) return;
+      const result = await processAnalysis({ kind: 'decode', bytes }, controller.signal);
+      if (controller.signal.aborted) return;
+      importer.reset();
+      setSource(result.source);
+      setAnalysis(result.analysis);
+      setTargets(result.analysis.targets);
+      setName(result.name);
+      setIsDemo(false);
+      setNotice('restored');
     } catch (error) {
-      if (!controller.signal.aborted)
-        setError(error instanceof Error ? error.message : 'Dosya okunamadı.');
+      if (!controller.signal.aborted) throw error;
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -102,7 +201,7 @@ export default function App() {
     }
   }
   async function apply(next: Targets) {
-    if (operation.current) return;
+    if (busy || operation.current) return;
     try {
       validateTargets(next);
     } catch (error) {
@@ -111,7 +210,7 @@ export default function App() {
     }
     if (!source) {
       setTargets(next);
-      setNotice('Hedefler güncellendi.');
+      setNotice('targets');
       return;
     }
     const controller = new AbortController();
@@ -127,7 +226,7 @@ export default function App() {
       if (!controller.signal.aborted) {
         setTargets(next);
         setAnalysis(result.analysis);
-        setNotice('Hedefler güncellendi. Tüm analiz yeniden hesaplandı.');
+        setNotice('recalculated');
       }
     } catch (error) {
       if (!controller.signal.aborted)
@@ -143,24 +242,87 @@ export default function App() {
       }
     }
   }
+  const menu = useRef<HTMLButtonElement>(null);
+  const rail = useRef<HTMLElement>(null);
+  const fileName = isDemo ? t('Örnek stok verisi', 'Sample inventory') : name;
+  const title = t(workspacePages[page][1], workspacePages[page][2]);
+  useEffect(() => {
+    document.title = `${title} | Inventory Intelligence`;
+  }, [title]);
+  const dashboard = page === 'overview' || page === 'analysis';
+  const inventoryPage =
+    page === 'xyz' || page === 'optimization' || page === 'movement' || page === 'simulation'
+      ? page
+      : null;
+  const [inventoryVisited, setInventoryVisited] = useState(Boolean(inventoryPage));
+  if (inventoryPage && !inventoryVisited) setInventoryVisited(true);
+  const [comparisonVisited, setComparisonVisited] = useState(
+    page === 'period' || page === 'scenario',
+  );
+  if ((page === 'period' || page === 'scenario') && !comparisonVisited) setComparisonVisited(true);
+  const loading = <p role="status">{t('Yükleniyor…', 'Loading…')}</p>;
+  const count = number(analysis?.rows.length ?? 0, 0);
+  const notices = {
+    cleared: t(
+      'Analiz temizlendi. Yeni bir dosya yükleyebilirsiniz.',
+      'Analysis cleared. You can upload a new file.',
+    ),
+    loaded: t(
+      `${fileName} yüklendi. ${count} ürün analiz edildi.`,
+      `${fileName} loaded. Products analysed: ${count}.`,
+    ),
+    restored: t(
+      `${fileName} geri yüklendi. ${count} ürün analiz edildi.`,
+      `${fileName} restored. Products analysed: ${count}.`,
+    ),
+    targets: t('Hedefler güncellendi.', 'Targets updated.'),
+    recalculated: t(
+      'Hedefler güncellendi. Tüm analiz yeniden hesaplandı.',
+      'Targets updated. The full analysis was recalculated.',
+    ),
+  };
+  const brand = (
+    <>
+      <span className="brand-mark" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span>
+        <strong>
+          Inventory
+          <br />
+          Intelligence
+        </strong>
+      </span>
+    </>
+  );
+
+  function dismissMenu() {
+    setMobileOpen(false);
+    menu.current?.focus();
+  }
+
   return (
     <div
-      className="app-shell"
+      className={`app-shell ${railCollapsed ? 'rail-collapsed' : ''}`}
       onKeyDown={(event) => {
         if (!mobileOpen) return;
         if (event.key === 'Escape') {
           event.preventDefault();
-          setMobileOpen(false);
-          document.querySelector<HTMLButtonElement>('.menu-toggle')?.focus();
+          dismissMenu();
         }
         if (event.key === 'Tab') {
-          const controls = Array.from(
-            document.querySelectorAll<HTMLElement>(
-              '.menu-toggle,#sidebar a,#sidebar button:not(:disabled),#sidebar input:not(:disabled)',
+          const controls = [
+            menu.current,
+            ...Array.from(
+              rail.current?.querySelectorAll<HTMLElement>(
+                'a, button:not(:disabled), input:not(:disabled)',
+              ) ?? [],
             ),
-          ).filter((element) => element.getBoundingClientRect().width > 0);
+          ].filter((element) => element && element.getBoundingClientRect().width > 0);
           const first = controls[0],
-            last = controls[controls.length - 1];
+            last = controls.at(-1);
           if (event.shiftKey && document.activeElement === first) {
             event.preventDefault();
             last?.focus();
@@ -172,187 +334,250 @@ export default function App() {
       }}
     >
       <a className="skip-link" href="#main-content">
-        İçeriğe geç
+        {t('İçeriğe geç', 'Skip to content')}
       </a>
       <header className="mobile-header">
-        <a className="brand" href="#analiz">
-          <span className="brand-mark">▥</span>
-          <span>
-            ABC <b>Stok Analizi</b>
-          </span>
+        <a className="brand" href="#genel-bakis">
+          {brand}
         </a>
         <button
+          ref={menu}
           className="menu-toggle"
           aria-expanded={mobileOpen}
           aria-controls="sidebar"
-          aria-label={mobileOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+          aria-label={mobileOpen ? t('Menüyü kapat', 'Close menu') : t('Menüyü aç', 'Open menu')}
           onClick={() => setMobileOpen(!mobileOpen)}
         >
-          {mobileOpen ? '✕' : '☰'}
+          {mobileOpen ? '×' : '☰'}
         </button>
       </header>
-      {mobileOpen && (
-        <button
-          className="nav-backdrop"
-          aria-label="Menüyü kapat"
-          onClick={() => setMobileOpen(false)}
+      {mobileOpen && <div className="nav-backdrop" aria-hidden="true" onClick={dismissMenu} />}
+      <aside ref={rail} id="sidebar" className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
+        <div className="desktop-identity">
+          <a
+            href="#genel-bakis"
+            className="brand desktop-brand"
+            aria-label="Inventory Intelligence"
+            onClick={() => setPage('overview')}
+          >
+            {brand}
+          </a>
+        </div>
+        <WorkspaceNav
+          page={page}
+          collapsed={railCollapsed && !mobileOpen}
+          onNavigate={(next) => {
+            if (next === page && mobileOpen) menu.current?.focus();
+            setPage(next);
+            setMobileOpen(false);
+          }}
         />
-      )}
-      <aside
-        id="sidebar"
-        className={`sidebar ${mobileOpen ? 'is-open' : ''}`}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') setMobileOpen(false);
-        }}
-      >
-        <a href="#analiz" className="brand desktop-brand">
-          <span className="brand-mark">▥</span>
-          <span>
-            ABC Stok Analizi<small>ENVANTER / KARAR DESTEK</small>
-          </span>
-        </a>
-        <span className="nav-heading">ÇALIŞMA ALANI</span>
-        <nav aria-label="Ana gezinme">
-          <a
-            href="#analiz"
-            aria-current={page === 'analysis' ? 'page' : undefined}
-            onClick={() => {
-              setPage('analysis');
-              setMobileOpen(false);
-            }}
-          >
-            <span aria-hidden="true">▦</span>Analiz Paneli
-          </a>
-          <a
-            href="#rehber"
-            aria-current={page === 'guide' ? 'page' : undefined}
-            onClick={() => {
-              setPage('guide');
-              setMobileOpen(false);
-            }}
-          >
-            <span aria-hidden="true">▤</span>ABC Rehberi
-          </a>
-        </nav>
-        <TargetSettings targets={targets} busy={busy} onApply={apply} />
-        <div className="sidebar-status">
-          <span className="nav-heading">VERİ DURUMU</span>
-          <p>
-            <span className={`status-dot ${!name ? 'inactive' : ''}`} />
-            {name ? 'Dosya yüklü' : 'Dosya bekleniyor'}
-          </p>
-          {name ? (
-            <small className="file-name">{name}</small>
-          ) : (
-            <small>Excel veya CSV ile başlayın.</small>
-          )}
-          <p className="caption">
-            Sayfalar arasında veriniz korunur. Yenileme sonrası veriler temizlenir.
-          </p>
+        <div className="rail-footer">
+          <Icon name="shield" />
+          <span>{t('Veriler cihazınızda kalır', 'Data stays on your device')}</span>
         </div>
-        <footer className="sidebar-footer">
-          <span>BARISDEVLAB</span>
-          <small>Envanter analitiği · v0.5</small>
-        </footer>
       </aside>
-      <main id="main-content" ref={main} tabIndex={-1} className="main-content">
+      <main id="main-content" ref={main} tabIndex={-1} className="main-content" inert={mobileOpen}>
         <div className="topbar">
-          <span>
-            Çalışma alanı <span className="breadcrumb-separator">/</span>{' '}
-            <strong>{page === 'analysis' ? 'Analiz Paneli' : 'ABC Rehberi'}</strong>
-          </span>
-          <span className="privacy-pill">◈ Veriler cihazınızda kalır</span>
-        </div>
-        <div hidden={page !== 'analysis'}>
-          <header className="page-hero">
-            <span className="eyebrow">
-              <span className="live-dot" /> STOK YÖNETİMİNDE EKONOMİK ÖNCELİK
-            </span>
-            <h1>
-              Verilerinizi anlayın.
-              <br />
-              <span>Önceliklerinizi belirleyin.</span>
-            </h1>
-            <p>
-              Stoklarınızı yıllık parasal tüketim değerine göre A, B ve C gruplarına ayırın.
-              Ekonomik etkiyi görün, kontrol kaynaklarınızı doğru planlayın.
-            </p>
-            <div className="hero-tags">
-              <span>ABC sınıflandırması</span>
-              <span>Etkileşimli grafikler</span>
-              <span>Excel raporlama</span>
+          <div className="topbar-start">
+            <button
+              type="button"
+              className="icon-button rail-toggle"
+              aria-expanded={!railCollapsed}
+              aria-controls="sidebar"
+              aria-label={
+                railCollapsed
+                  ? t('Kenar menüsünü genişlet', 'Expand sidebar')
+                  : t('Kenar menüsünü daralt', 'Collapse sidebar')
+              }
+              onClick={() => setRailCollapsed(!railCollapsed)}
+            >
+              <Icon name="panel" />
+            </button>
+            <div className="breadcrumb">
+              {t('Çalışma alanı', 'Workspace')} <Icon name="chevron" />
+              <strong>{title}</strong>
             </div>
+          </div>
+          <DashboardPreferences theme={theme} onTheme={onTheme} onLanguage={onLanguage} />
+        </div>
+        {busy && (
+          <div className="notice" role="status">
+            {t('Veriler arka planda işleniyor…', 'Processing your inventory…')}{' '}
+            <button className="text-button" onClick={cancel}>
+              {t('İşlemi iptal et', 'Cancel operation')}
+            </button>
+          </div>
+        )}
+        {activeError && (
+          <div className="notice error" role="alert">
+            {displayError(
+              activeError,
+              language,
+              'Could not analyse the inventory. Check the file or targets and try again.',
+            )}
+            {analysis && (
+              <span>
+                {t(
+                  ' Önceki geçerli analiz korunuyor.',
+                  ' The previous analysis is still available.',
+                )}
+              </span>
+            )}
+          </div>
+        )}
+        {notice && (
+          <div
+            className={notice === 'loaded' || notice === 'restored' ? 'sr-only' : 'notice success'}
+            role="status"
+          >
+            {notices[notice]}
+          </div>
+        )}
+        <div hidden={!dashboard} className={page === 'overview' ? 'overview-page' : undefined}>
+          <header className="page-hero dashboard-hero">
+            <div>
+              <h1>{title}</h1>
+              <p>
+                {page === 'analysis'
+                  ? t(
+                      'Kümülatif değer payını inceleyin ve sınıf hedeflerini ayarlayın.',
+                      'Inspect cumulative value and tune classification targets.',
+                    )
+                  : t(
+                      'Envanter değerini, ürün dağılımını ve kontrol önceliklerini izleyin.',
+                      'Track inventory value, product distribution, and control priorities.',
+                    )}
+              </p>
+            </div>
+            {page === 'overview' && analysis && (
+              <a className="button secondary" href="#analiz">
+                {t('ABC analizini aç', 'Open ABC analysis')} <Icon name="arrow" />
+              </a>
+            )}
           </header>
           <UploadWorkspace
             busy={busy}
-            name={name}
+            name={fileName}
+            count={count}
             onFile={loadFile}
             onDemo={demo}
             onClear={clear}
+            exports={
+              analysis && (
+                <Suspense fallback={loading}>
+                  <ReportDownload analysis={analysis} />
+                </Suspense>
+              )
+            }
           />
-          {busy && (
-            <div className="notice" role="status">
-              Veriler arka planda işleniyor…{' '}
-              <button className="text-button" onClick={clear}>
-                İşlemi iptal et
-              </button>
-            </div>
+          {importer.draft && (
+            <Suspense fallback={loading}>
+              <ImportEditor importer={importer} disabled={busy} />
+            </Suspense>
           )}
-          {error && (
-            <div className="notice error" role="alert">
-              {error}
-              {analysis && <span> Önceki geçerli analiz korunuyor.</span>}
-            </div>
-          )}
-          {notice && (
-            <div className="notice success" role="status">
-              {notice}
-            </div>
-          )}
-          {analysis ? (
-            <>
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">01 / ENVANTERİNİZE GENEL BAKIŞ</span>
-                  <h2>Ekonomik etkinin özeti</h2>
-                </div>
-                <span className="subtle-label">{analysis.rows.length} ürün · Tam analiz</span>
-              </div>
-              <KpiOverview analysis={analysis} />
-              <ChartsPanel analysis={analysis} />
-              <AnalysisInsights analysis={analysis} />
-              <ResultsTables analysis={analysis} />
-              <ReportDownload analysis={analysis} />
-            </>
-          ) : (
-            <section className="empty-state">
-              <div className="empty-symbol" aria-hidden="true">
-                ▥
-              </div>
-              <h2>İlk analizinize hazır mısınız?</h2>
-              <p>
-                Dosyanızı yükleyin veya örnek veriyle başlayın. Sonuçlarınız, grafikleriniz ve Excel
-                raporunuz burada görünecek.
-              </p>
-              <div>
-                <span>01 · Dosyanızı yükleyin</span>
-                <span>02 · Hedefleri belirleyin</span>
-                <span>03 · Öncelikleri keşfedin</span>
-              </div>
+          {analysis && (
+            <section className="overview" aria-labelledby="overview-heading">
+              <h2 id="overview-heading" className="sr-only">
+                {t('Envanter özeti', 'Inventory overview')}
+              </h2>
+              <KpiOverview analysis={analysis} featured={page === 'overview'} />
+              {page === 'overview' && (
+                <>
+                  <div className="overview-grid">
+                    <LeadingProducts analysis={analysis} />
+                    <div className="overview-support">
+                      <GroupBreakdown analysis={analysis} compact={false} />
+                      <Suspense fallback={loading}>
+                        <AnalysisInsights analysis={analysis} compact />
+                      </Suspense>
+                    </div>
+                  </div>
+                </>
+              )}
+              {page === 'analysis' && <GroupBreakdown analysis={analysis} compact />}
             </section>
           )}
+          <div
+            hidden={page !== 'analysis'}
+            className={analysis ? 'abc-chart-layout' : 'abc-chart-layout no-results'}
+          >
+            <div className="abc-settings">
+              <TargetSettings targets={targets} busy={busy} onApply={apply} />
+            </div>
+            {analysis && page === 'analysis' && (
+              <Suspense fallback={loading}>
+                <ChartsPanel analysis={analysis} theme={theme} />
+              </Suspense>
+            )}
+          </div>
+          {analysis && page === 'analysis' && (
+            <Suspense fallback={loading}>
+              <AnalysisInsights analysis={analysis} />
+              <ResultsTables analysis={analysis} />
+            </Suspense>
+          )}
         </div>
+        {inventoryVisited && (
+          <div hidden={!inventoryPage}>
+            <Suspense fallback={loading}>
+              <InventoryWorkspace
+                page={inventoryPage}
+                theme={theme}
+                abcRows={isDemo ? undefined : analysis?.rows}
+              />
+            </Suspense>
+          </div>
+        )}
+        {comparisonVisited && analysis && source && (
+          <div hidden={page !== 'period' && page !== 'scenario'}>
+            <Suspense fallback={loading}>
+              <ComparisonWorkspace
+                mode={page === 'scenario' ? 'scenario' : 'period'}
+                analysis={analysis}
+                source={source}
+                name={fileName}
+              />
+            </Suspense>
+          </div>
+        )}
+        {(page === 'period' || page === 'scenario') && !analysis && (
+          <section className="panel route-empty">
+            <h1>{title}</h1>
+            <p>
+              {t(
+                'Başlamak için güncel dönem dosyasını yükleyin.',
+                'Upload the current period file to begin.',
+              )}
+            </p>
+            <a className="button primary" href="#analiz">
+              {t('ABC analizine git', 'Go to ABC analysis')}
+            </a>
+          </section>
+        )}
+        {page === 'history' && (
+          <Suspense fallback={loading}>
+            <AnalysisLibrary
+              analysis={analysis}
+              name={fileName}
+              busy={busy}
+              onRestore={restorePackage}
+            />
+          </Suspense>
+        )}
         {page === 'guide' && (
-          <GuidePage
-            onReturn={() => {
-              window.location.hash = 'analiz';
-              setPage('analysis');
-            }}
-          />
+          <Suspense fallback={loading}>
+            <GuidePage
+              onReturn={() => {
+                window.location.hash = 'analiz';
+                setPage('analysis');
+              }}
+            />
+          </Suspense>
         )}
         <footer className="main-footer">
-          <span>ABC STOK ANALİZ SİSTEMİ</span>
-          <span>BarisDevLab · Tarayıcıda hesaplanır</span>
+          <span>BarisDevLab</span>
+          <span>{t('Tarayıcıda hesaplanır', 'Calculated in your browser')}</span>
         </footer>
       </main>
     </div>

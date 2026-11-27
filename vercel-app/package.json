@@ -16,7 +16,9 @@
     "prepare:excel": "node scripts/build-exceljs.mjs",
     "lint": "eslint --max-warnings 0 src tests scripts vite.config.ts eslint.config.mjs",
     "format": "prettier --write \"src/**/*.{tsx,css}\" \"tests/**/*.tsx\"",
-    "format:check": "prettier --check \"src/**/*.{tsx,css}\" \"tests/**/*.tsx\""
+    "format:check": "prettier --check \"src/**/*.{tsx,css}\" \"tests/**/*.tsx\"",
+    "benchmark": "node scripts/benchmark.mjs",
+    "verify:production": "node scripts/verify-production.mjs"
   },
   "dependencies": {
     "exceljs": "4.4.0",

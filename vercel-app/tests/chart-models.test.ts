@@ -23,7 +23,7 @@ describe('Grafiklerin veri ve gösterim sözleşmesi',()=>{
     const model=paretoModel(result.rows,result.targets,false,'zoom',0);expect(model.layout.yaxis?.range?.[1]).toBeGreaterThan(2e-300);expect((model.data[0] as {customdata:string[][]}).customdata[0][2]).not.toBe('0,00');
   });
   it('halka parasal değer payını, merkez ürün sayısını gösterir',()=>{
-    const model=distributionModel(analysis);expect(model.data[0]).toMatchObject({values:analysis.summary.map(group=>group.value),labels:['A','B','C'],hole:.76});expect(model.layout.annotations?.[0].text).toContain('<b>5</b>');
+    const model=distributionModel(analysis);expect(model.data[0]).toMatchObject({values:analysis.summary.map(group=>group.value),labels:['A','B','C'],hole:.70});expect(model.layout.annotations?.[0].text).toContain('<b>5</b>');
   });
   it('500 üründe etiketler seyreltilir, veri atılmaz',()=>{
     const source=sampleData();source.rows=Array.from({length:500},(_,i)=>[`Uzun ürün ${i}`,500-i,1]);const result=calculateAbc(source);const model=paretoModel(result.rows,result.targets,false,'zoom',0);expect(model.layout.xaxis?.tickvals?.length).toBeLessThanOrEqual(8);expect((model.data[0] as {y:number[]}).y.length).toBe(500);

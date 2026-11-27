@@ -1,4 +1,5 @@
-import { EXCEL_MIME, REPORT_FILENAME, TEMPLATE_FILENAME } from './excel-report';
+import { excelWorkerUrl } from '../worker-urls';
+import { EXCEL_MIME, REPORT_FILENAME, TEMPLATE_FILENAME } from './excel-format';
 import type { ReportRequest, ReportResponse } from './report-worker';
 
 export function saveExcelFile(buffer: ArrayBuffer, filename: string): void {
@@ -21,7 +22,7 @@ export function downloadExcel(request: ReportRequest, signal?: AbortSignal): Pro
     let worker: Worker;
     const finish = () => { clearTimeout(timer); worker.terminate(); signal?.removeEventListener('abort', abort); };
     const abort = () => { finish(); reject(new Error('Excel hazırlama iptal edildi.')); };
-    try { worker = new Worker(new URL('./excel.worker.ts', import.meta.url), { type: 'module' }); }
+    try { worker = new Worker(excelWorkerUrl, { type: 'module' }); }
     catch { reject(new Error('Excel hazırlama başlatılamadı. Lütfen yeniden deneyin.')); return; }
     const timer = setTimeout(() => { finish(); reject(new Error('Excel hazırlama zaman aşımına uğradı. Daha küçük bir analiz deneyin.')); }, 120_000);
     signal?.addEventListener('abort', abort, { once: true });
