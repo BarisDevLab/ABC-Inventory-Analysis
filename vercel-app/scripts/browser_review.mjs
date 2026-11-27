@@ -78,7 +78,7 @@ try {
   result.initialRequests=requests.filter(url=>url.startsWith(base+'/'));
   await route('analiz');
   await wait("document.querySelector('h1').textContent==='ABC analizi'");
-  await click('Örnek veriyle dene');await wait("document.querySelector('.chart-container .plot-host')");await evaluate("document.querySelector('.chart-container .plot-host').scrollIntoView({block:'center'})");await wait("document.querySelector('.plot-host')?.data?.length===4",'Pareto rendered');await evaluate("document.querySelectorAll('.plot-host')[1].scrollIntoView({block:'center'})");await wait("document.querySelectorAll('.plot-host.js-plotly-plot').length===2",'Two charts rendered');
+  await click('Örnek veriyle dene');await wait("document.querySelector('.chart-container .plot-host')");await evaluate("document.querySelector('.chart-container .plot-host').scrollIntoView({block:'center'})");await wait("document.querySelector('.plot-host')?.data?.length===4",'Pareto rendered');await evaluate("document.querySelectorAll('.plot-host')[1].scrollIntoView({block:'center'})");await wait("document.querySelectorAll('.plot-host.plot-loaded').length===2",'Two charts rendered',10000);
   assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Demo total matches Python');await screenshot('02-desktop-dashboard','.section-heading');await screenshot('03-desktop-pareto','.chart-container');
   await screenshot('03b-desktop-distribution','section[aria-labelledby="distribution-heading"]');await screenshot('03c-desktop-results','section[aria-labelledby="results-heading"]');await screenshot('03d-desktop-report','section[aria-labelledby="report-heading"]');
   await click('Dağılım grafiğini PNG indir');const donutPng=await download('abc_deger_dagilimi.png');assert(donutPng.readUInt32BE(16)===2880,'Distribution PNG download works');
@@ -89,7 +89,7 @@ try {
   await click('Boş Excel şablonu indir');await download('stok_sablonu.xlsx');assert(true,'Empty template downloads');
   await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===4");await screenshot('04-desktop-guide','.page-hero');
   for(let index=1;index<4;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
-  assert(await evaluate("document.querySelector('[role=tabpanel]').textContent.includes('Tedarik Zinciri Yönetimi')"),'Guide engineering content present');
+  assert(await evaluate("document.querySelector('[role=tabpanel]:not([hidden])').textContent.includes('Endüstri Mühendisliğinde Kullanımı')"),'Guide engineering content present');
   await click('Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
   await set('#target-a',90);await click('Hedefleri uygula');assert(await evaluate("document.querySelector('[role=alert]').textContent.includes('Önceki geçerli hedefler')"),'Invalid targets retain previous settings');
   await set('#target-a',0);await set('#target-b',0);await set('#target-c',100);await click('Hedefleri uygula');await wait("document.querySelector('[data-kpi=C]').dataset.value==='5'");
@@ -102,17 +102,39 @@ try {
   await upload(resolve(root,'tests/fixtures/files/xlsx-demo.xlsx'));await wait("document.querySelector('.file-name')?.textContent==='xlsx-demo.xlsx'");
   await upload(resolve(root,'tests/fixtures/files/xlsx-corrupt.xlsx'));await wait("document.querySelector('.notice.error')");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Corrupt Excel preserves prior valid analysis');
   const longFile=resolve(run,'sixty.csv');await writeFile(longFile,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n'+Array.from({length:60},(_,i)=>`Uzun mühendislik ürün adı ${i+1};${60-i};12.5`).join('\n'));
-  await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'");await evaluate("document.querySelector('.group-filters input').click()");await wait("document.querySelector('.plot-host').data[0].y.length===60");
+  await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'");await wait("document.querySelector('.group-filters input')");await evaluate("(()=>{const filter=document.querySelector('.group-filters input');if(!filter.checked)filter.click();document.querySelector('.chart-container').scrollIntoView({block:'start'});})()");await wait("document.querySelector('.plot-host')?.data?.[0].y.length===60");
   assert(await evaluate("document.querySelector('.table-scroll[aria-label=\"Ürün bazlı ABC sonuçları\"] tbody').rows.length===50"),'Large table is paginated');await screenshot('05-desktop-sixty','.chart-container');
-  await click('Yakınlaştır');await evaluate("document.querySelector('.plot-host').scrollIntoView({block:'center'})");
-  const box=await evaluate("(()=>{const b=document.querySelector('.plot-host .nsewdrag').getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height};})()");
-  async function drag(x1,y1,x2,y2){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1,y:y1});await send('Input.dispatchMouseEvent',{type:'mousePressed',x:x1,y:y1,button:'left',buttons:1,clickCount:1});for(let step=1;step<=8;step++)await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1+(x2-x1)*step/8,y:y1+(y2-y1)*step/8,button:'left',buttons:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x2,y:y2,button:'left',buttons:0,clickCount:1});}
-  await drag(box.x+box.w*.15,box.y+box.h*.2,box.x+box.w*.65,box.y+box.h*.8);
-  await wait("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<40");assert(true,'Real mouse selection zooms plot');
+  await click('Yakınlaştır');await evaluate("document.querySelector('.plot-host').scrollIntoView({block:'center'})");await delay(300);
+  const dragPoint = () => evaluate(`(()=>{
+    const surface = document.querySelector('.plot-host .nsewdrag');
+    const b = surface.getBoundingClientRect();
+    for (const [fx,fy] of [[.2,.3],[.18,.35],[.25,.38],[.22,.45],[.28,.25]]) {
+      const x = b.x + b.width * fx, y = b.y + b.height * fy;
+      if (document.elementFromPoint(x,y) === surface) return {x,y,w:b.width,h:b.height};
+    }
+    throw new Error('Could not find an unobscured plot drag surface');
+  })()`);
+  async function drag(x1,y1,x2,y2) {
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1,y:y1});
+    await send('Input.dispatchMouseEvent',{type:'mousePressed',x:x1,y:y1,button:'left',buttons:1,clickCount:1});
+    await delay(50);
+    for(let step=1;step<=8;step++){
+      await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x1+(x2-x1)*step/8,y:y1+(y2-y1)*step/8,button:'left',buttons:1});
+      await delay(25);
+    }
+    await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x2,y:y2,button:'left',clickCount:1});
+  }
+  let point=await dragPoint();
+  await drag(point.x,point.y,point.x+point.w*.5,point.y+point.h*.3);
+  await wait("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<40",'Real drag zoom',8000);assert(true,'Real mouse selection zooms plot');
   const priorSpan=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]");
-  await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:box.x+box.w*.5,y:box.y+box.h*.5,deltaY:-150,deltaX:0});await wait(`document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<${priorSpan}`);assert(true,'Real mouse wheel zoom works');
-  await click('Kaydır');assert(await evaluate("document.querySelector('.plot-host').layout.dragmode==='pan'"),'Pan mode works');
-  const oldLeft=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[0]");await drag(box.x+box.w*.5,box.y+box.h*.5,box.x+box.w*.65,box.y+box.h*.5);await wait(`Math.abs(document.querySelector('.plot-host').layout.xaxis.range[0]-${oldLeft})>.1`);assert(true,'Real mouse drag pans plot');
+  point=await dragPoint();
+  await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:point.x,y:point.y,deltaY:-150,deltaX:0});await wait(`document.querySelector('.plot-host').layout.xaxis.range[1]-document.querySelector('.plot-host').layout.xaxis.range[0]<${priorSpan}`,'Wheel zoom',8000);assert(true,'Real mouse wheel zoom works');
+  await click('Kaydır');await wait("document.querySelector('.plot-host').layout.dragmode==='pan'");assert(await evaluate("document.querySelector('.plot-host').layout.dragmode==='pan'"),'Pan mode works');
+  const oldLeft=await evaluate("document.querySelector('.plot-host').layout.xaxis.range[0]");
+  point=await dragPoint();
+  await drag(point.x,point.y,point.x+point.w*.15,point.y);
+  await wait(`Math.abs(document.querySelector('.plot-host').layout.xaxis.range[0]-${oldLeft})>.1`,'Real drag pan',8000);assert(true,'Real mouse drag pans plot');
   await click('Görünümü sıfırla');await wait("document.querySelector('.plot-host').layout.xaxis.range[0]===-.6");assert(true,'Reset restores chart range');
   const bar=await evaluate("(()=>{const b=document.querySelector('.plot-host .barlayer .point path').getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+Math.min(20,b.height/2)};})()");
   await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:bar.x,y:bar.y});await wait("document.querySelector('.plot-host .hoverlayer').textContent.includes('Yıllık tüketim miktarı')");assert(true,'Real hover shows Turkish quantity/price/value details');await screenshot('05b-desktop-tooltip');
@@ -121,7 +143,7 @@ try {
     const performanceFile=resolve(run,`performance-${count}.csv`);await writeFile(performanceFile,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n'+Array.from({length:count},(_,i)=>`Sentetik ürün ${i+1};${count-i};10`).join('\n'));
     const before=await send('Runtime.getHeapUsage');await evaluate('window.__audit={longTasks:[],maxTimerDelay:0}');
     const performanceStart=Date.now();await upload(performanceFile);
-    await wait(`document.querySelector('[data-kpi=products]').dataset.value.replaceAll('.','')==='${count}'&&document.querySelector('.plot-host .barlayer').querySelectorAll('.point path').length===${Math.min(500,count)}`,`Render ${count} products`,60000);
+    await wait(`document.querySelector('[data-kpi=products]').dataset.value.replaceAll('.','')==='${count}'&&document.querySelector('.plot-host')?.data?.[0].y[0]===${count*10}&&document.querySelector('.plot-host .barlayer').querySelectorAll('.point path').length===${Math.min(500,count)}`,`Render ${count} products`,60000);
     await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
     const elapsed=Date.now()-performanceStart,after=await send('Runtime.getHeapUsage'),responsiveness=await evaluate('window.__audit');
     result.performanceSamples.push({rows:count,fileToRenderedChartMilliseconds:elapsed,pageHeapBeforeBytes:before.usedSize,pageHeapAfterBytes:after.usedSize,...responsiveness});
@@ -142,6 +164,9 @@ try {
     await click('☰');await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert(await evaluate("document.activeElement.closest('#sidebar')!==null"),`${label}: keyboard focus remains in open navigation`);
     await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelector('[role=tablist]')");await screenshot(`09-${label}-guide`,'.guide-tabs');assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: guide has no page overflow`);await click('Analiz paneline dön');
+    await wait("document.querySelector('.chart-container').checkVisibility()");
+    await evaluate("document.querySelector('.chart-container').scrollIntoView({block:'start'})");
+    await wait("document.querySelector('.plot-host')?.data?.length===4");
   }
   await viewport(1440,1000);const tiny=resolve(run,'tiny.csv');await writeFile(tiny,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nHassas parça;1;2e-300\nİkinci;1;4e-301');await upload(tiny);await wait("document.querySelector('[data-kpi=products]').dataset.value==='2'");
   await wait("document.querySelector('.plot-host').data[0].y[0]===2e-300");assert(await evaluate("document.querySelector('.plot-host').data[0].customdata[0][2]!=='0,00'"),'Tiny values retain nonzero tooltip');await screenshot('10-desktop-tiny','.chart-container');
@@ -290,12 +315,12 @@ try {
     assert(await evaluate("document.querySelector('.inventory-panel:not([hidden]) .inventory-results').textContent.includes('25,00')"),'Cost simulation and sensitivity match the known outputs');
     await select('.preferences select','en');
     await wait("document.documentElement.lang==='en'&&document.querySelector('.inventory-panel:not([hidden]) .inventory-results').textContent.includes('Policy comparison')");
-    await clickSelector('.theme-toggle');
+    if(await evaluate("document.documentElement.dataset.theme==='light'"))await clickSelector('.theme-toggle');
     assert(await evaluate("document.documentElement.dataset.theme==='dark'"),'English results and dark theme preserve the simulation');
     await viewport(390,844,true);
     for (const hash of ['genel-bakis','analiz','stok-karar-destegi','donemsel-karsilastirma','senaryo','stok-optimizasyonu','fsn-ved','maliyet-simulasyonu','analiz-gecmisi','rehber']) {
       await route(hash);
-      await wait(`document.querySelector('nav a[aria-current=page]')?.hash==='#${hash}'&&document.querySelector('main h1:not([hidden])')`);
+      await wait(`document.querySelector('nav a[aria-current=page]')?.hash==='#${hash}'&&[...document.querySelectorAll('main h1')].some(heading=>heading.checkVisibility())`);
       assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${hash}: mobile page fits in English dark mode`);
     }
     await screenshot('12-mobile-guide-en-dark','.guide-tabs');
@@ -310,7 +335,7 @@ try {
   const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
   assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
   result.success=true;
-}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
+}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');result.failureState=await evaluate(`[...document.querySelectorAll('.plot-host,[role=alert],main h1')].map(el=>({class:el.className,visible:el.checkVisibility(),rect:el.getBoundingClientRect().toJSON(),data:el.data?.length,layout:el.layout?.xaxis?.range,fullLayout:el._fullLayout?.xaxis?.range,dragMode:el._fullLayout?.dragmode,alert:el.getAttribute('role')==='alert'?el.textContent:null}))`);await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
 finally {
   if(socket?.readyState===1){try{result.cspViolations=await evaluate('window.__cspViolations??[]');}catch{ /* The page may already be unavailable. */ }}
   if(socket?.readyState===1){try{await send('Browser.close',{},undefined);}catch{ /* Close the socket even if Chrome has exited. */ }socket.close();}browser.kill();
