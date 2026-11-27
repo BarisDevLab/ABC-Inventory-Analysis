@@ -1,4 +1,7 @@
-<img src="vercel-app/public/brand-mark.svg" width="64" height="64" alt="" />
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="vercel-app/public/brand-logo-light.svg" />
+  <img src="vercel-app/public/brand-logo-full.svg" width="700" alt="Envanter Zekâsı · Inventory Intelligence" />
+</picture>
 
 # Inventory Intelligence
 
@@ -7,6 +10,7 @@
 Review inventory value, demand variability, and replenishment policies in your browser. Start with an Excel or CSV file, or open the built-in synthetic example.
 
 [Live application](https://abc-inventory-analysis.vercel.app) · [Türkçe](README.md) · [Technical guide (Turkish)](vercel-app/README.md)
+[Full logo](vercel-app/public/brand-logo-full.svg) · [Transparent](vercel-app/public/brand-logo-transparent.svg) · [Light theme](vercel-app/public/brand-logo-light.svg) · [Dark theme](vercel-app/public/brand-logo-dark.svg) · [Favicon](vercel-app/public/favicon.svg)
 
 ## Application screenshots
 

@@ -1,4 +1,7 @@
-<img src="vercel-app/public/brand-mark.svg" width="64" height="64" alt="" />
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="vercel-app/public/brand-logo-light.svg" />
+  <img src="vercel-app/public/brand-logo-full.svg" width="700" alt="Envanter Zekâsı · Inventory Intelligence" />
+</picture>
 
 # Envanter Zekâsı
 
@@ -7,6 +10,7 @@
 Stok değerini, talep değişkenliğini ve ikmal politikalarını tarayıcıda inceleyin. Excel veya CSV dosyasıyla başlayın ya da uygulamanın sentetik örnek verisini açın.
 
 [Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [English](README.en.md) · [Teknik kılavuz](vercel-app/README.md)
+[Tam logo](vercel-app/public/brand-logo-full.svg) · [Şeffaf](vercel-app/public/brand-logo-transparent.svg) · [Açık tema](vercel-app/public/brand-logo-light.svg) · [Koyu tema](vercel-app/public/brand-logo-dark.svg) · [Favicon](vercel-app/public/favicon.svg)
 
 ## Uygulamadan görüntüler
 
