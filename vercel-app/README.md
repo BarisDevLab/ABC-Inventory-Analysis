@@ -1,6 +1,6 @@
 # Vercel uygulaması
 
-React + TypeScript + Vite ile derlenen statik ABC stok analiz uygulaması. [Kullanım, veri biçimi ve hesaplama yöntemi](../README.md)
+React + TypeScript + Vite ile derlenen statik Inventory Intelligence uygulaması. [Kullanım, veri biçimi ve hesaplama yöntemi](../README.md)
 
 ## Yerel geliştirme
 
@@ -21,7 +21,7 @@ npm run preview
 
 ## Vercel yapılandırması
 
-Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` ile `dist/` dizinine yazılır. Uygulama API, veri deposu veya ortam değişkeni gerektirmez. Üretim başlıkları `vercel.json` dosyasındadır. `npm run preview` yerel üretim önizlemesine aynı başlıkları ekler.
+Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` ile `dist/` dizinine yazılır. Uygulama API, sunucu tarafı veri deposu veya ortam değişkeni gerektirmez. Üretim başlıkları `vercel.json` dosyasındadır. `npm run preview` yerel üretim önizlemesine aynı başlıkları ekler.
 
 ## Hesaplama ve test verileri
 
@@ -32,16 +32,16 @@ Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` i
 
 ## Dosya okuma ve rapor
 
-CSV’de tırnaklı alanlar ve satır sonları desteklenir. Yinelenen başlıklar, fazla alanlı satırlar ve NUL karakterleri reddedilir. XLSX’te ilk çalışma sayfası okunur. Metin ürün kodlarının baştaki sıfırları korunur. Formüller çalıştırılmaz. Dosyaya kaydedilmiş bir formül sonucu varsa o değer okunur. Tarihler tüketim veya birim fiyat olarak kullanılmaz.
+CSV’de tırnaklı alanlar ve satır sonları desteklenir. Fazla alanlı veri satırları ve NUL karakterleri reddedilir. Özel sütunlar konumlarına göre eşleştirilir. CSV başlık satırı numarası, fiziksel olarak boş satırları atlayarak mantıksal CSV kayıtlarını sayar. XLSX ilk sayfayla açılır ve başka bir sayfa seçilebilir. Metin SKU’larında ve basit sıfır dolgulu Excel kodlarında baştaki sıfırlar korunur. Formüller çalıştırılmaz. Dosyaya kaydedilmiş bir formül sonucu varsa o değer okunur. Tarihler tüketim veya birim fiyat olarak kullanılmaz.
 
-Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfalarını içerir. Boş şablonda yalnızca giriş başlıkları vardır. Rapor tam analizden üretilir. Para ve pay hücrelerinin görünümü iki ondalıkla sınırlıdır. Çok küçük değerlerin hücrede sıfır görünmesi sayısal değeri değiştirmez.
+Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfalarını içerir. SKU eşleştirilirse **ABC Analizi** sayfasına metin olarak eklenir. Boş şablonda yalnızca giriş başlıkları vardır. Rapor tam analizden üretilir. Para ve pay hücrelerinin görünümü iki ondalıkla sınırlıdır. Çok küçük değerlerin hücrede sıfır görünmesi sayısal değeri değiştirmez.
 
 ## Güvenlik ve gizlilik
 
 - Dosya üst sınırı 20 MiB’dir. Satır, sütun ve hücre üst sınırları sırasıyla 100.000, 1.000 ve 1.000.000’dur. XLSX satır sınırı başlığı da içerir.
 - XLSX, ExcelJS’ye verilmeden önce en fazla 10.000 ZIP girdisi ve hem bildirilen hem açılan veri için 100 MiB üst sınırı kontrol edilir. ZIP64, çok parçalı ve şifreli arşivler desteklenmez.
 - Analiz ve Excel üretimi ayrı Web Worker’larda çalışır. İptalde ve 120 saniyelik zaman aşımında ilgili worker sonlandırılır.
-- Kullanıcı verisi tarayıcı belleğinde kalır. Harici servis, CDN veya kalıcı tarayıcı deposu kullanılmaz. Excel indirmeleri yerel Blob bağlantısıyla yapılır. Formül tetikleyebilecek önekler içeren ürün adları dâhil tüm ürün adları açıkça metin hücresi olarak yazılır.
+- Kullanıcı dosyaları sunucuya gönderilmez. Yalnızca açıkça kaydedilen analizler, tarayıcıya ve siteye özgü IndexedDB geçmişinde saklanır. Geçmiş 10 kayıtla sınırlıdır ve tek tek veya tümüyle silinebilir. Excel ve sürümlü JSON paketleri yerel Blob bağlantısıyla indirilir. JSON paketleri en fazla 20 MiB olabilir. Excel çıktısında ürün adları ve SKU’lar metin hücresi olarak yazılır.
 - CSP, `connect-src 'none'` ile ağ bağlantılarını engeller ve script ile worker kaynaklarını uygulamanın kendi kaynağıyla sınırlar. Üretim yanıtları ayrıca çerçeveleme, MIME koklama, yönlendiren bilgisi ve tarayıcı izinlerini sınırlar.
 - Derleme, ExcelJS tarayıcı paketini sabit sürümlü kaynaktan oluşturur. Kullanılmayan eliptik eğri modüllerinin pakete girmesi derlemede engellenir. [Lisans bildirimleri](public/third-party/ExcelJS-NOTICES.txt)
 
@@ -49,21 +49,14 @@ Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfaları
 
 - Masaüstü ve dar ekranlarda aynı analiz, hedefler, stok dökümü ve Excel dışa aktarımı kullanılabilir. Mobil gezinme Escape ile kapanır ve odak menü düğmesine döner. Rehber sekmeleri ok tuşlarıyla çalışır.
 - Dil ve tema tercihleri tarayıcıda saklanır. İngilizce arayüz yerelleştirilmiş sayı gösterimi kullanır. Giriş başlıkları ve Excel rapor şeması Türkçe kalır.
-- Rota eklemek için `WorkspaceNav`, sonuç bölümü eklemek için `App.tsx` içindeki dashboard bileşenleri kullanılır. Sunum dili `ui/locale.ts`, renkler `style.css` tema değişkenleri üzerinden paylaşılır.
+- Gezinme `WorkspaceNav` içinde tanımlanır. `App.tsx` güncel veri, ABC hedefleri ve arayüz tercihlerini paylaşır. Sunum dili `ui/locale.ts`, renkler `style.css` tema değişkenleri üzerinden yönetilir.
 
 ## Performans
 
 `npm run build` ardından `npm run verify:production` çalıştırın. Kontrol derlenen modül worker'larıyla CSV, XLSX ve Excel şablonu akışını sınar. Paket manifestinde Plotly ve ExcelJS'nin ilk açılış yolunda olmadığını ve XLSX okuma ile Excel üretiminin aynı ExcelJS dosyasına yöneldiğini doğrular.
 
-`npm run benchmark` sentetik CSV girdileriyle yükleme, hesaplama, Pareto model hazırlığı ve model kopyalama sürelerini ölçer. `npm run benchmark -- /yol/eski-checkout/vercel-app` önceden derlenmiş bir checkout'u ölçer. Her veri boyutu beş ayrı Node 24.22.3 sürecinde ölçüldü ve medyan raporlandı. Tepe RSS tüm süreci, grafik belleği ise model ve kopyası için GC sonrası ek JavaScript heap'ini gösterir. Ölçümler tarayıcı çizim süresini içermez.
+`npm run benchmark` sentetik CSV girdileriyle yükleme, hesaplama, Pareto model hazırlığı ve model kopyalama sürelerini ölçer. `npm run benchmark -- /yol/eski-checkout/vercel-app` önceden derlenmiş bir checkout'u ölçer. Her boyut beş ayrı sürecin medyanıyla raporlanır. Tepe RSS tüm süreci, grafik belleği model hazırlığı sonrasındaki ek JavaScript heap’ini gösterir. Bu ölçüme tarayıcı çizimi dahil değildir.
 
-| Ürün | Grafik hazırlığı önce / sonra (ms) | Grafik belleği önce / sonra (MiB) | Tepe RSS önce / sonra (MiB) |
-| ---: | ---: | ---: | ---: |
-| 1.000 | 4,54 / 3,65 | 0,63 / 0,35 | 43,25 / 42,81 |
-| 10.000 | 32,62 / 3,56 | 6,06 / 0,35 | 66,18 / 63,56 |
-| 50.000 | 155,12 / 3,42 | 30,78 / 0,36 | 167,71 / 148,64 |
-| 100.000 | 343,93 / 3,83 | 61,79 / 0,36 | 265,49 / 261,28 |
+Paket manifesti, Vite’ın 500 kB uyarısını aşan ExcelJS ve Plotly dosyalarının başlangıçta yüklenmediğini doğrular. Pareto grafiği bir seferde 500 sıra gösterir. Kümülatif paylar, stok dökümü ve Excel raporu tam analizden gelir.
 
-100.000 satırda CSV okuma ve hesaplama sonrasında elde tutulan ek heap her iki sürümde 17,98 MiB oldu. Hesaplanan toplamlar tüm boyutlarda eşleşti. Pareto grafiği bir seferde en çok 500 sıra çizer. Kümülatif paylar, stok dökümü ve Excel raporu tam analizden gelir.
-
-ExcelJS'nin iki ayrı çıktısı toplam 1.424 kB (gzip 396 kB) tutuyordu. Modül worker'ları tek üretim grafiğinde birleştirerek ve güncel tarayıcılarda gerekmeyen global polyfill'leri çıkararak bunu ortak bir 625 kB (gzip 175 kB) dosyaya indirdik. CSV ve örnek veri ExcelJS isteği göndermez. XLSX okuma ve Excel dışa aktarımı modülü gerektiğinde yükler. Plotly Basic 1.130 kB (gzip 378 kB) tutuyor ve grafik görünüm alanına yaklaşınca yükleniyor. Her iki paket de Vite'ın mevcut 500 kB uyarı sınırını aşıyor.
+Yerel üretim tarayıcı kontrolü için bir terminalde `npm run preview -- --port 4175`, diğerinde `node scripts/browser_review.mjs /usr/bin/chromium` çalıştırın. Kontrol sentetik dosyalarla gerçek yükleme, indirme, grafik, hesaplama ve depolama akışlarını sınar.

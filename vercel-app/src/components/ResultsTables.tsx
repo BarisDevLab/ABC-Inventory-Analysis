@@ -13,8 +13,10 @@ export function ProductTable({
 }) {
   const { t, money, number, percent } = useLocale();
   const label = caption ?? t('Ürün bazlı ABC sonuçları', 'ABC results by product');
+  const withSku = rows.some((row) => row.sku !== undefined);
   const headings = [
     t('Ürün', 'Product'),
+    ...(withSku ? [t('Ürün kodu', 'SKU')] : []),
     t('Yıllık Tüketim', 'Annual usage'),
     t('Birim Fiyat (TL)', 'Unit price (TL)'),
     t('Yıllık Değer (TL)', 'Annual value (TL)'),
@@ -37,10 +39,11 @@ export function ProductTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.product}>
+            <tr key={row.sku ?? row.product}>
               <th scope="row" className="product-name">
                 {row.product}
               </th>
+              {withSku && <td>{row.sku ?? '—'}</td>}
               <td>{number(row.quantity, Number.isInteger(row.quantity) ? 0 : 2)}</td>
               <td>{money(row.price)}</td>
               <td>{money(row.value)}</td>
@@ -108,7 +111,9 @@ export function ResultsTables({ analysis }: { analysis: Analysis }) {
     return analysis.rows.filter(
       (row) =>
         (!group || row.group === group) &&
-        (!needle || normalizeProduct(row.product).includes(needle)),
+        (!needle ||
+          normalizeProduct(row.product).includes(needle) ||
+          normalizeProduct(row.sku ?? '').includes(needle)),
     );
   }, [analysis.rows, group, deferredQuery]);
   const pages = Math.ceil(rows.length / PAGE_SIZE);

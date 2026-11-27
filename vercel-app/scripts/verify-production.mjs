@@ -59,9 +59,9 @@ async function request(key, data) {
 const targets = { a: 80, b: 15, c: 5 };
 for (const filename of ['csv-utf-8-comma.csv', 'xlsx-demo.xlsx']) {
   const file = readFileSync('tests/fixtures/files/' + filename);
-  const result = await request(analysisWorker, { kind: 'file', bytes: Uint8Array.from(file).buffer, name: filename, targets });
+  const result = await request(analysisWorker, { kind: 'file', bytes: Uint8Array.from(file).buffer, name: filename, targets, configuration: { sheet: 0, header: 1, numbers: 'auto' }, intent: 'open' });
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.analysis.total, 304000);
+  assert.equal(result.result.result.analysis.total, 304000);
 }
 const template = await request(excelWorker, { kind: 'template' });
 assert.equal(template.ok, true, template.message);

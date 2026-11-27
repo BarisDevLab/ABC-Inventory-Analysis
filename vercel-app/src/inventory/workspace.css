@@ -19,9 +19,9 @@
   margin-bottom: 16px;
 }
 .inventory-workspace [aria-pressed='true'] {
-  background: #203955;
-  border-color: var(--blue);
-  color: #fff;
+  background: var(--active);
+  border-color: var(--primary);
+  color: var(--ink);
 }
 .inventory-panel h2 {
   margin: 0 0 8px;
@@ -54,7 +54,7 @@
   width: 100%;
   min-height: 44px;
   padding: 8px 11px;
-  border: 1px solid #496382;
+  border: 1px solid var(--muted);
   border-radius: 7px;
   background: var(--canvas);
   color: inherit;
@@ -148,13 +148,13 @@
   height: 10px;
   overflow: hidden;
   border-radius: 12px;
-  background: #263b55;
+  background: var(--soft);
 }
 .inventory-bar > span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--cyan);
+  background: var(--primary);
 }
 .inventory-method {
   margin-top: 24px;

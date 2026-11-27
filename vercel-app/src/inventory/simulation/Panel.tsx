@@ -1,40 +1,60 @@
+import type { Translate } from '../../ui/locale';
+import { useLocale } from '../../ui/locale';
 import { fieldNumber, fieldText, inputNumber, readRows, readSeries } from '../shared/inputs';
-import {
-  BarChart,
-  Field,
-  Method,
-  ModuleForm,
-  ResultsTable,
-  formatInventoryNumber as n,
-  formatInventoryPercent,
-} from '../shared/ui';
+import { BarChart, Field, Method, ModuleForm, ResultsTable } from '../shared/ui';
 import { compareStockPolicies } from './calculate';
 import type { StockPolicy } from './calculate';
 
-function readPolicies(raw: string): StockPolicy[] {
-  const rows = readRows(raw, 'Stok politikalarını');
-  if (rows.length < 2) throw new Error('Karşılaştırma için en az iki stok politikası girin.');
+function readPolicies(raw: string, t: Translate): StockPolicy[] {
+  const rows = readRows(raw, t('Stok politikalarını', 'Stock policies'));
+  if (rows.length < 2)
+    throw new Error(
+      t(
+        'Karşılaştırma için en az iki stok politikası girin.',
+        'Enter at least two inventory policies to compare.',
+      ),
+    );
   return rows.map(({ columns, line }) => {
-    if (columns.length !== 4) throw new Error(`${line}. politika satırında dört sütun olmalıdır.`);
+    if (columns.length !== 4)
+      throw new Error(
+        t(
+          `${line}. politika satırında dört sütun olmalıdır.`,
+          `Policy row ${line} must contain four columns.`,
+        ),
+      );
     const [name, code, first, second] = columns;
-    const position = `${line}. politika satırı`;
+    const position = t(`${line}. politika satırı`, `Policy row ${line}`);
     if (code.toUpperCase() === 'Q') {
       return {
         name,
         kind: 'fixed-lot',
-        reorderPoint: inputNumber(first, `${position}, yeniden sipariş noktası`),
-        orderQuantity: inputNumber(second, `${position}, parti miktarı`),
+        reorderPoint: inputNumber(
+          first,
+          t(`${position}, yeniden sipariş noktası`, `${position}, reorder point`),
+        ),
+        orderQuantity: inputNumber(
+          second,
+          t(`${position}, parti miktarı`, `${position}, batch size`),
+        ),
       };
     }
     if (code.toUpperCase() === 'R') {
       return {
         name,
         kind: 'order-up-to',
-        reviewInterval: inputNumber(first, `${position}, gözden geçirme aralığı`),
+        reviewInterval: inputNumber(
+          first,
+          t(`${position}, gözden geçirme aralığı`, `${position}, review interval`),
+        ),
         targetStock: inputNumber(second, `${position}, hedef stok`),
       };
     }
-    throw new Error(`${line}. politika satırında yöntem kodu Q veya R olmalıdır.`);
+    throw new Error(
+      t(
+        `${line}. politika satırında yöntem kodu Q veya R olmalıdır.`,
+        `Policy row ${line} must use method code Q or R.`,
+      ),
+    );
   });
 }
 
@@ -43,33 +63,48 @@ function optionalFactors(form: FormData, name: string, label: string) {
   return text.trim() ? readSeries(text, label) : [];
 }
 
-function fill(rate: number | null) {
-  return rate === null ? 'Talep yok' : formatInventoryPercent(rate);
-}
-
 export function SimulationPanel() {
+  const { t, detail: n, percent } = useLocale();
+  const fill = (rate: number | null) =>
+    rate === null ? t('Talep yok', 'No demand') : percent(rate * 100);
   return (
     <>
-      <h2>Stok maliyeti simülasyonu</h2>
-      <p>Tek bir ürün için aynı talep geçmişiyle en az iki sipariş politikasını karşılaştırın.</p>
+      <h2>{t('Stok maliyeti simülasyonu', 'Inventory cost simulation')}</h2>
+      <p>
+        {t(
+          'Tek bir ürün için aynı talep geçmişiyle en az iki sipariş politikasını karşılaştırın.',
+          'Compare at least two ordering policies for one product using the same demand history.',
+        )}
+      </p>
       <ModuleForm
         compute={(form) =>
           compareStockPolicies(
             {
-              demand: readSeries(fieldText(form, 'demand'), 'Dönemsel talep değerlerini'),
-              initialStock: fieldNumber(form, 'initial', 'Başlangıç stoku'),
-              leadTime: fieldNumber(form, 'lead', 'Tedarik süresi'),
-              orderingCost: fieldNumber(form, 'order', 'Sipariş maliyeti'),
+              demand: readSeries(
+                fieldText(form, 'demand'),
+                t('Dönemsel talep değerlerini', 'Periodic demand values'),
+              ),
+              initialStock: fieldNumber(form, 'initial', t('Başlangıç stoku', 'Initial stock')),
+              leadTime: fieldNumber(form, 'lead', t('Tedarik süresi', 'Lead time')),
+              orderingCost: fieldNumber(form, 'order', t('Sipariş maliyeti', 'Ordering cost')),
               holdingCost: fieldNumber(form, 'holding', 'Elde bulundurma maliyeti'),
-              shortageCost: fieldNumber(form, 'shortage', 'Karşılanamayan talep maliyeti'),
+              shortageCost: fieldNumber(
+                form,
+                'shortage',
+                t('Karşılanamayan talep maliyeti', 'Unfilled demand cost'),
+              ),
             },
-            readPolicies(fieldText(form, 'policies')),
+            readPolicies(fieldText(form, 'policies'), t),
             {
-              demandFactors: optionalFactors(form, 'demandFactors', 'Talep çarpanlarını'),
+              demandFactors: optionalFactors(
+                form,
+                'demandFactors',
+                t('Talep çarpanlarını', 'Demand multipliers'),
+              ),
               holdingCostFactors: optionalFactors(
                 form,
                 'holdingFactors',
-                'Elde bulundurma maliyeti çarpanlarını',
+                t('Elde bulundurma maliyeti çarpanlarını', 'Holding cost multipliers'),
               ),
             },
           )
@@ -77,23 +112,26 @@ export function SimulationPanel() {
         renderResult={({ baseline, changes }) => (
           <>
             <BarChart
-              title="Politika bazında toplam dönem maliyeti (TL)"
+              title={t(
+                'Politika bazında toplam dönem maliyeti (TL)',
+                'Total cost over the horizon by policy (TL)',
+              )}
               values={baseline.map((row) => [row.name, row.total])}
             />
             <ResultsTable
-              caption="Politika karşılaştırması"
+              caption={t('Politika karşılaştırması', 'Policy comparison')}
               columns={[
-                'Politika',
-                'Sipariş sayısı',
-                'Sipariş (TL)',
+                t('Politika', 'Policy'),
+                t('Sipariş sayısı', 'Order count'),
+                t('Sipariş (TL)', 'Ordering (TL)'),
                 'Elde bulundurma (TL)',
-                'Eksik karşılama (TL)',
+                t('Eksik karşılama (TL)', 'Shortage (TL)'),
                 'Toplam (TL)',
-                'Karşılanamayan (adet)',
-                'Karşılama oranı',
-                'Ort. dönem sonu stok (adet)',
+                t('Karşılanamayan (adet)', 'Unfilled (units)'),
+                t('Karşılama oranı', 'Fill rate'),
+                t('Ort. dönem sonu stok (adet)', 'Mean ending stock (units)'),
                 'Son stok (adet)',
-                'Açık sipariş (adet)',
+                t('Açık sipariş (adet)', 'Open orders (units)'),
               ]}
               rows={baseline.map((row) => [
                 row.name,
@@ -111,19 +149,22 @@ export function SimulationPanel() {
             />
             {changes.length > 0 ? (
               <ResultsTable
-                caption="Duyarlılık · Her seferinde tek girdi değişir"
+                caption={t(
+                  'Duyarlılık · Her seferinde tek girdi değişir',
+                  'Sensitivity · One input changes at a time',
+                )}
                 columns={[
-                  'Değişen girdi',
-                  'Çarpan',
-                  'Politika',
+                  t('Değişen girdi', 'Changed input'),
+                  t('Çarpan', 'Multiplier'),
+                  t('Politika', 'Policy'),
                   'Baz maliyet (TL)',
                   'Senaryo maliyeti (TL)',
                   'Baz maliyete fark (TL)',
-                  'Karşılama oranı',
+                  t('Karşılama oranı', 'Fill rate'),
                 ]}
                 rows={changes.flatMap(({ driver, factor, results }) =>
                   results.map((row, index) => [
-                    driver === 'demand' ? 'Talep' : 'Elde bulundurma maliyeti',
+                    driver === 'demand' ? t('Talep', 'Demand') : 'Elde bulundurma maliyeti',
                     n(factor),
                     row.name,
                     n(baseline[index].total),
@@ -135,65 +176,93 @@ export function SimulationPanel() {
               />
             ) : (
               <p>
-                Duyarlılık tablosu için en az bir talep veya elde bulundurma maliyeti çarpanı girin.
-                1, baz senaryodur.
+                {t(
+                  'Duyarlılık tablosu için en az bir talep veya elde bulundurma maliyeti çarpanı girin. 1, baz senaryodur.',
+                  'Enter at least one demand or holding cost multiplier for the sensitivity table. A value of 1 is the baseline.',
+                )}
               </p>
             )}
             <p>
-              Politika seçeneklerini maliyet, karşılanan talep ve dönem sonunda kalan stok ve açık
-              siparişlerle birlikte değerlendirin.
+              {t(
+                'Politika seçeneklerini maliyet, karşılanan talep ve dönem sonunda kalan stok ve açık siparişlerle birlikte değerlendirin.',
+                'Compare policies using cost, fulfilled demand, final stock, and open orders.',
+              )}
             </p>
           </>
         )}
       >
         <Field
           name="demand"
-          label="Dönemsel talep (adet/dönem)"
+          label={t('Dönemsel talep (adet/dönem)', 'Periodic demand (units/period)')}
           multiline
-          hint="Kronolojik eşit dönemleri satır sonu, noktalı virgül veya sekmeyle ayırın. Talebi olmayan döneme 0 yazın."
+          hint={t(
+            'Kronolojik eşit dönemleri satır sonu, noktalı virgül veya sekmeyle ayırın. Talebi olmayan döneme 0 yazın.',
+            'Separate equal periods in chronological order with a newline, semicolon, or tab. Enter 0 for periods without demand.',
+          )}
         />
-        <Field name="initial" label="Başlangıç stoku (adet)" />
-        <Field name="lead" label="Sabit tedarik süresi (tam dönem)" />
-        <Field name="order" label="Sipariş maliyeti (TL/sipariş)" />
-        <Field name="holding" label="Elde bulundurma maliyeti (TL/adet/dönem)" />
-        <Field name="shortage" label="Karşılanamayan talep maliyeti (TL/adet)" />
+        <Field name="initial" label={t('Başlangıç stoku (adet)', 'Initial stock (units)')} />
+        <Field
+          name="lead"
+          label={t('Sabit tedarik süresi (tam dönem)', 'Fixed lead time (whole periods)')}
+        />
+        <Field
+          name="order"
+          label={t('Sipariş maliyeti (TL/sipariş)', 'Ordering cost (TL/order)')}
+        />
+        <Field
+          name="holding"
+          label={t('Elde bulundurma maliyeti (TL/adet/dönem)', 'Holding cost (TL/unit/period)')}
+        />
+        <Field
+          name="shortage"
+          label={t('Karşılanamayan talep maliyeti (TL/adet)', 'Unfilled demand cost (TL/unit)')}
+        />
         <Field
           name="policies"
-          label="Karşılaştırılacak stok politikaları"
+          label={t('Karşılaştırılacak stok politikaları', 'Inventory policies to compare')}
           multiline
-          hint="Başlıksız her satırda dört sütun kullanın. Q için ad; Q; yeniden sipariş noktası (adet); parti miktarı (adet). R için ad; R; gözden geçirme aralığı (tam dönem); hedef stok (adet). Sütunları noktalı virgül veya sekmeyle ayırın."
+          hint={t(
+            'Başlıksız her satırda dört sütun kullanın. Q için ad; Q; yeniden sipariş noktası (adet); parti miktarı (adet). R için ad; R; gözden geçirme aralığı (tam dönem); hedef stok (adet). Sütunları noktalı virgül veya sekmeyle ayırın.',
+            'Use four columns per row without a header. For Q, enter name, Q, reorder point (units), and batch size (units). For R, enter name, R, review interval (whole periods), and target stock (units). Separate columns with a semicolon or tab.',
+          )}
         />
         <Field
           name="demandFactors"
-          label="Talep çarpanları"
+          label={t('Talep çarpanları', 'Demand multipliers')}
           optional
-          hint="Çarpanları noktalı virgülle ayırın. %10 artış için 1,10 girin."
+          hint={t(
+            'Çarpanları noktalı virgülle ayırın. %10 artış için 1,10 girin.',
+            'Separate multipliers with semicolons. Enter 1.10 for a 10% increase.',
+          )}
         />
         <Field
           name="holdingFactors"
-          label="Elde bulundurma maliyeti çarpanları"
+          label={t('Elde bulundurma maliyeti çarpanları', 'Holding cost multipliers')}
           optional
-          hint="Çarpanları noktalı virgülle ayırın. %10 azalış için 0,90 girin."
+          hint={t(
+            'Çarpanları noktalı virgülle ayırın. %10 azalış için 0,90 girin.',
+            'Separate multipliers with semicolons. Enter 0.90 for a 10% decrease.',
+          )}
         />
       </ModuleForm>
       <Method>
         <p>
-          Her dönemin başında teslimatlar alınır ve stok pozisyonu hesaplanır: eldeki stok + açık
-          sipariş. Q politikası pozisyon eşiğe eşit veya altındaysa bir sabit parti verir. R
-          politikası ilk dönemden başlayarak her R dönemde pozisyonu hedefe tamamlar. Sıfır tedarik
-          süresinde sipariş talep gerçekleşmeden gelir.
+          {t(
+            'Her dönemin başında teslimatlar alınır ve stok pozisyonu hesaplanır: eldeki stok + açık sipariş. Q politikası pozisyon eşiğe eşit veya altındaysa bir sabit parti verir. R politikası ilk dönemden başlayarak her R dönemde pozisyonu hedefe tamamlar. Sıfır tedarik süresinde sipariş talep gerçekleşmeden gelir.',
+            'At the start of each period, deliveries arrive and inventory position is calculated as on-hand stock plus open orders. Policy Q orders a fixed batch at or below the threshold. Policy R orders up to the target every R periods starting in period one. Zero lead time delivers before demand occurs.',
+          )}
         </p>
         <p>
-          Talep dönem içinde karşılanır. Eksik talep kayıp satış sayılır. Başlangıçta açık sipariş
-          yoktur. Toplam maliyet = sipariş sayısı × sipariş maliyeti + dönem sonu stoklarının
-          toplamı × dönemsel birim elde bulundurma maliyeti + karşılanamayan adet × eksik karşılama
-          maliyeti. Satın alma ve dönem sonu değerleri hesaba katılmaz. Karşılama oranı = karşılanan
-          adet / talep adedi.
+          {t(
+            'Talep dönem içinde karşılanır. Eksik talep kayıp satış sayılır. Başlangıçta açık sipariş yoktur. Toplam maliyet = sipariş sayısı × sipariş maliyeti + dönem sonu stoklarının toplamı × dönemsel birim elde bulundurma maliyeti + karşılanamayan adet × eksik karşılama maliyeti. Satın alma ve dönem sonu değerleri hesaba katılmaz. Karşılama oranı = karşılanan adet / talep adedi.',
+            'Demand is fulfilled during each period. Unfilled demand is a lost sale. There are no open orders initially. Total cost = order count × cost per order + sum of ending stocks × holding cost per unit per period + unfilled units × shortage cost. Purchase and terminal values are outside the model. Fill rate = fulfilled units / demanded units.',
+          )}
         </p>
         <p>
-          Duyarlılık, tüm talep dönemlerini veya elde bulundurma maliyetini seçtiğiniz çarpanla ayrı
-          ayrı değiştirir. Diğer girdiler sabit kalır. Tarihsel seri ve sabit teslim süresi
-          gelecekteki koşulları kapsamayabilir.
+          {t(
+            'Duyarlılık, tüm talep dönemlerini veya elde bulundurma maliyetini seçtiğiniz çarpanla ayrı ayrı değiştirir. Diğer girdiler sabit kalır. Tarihsel seri ve sabit teslim süresi gelecekteki koşulları kapsamayabilir.',
+            'Sensitivity analysis applies your multiplier to every demand period or to holding cost, one at a time. Other inputs are fixed. Historical demand and fixed lead time may differ from future conditions.',
+          )}
         </p>
       </Method>
     </>

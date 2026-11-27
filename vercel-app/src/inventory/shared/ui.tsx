@@ -1,10 +1,6 @@
+import { displayError, useLocale } from '../../ui/locale';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { detail } from '../../ui/format';
-
-export const formatInventoryNumber = detail;
-export const formatInventoryPercent = (value: number) => `%${detail(value * 100)}`;
-
 export function Field({
   name,
   label,
@@ -18,12 +14,13 @@ export function Field({
   multiline?: boolean;
   optional?: boolean;
 }) {
+  const { t } = useLocale();
   const id = useId();
   return (
     <label className={multiline ? 'inventory-field wide' : 'inventory-field'} htmlFor={id}>
       <span id={`${id}-label`}>
         {label}
-        {optional && ' (isteğe bağlı)'}
+        {optional && t(' (isteğe bağlı)', ' (optional)')}
       </span>
       {hint && <small id={`${id}-hint`}>{hint}</small>}
       {multiline ? (
@@ -63,6 +60,7 @@ export function ModuleForm<T>({
   onReset?: () => void;
   renderResult: (result: T) => ReactNode;
 }) {
+  const { t, language } = useLocale();
   const [result, setResult] = useState<T | null>(null);
   const [error, setError] = useState('');
   function clearResult() {
@@ -89,29 +87,37 @@ export function ModuleForm<T>({
           } catch (failure) {
             setResult(null);
             onResult?.(null);
-            setError(failure instanceof Error ? failure.message : 'Hesaplama tamamlanamadı.');
+            setError(
+              failure instanceof Error
+                ? failure.message
+                : t('Hesaplama tamamlanamadı.', 'The calculation could not be completed.'),
+            );
           }
         }}
       >
         {children}
         <div className="inventory-actions">
           <button type="submit" className="button primary">
-            Hesapla
+            {t('Hesapla', 'Calculate')}
           </button>
           <button type="reset" className="button secondary">
-            Temizle
+            {t('Temizle', 'Clear')}
           </button>
         </div>
       </form>
       {error && (
         <p className="notice error" role="alert">
-          {error}
+          {displayError(
+            error,
+            language,
+            'Check the required fields, value ranges, and units, then calculate again.',
+          )}
         </p>
       )}
       {result !== null && (
         <div className="inventory-results">
           <p className="inventory-result-status" role="status">
-            Hesaplama tamamlandı.
+            {t('Hesaplama tamamlandı.', 'Calculation completed.')}
           </p>
           {renderResult(result)}
         </div>
@@ -173,12 +179,13 @@ export function Metrics({ values }: { values: readonly (readonly [string, string
 export function BarChart({
   title,
   values,
-  format = formatInventoryNumber,
+  format,
 }: {
   title: string;
   values: readonly (readonly [string, number])[];
   format?: (value: number) => string;
 }) {
+  const { detail } = useLocale();
   const id = useId();
   const max = values.reduce((largest, [, value]) => Math.max(largest, value), 0);
   return (
@@ -191,7 +198,7 @@ export function BarChart({
             <span className="inventory-bar" aria-hidden="true">
               <span style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
             </span>
-            <strong>{format(value)}</strong>
+            <strong>{(format ?? detail)(value)}</strong>
           </li>
         ))}
       </ul>
@@ -220,9 +227,10 @@ export function ClassChart<T extends string>({
 }
 
 export function Method({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
   return (
     <details className="inventory-method" open>
-      <summary>Yöntem, varsayımlar ve birimler</summary>
+      <summary>{t('Yöntem, varsayımlar ve birimler', 'Method, assumptions, and units')}</summary>
       {children}
     </details>
   );

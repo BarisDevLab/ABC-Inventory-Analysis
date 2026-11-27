@@ -88,14 +88,14 @@ export function UploadWorkspace({
         <summary>{t('Dosya biçimi ve sayı yazımı', 'File format and number entry')}</summary>
         <p>
           {t(
-            'Ürün, Yıllık Tüketim ve Birim Fiyat (TL) başlıkları zorunludur. Her ürün tek satırda olmalıdır. Boş, negatif, geçersiz sayılar ve yinelenen ürünler kabul edilmez.',
-            'Use the required Turkish headers: Ürün, Yıllık Tüketim, and Birim Fiyat (TL). Use one row per product. Values must be present, numeric and nonnegative.',
+            'Ürün, yıllık tüketim ve birim fiyat sütunlarını eşleştirebilirsiniz. Ürün kodu seçerseniz her kod benzersiz olmalıdır.',
+            'Map the product, annual usage and unit price columns. If you select an SKU column, each code must be unique.',
           )}
         </p>
         <p>
           {t(
-            '1234.56 veya 1.234,56 yazabilirsiniz. Tek başına virgül veya nokta ondalık ayracıdır: 1,234 = 1.234. Binlik gruplama için 1 234 veya 1.234,00 kullanın. CSV: UTF-8 / Windows Türkçe; virgül, noktalı virgül veya sekme ayracı.',
-            'Use 1234.56 or 1.234,56. A single comma or period is a decimal separator, so 1,234 equals 1.234. For thousands, use 1 234 or 1,234.00. CSV supports UTF-8 or Windows Turkish with comma, semicolon, or tab delimiters.',
+            '1234.56 veya 1.234,56 yazabilirsiniz. Otomatik biçim 1,234 gibi belirsiz değerleri ondalık okur ve uyarır. Binlik gruplama için 1 234 veya 1.234,00 kullanın. CSV: UTF-8 / Windows Türkçe; virgül, noktalı virgül veya sekme ayracı.',
+            'Use 1234.56 or 1.234,56. Automatic formatting reads ambiguous values such as 1,234 as decimals and flags them. For thousands, use 1 234 or 1,234.00. CSV supports UTF-8 or Windows Turkish with comma, semicolon, or tab delimiters.',
           )}
         </p>
       </details>

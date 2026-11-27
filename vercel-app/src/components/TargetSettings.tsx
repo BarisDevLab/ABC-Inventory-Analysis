@@ -1,6 +1,7 @@
 import { useLocale } from '../ui/locale';
+import { TARGETS_TOLERANCE } from '../core/targets';
 import { useState } from 'react';
-import type { Targets } from '../core/abc';
+import type { Targets } from '../core/targets';
 export function TargetSettings({
   targets,
   busy,
@@ -13,6 +14,12 @@ export function TargetSettings({
   const { t, percent } = useLocale();
   const [draft, setDraft] = useState<Targets>(targets),
     [invalidTotal, setInvalidTotal] = useState<number | null>(null);
+  const [applied, setApplied] = useState(targets);
+  if (applied !== targets) {
+    setApplied(targets);
+    setDraft(targets);
+    setInvalidTotal(null);
+  }
   const sum = draft.a + draft.b + draft.c;
   return (
     <section className="target-settings" aria-labelledby="targets-heading">
@@ -23,7 +30,7 @@ export function TargetSettings({
       <form
         onSubmit={async (event) => {
           event.preventDefault();
-          if (sum !== 100) {
+          if (Math.abs(sum - 100) > TARGETS_TOLERANCE) {
             setInvalidTotal(sum);
             return;
           }
@@ -52,7 +59,7 @@ export function TargetSettings({
             />
           </div>
         ))}
-        <div className={`target-total ${sum !== 100 ? 'invalid' : ''}`}>
+        <div className={`target-total ${Math.abs(sum - 100) > TARGETS_TOLERANCE ? 'invalid' : ''}`}>
           <span>{t('Hedefler toplamı', 'Target total')}</span>
           <strong>{percent(sum, 0)} / 100</strong>
         </div>

@@ -7,6 +7,7 @@ import type { XyzClass } from '../xyz/calculate';
 export type AbcXyzClass = `${Group}${XyzClass}`;
 export interface AbcItem extends ProductInput {
   readonly group: Group;
+  readonly sku?: string;
 }
 export interface XyzItem extends ProductInput {
   readonly group: XyzClass | null;
@@ -58,13 +59,29 @@ const advice: Record<AbcXyzClass, readonly [string, string]> = {
   ],
 };
 
-export function buildAbcXyz(abc: readonly AbcItem[], xyz: readonly XyzItem[]) {
-  if (abc.length) validateProducts(abc, normalizeProduct);
-  if (xyz.length) validateProducts(xyz, normalizeProduct);
+const englishAdvice: typeof advice = {
+  AX: ['High usage value and stable demand.', 'Consider frequent inventory checks and small, regular batches.'],
+  AY: ['High usage value and moderate demand variability.', 'Update the forecast frequently and review seasonality alongside the service target.'],
+  AZ: ['High usage value and volatile demand.', 'Compare flexible sourcing and safety stock scenarios before committing to a large buffer.'],
+  BX: ['Moderate usage value and stable demand.', 'Consider regular replenishment and a standard order quantity.'],
+  BY: ['Moderate usage value and demand variability.', 'Compare periodic review with a reorder point updated from demand.'],
+  BZ: ['Moderate usage value and volatile demand.', 'Review shorter lead times or demand-driven replenishment.'],
+  CX: ['Low usage value and stable demand.', 'Consider consolidated orders or a two-bin system to reduce transaction costs.'],
+  CY: ['Low usage value and moderate demand variability.', 'Consider less frequent checks and simple minimum and maximum levels.'],
+  CZ: ['Low usage value and volatile demand.', 'Consider ordering against demand to limit excess inventory. Check operational criticality separately.'],
+};
+
+export function buildAbcXyz(abc: readonly AbcItem[], xyz: readonly XyzItem[], language: 'tr' | 'en' = 'tr') {
+  const hasSku = abc.some((row) => row.sku !== undefined);
+  const identity = hasSku ? (code: string) => code.trim() : normalizeProduct;
+  if (abc.length) validateProducts(abc.map((row) => ({
+    product: hasSku ? (row.sku ?? '') : row.product,
+  })), identity);
+  if (xyz.length) validateProducts(xyz, identity);
   const cells = GROUPS.flatMap((a) =>
     xyzClasses.map((x): MatrixCell => {
       const category = `${a}${x}` as const;
-      const [rationale, option] = advice[category];
+      const [rationale, option] = (language === 'en' ? englishAdvice : advice)[category];
       return { category, products: [], rationale, option };
     }),
   );
@@ -74,20 +91,21 @@ export function buildAbcXyz(abc: readonly AbcItem[], xyz: readonly XyzItem[]) {
       if (row.group !== null && !xyzClasses.includes(row.group)) {
         throw new Error(`Geçersiz XYZ sınıfı: ${row.product}`);
       }
-      return [normalizeProduct(row.product), row] as const;
+      return [identity(row.product), row] as const;
     }),
   );
   const missingXyz: string[] = [];
   const unclassifiedXyz: string[] = [];
   for (const row of abc) {
     if (!GROUPS.includes(row.group)) throw new Error(`Geçersiz ABC sınıfı: ${row.product}`);
-    const key = normalizeProduct(row.product);
+    const key = identity(row.sku ?? row.product);
+    const label = row.sku ? `${row.product} · ${row.sku}` : row.product;
     const variability = xyzByProduct.get(key);
     xyzByProduct.delete(key);
-    if (!variability) missingXyz.push(row.product);
-    else if (variability.group === null) unclassifiedXyz.push(row.product);
+    if (!variability) missingXyz.push(label);
+    else if (variability.group === null) unclassifiedXyz.push(label);
     else {
-      byCategory.get(`${row.group}${variability.group}`)!.products.push(row.product);
+      byCategory.get(`${row.group}${variability.group}`)!.products.push(label);
     }
   }
   return {

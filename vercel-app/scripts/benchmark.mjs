@@ -1,6 +1,6 @@
 // Run each size in a fresh process. Retained heap is sampled after forced GC.
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { build } from 'esbuild';
@@ -9,11 +9,23 @@ const source = resolve(process.argv[2] ?? '.');
 const sizes = [1_000, 10_000, 50_000, 100_000];
 const runner = resolve('.tmp/dashboard-benchmark/runner.mjs');
 mkdirSync(resolve(runner, '..'), { recursive: true });
+const mappedImport = existsSync(resolve(source, 'src/io/inventory-import.ts'));
+const operation = mappedImport
+  ? {
+      imports: "import { DEFAULT_IMPORT, prepareImport } from './src/io/inventory-import';",
+      analysis: `const response = await prepareImport(encoded.buffer, 'inventory.csv', DEFAULT_IMPORT, undefined, 'open');
+        if (!response.result) throw new Error(response.message || 'Expected an imported analysis');
+        const { source: input, analysis: result } = response.result;`,
+    }
+  : {
+      imports: "import { readInventoryFile } from './src/io/read-file';",
+      analysis: "const input = await readInventoryFile(encoded, 'inventory.csv'); const result = calculateAbc(input);",
+    };
 await build({
   stdin: {
     resolveDir: source,
     contents: `
-      import { readInventoryFile } from './src/io/read-file';
+      ${operation.imports}
       import { FIELDS, calculateAbc } from './src/core/abc';
       import * as charts from './src/charts/models';
       const rows = Number(process.argv[2]);
@@ -22,8 +34,7 @@ await build({
       global.gc();
       const before = process.memoryUsage().heapUsed;
       const start = performance.now();
-      const input = await readInventoryFile(encoded, 'inventory.csv');
-      const result = calculateAbc(input);
+      ${operation.analysis}
       const analysisMs = performance.now() - start;
       global.gc();
       const afterAnalysis = process.memoryUsage().heapUsed;

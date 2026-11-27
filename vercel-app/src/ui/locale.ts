@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useCallback, useContext } from 'react';
 import { detail, money, number, percent } from './format';
 
 export type Language = 'tr' | 'en';
@@ -8,7 +8,7 @@ export const LanguageContext = createContext<Language>('tr');
 
 export function useLocale() {
   const language = useContext(LanguageContext);
-  const t: Translate = (tr, en) => language === 'tr' ? tr : en;
+  const t: Translate = useCallback((tr, en) => language === 'tr' ? tr : en, [language]);
   return {
     language, t,
     number: (value: number, digits?: number) => number(value, digits, language),

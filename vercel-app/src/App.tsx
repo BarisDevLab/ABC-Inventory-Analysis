@@ -1,20 +1,51 @@
-import { useEffect, useRef, useState } from 'react';
-import { calculateAbc, DEFAULT_TARGETS, sampleData, validateTargets } from './core/abc';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { DEFAULT_TARGETS, validateTargets } from './core/targets';
 import type { Analysis, InputTable, Targets } from './core/abc';
-import { FILE_LIMITS } from './io/limits';
 import { processAnalysis } from './processing/client';
 import { UploadWorkspace } from './components/UploadWorkspace';
 import { TargetSettings } from './components/TargetSettings';
 import { KpiOverview } from './components/KpiOverview';
-import { ResultsTables } from './components/ResultsTables';
-import { AnalysisInsights } from './components/AnalysisInsights';
-import { GuidePage } from './components/GuidePage';
-import { ReportDownload } from './components/ReportDownload';
-import { ChartsPanel } from './components/ChartsPanel';
-import { DashboardPreferences, WorkspaceNav } from './components/WorkspaceNav';
+import {
+  DashboardPreferences,
+  WorkspaceNav,
+  pageFromHash,
+  workspacePages,
+} from './components/WorkspaceNav';
 import type { Page } from './components/WorkspaceNav';
 import { displayError, LanguageContext, preference, savePreference, useLocale } from './ui/locale';
 import type { Language, Theme } from './ui/locale';
+
+import { useInventoryImport } from './components/inventory/useInventoryImport';
+
+const ResultsTables = lazy(() =>
+  import('./components/ResultsTables').then((m) => ({ default: m.ResultsTables })),
+);
+const AnalysisInsights = lazy(() =>
+  import('./components/AnalysisInsights').then((m) => ({ default: m.AnalysisInsights })),
+);
+const ReportDownload = lazy(() =>
+  import('./components/ReportDownload').then((m) => ({ default: m.ReportDownload })),
+);
+const ImportEditor = lazy(() =>
+  import('./components/inventory/ImportEditor').then((m) => ({ default: m.ImportEditor })),
+);
+const GuidePage = lazy(() =>
+  import('./components/GuidePage').then((m) => ({ default: m.GuidePage })),
+);
+const ChartsPanel = lazy(() =>
+  import('./components/ChartsPanel').then((m) => ({ default: m.ChartsPanel })),
+);
+const InventoryWorkspace = lazy(() =>
+  import('./inventory/InventoryWorkspace').then((m) => ({ default: m.InventoryWorkspace })),
+);
+const ComparisonWorkspace = lazy(() =>
+  import('./components/inventory/ComparisonWorkspace').then((m) => ({
+    default: m.ComparisonWorkspace,
+  })),
+);
+const AnalysisLibrary = lazy(() =>
+  import('./components/inventory/AnalysisLibrary').then((m) => ({ default: m.AnalysisLibrary })),
+);
 
 export default function App() {
   const [language, setLanguage] = useState(() =>
@@ -52,24 +83,33 @@ function Dashboard({
   onLanguage: (language: Language) => void;
 }) {
   const { language, t, number } = useLocale();
-  const [page, setPage] = useState<Page>(() =>
-    window.location.hash === '#rehber' ? 'guide' : 'analysis',
-  );
+  const [page, setPage] = useState<Page>(() => pageFromHash(window.location.hash));
   const [mobileOpen, setMobileOpen] = useState(false),
     [targets, setTargets] = useState<Targets>({ ...DEFAULT_TARGETS });
   const [analysis, setAnalysis] = useState<Analysis | null>(null),
     [source, setSource] = useState<InputTable | null>(null);
   const [name, setName] = useState(''),
-    [busy, setBusy] = useState(false),
+    [processing, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState<'cleared' | 'loaded' | 'targets' | 'recalculated' | ''>('');
+    [notice, setNotice] = useState<
+      'cleared' | 'loaded' | 'restored' | 'targets' | 'recalculated' | ''
+    >('');
   const [isDemo, setIsDemo] = useState(false);
+  const importer = useInventoryImport(targets, (filename, result) => {
+    setSource(result.source);
+    setAnalysis(result.analysis);
+    setName(filename);
+    setIsDemo(false);
+    setError('');
+    setNotice('loaded');
+  });
+  const busy = processing || importer.busy;
+  const activeError = error || importer.error;
   const operation = useRef<AbortController | null>(null),
     main = useRef<HTMLElement>(null);
   useEffect(() => {
     const change = () => {
-      if (window.location.hash === '#rehber') setPage('guide');
-      else if (window.location.hash === '#analiz' || !window.location.hash) setPage('analysis');
+      if (window.location.hash !== '#main-content') setPage(pageFromHash(window.location.hash));
       setMobileOpen(false);
     };
     window.addEventListener('hashchange', change);
@@ -82,22 +122,16 @@ function Dashboard({
     main.current?.focus();
   }, [page]);
   useEffect(() => {
-    document.title =
-      language === 'tr'
-        ? page === 'guide'
-          ? 'ABC Analizi Rehberi | BarisDevLab'
-          : 'ABC Stok Analizi | BarisDevLab'
-        : page === 'guide'
-          ? 'ABC Analysis Guide | BarisDevLab'
-          : 'ABC Inventory Analysis | BarisDevLab';
-  }, [language, page]);
-  useEffect(() => {
     if (mobileOpen) document.querySelector<HTMLAnchorElement>('#sidebar nav a')?.focus();
   }, [mobileOpen]);
-  function clear() {
+  function cancel() {
+    importer.reset();
     operation.current?.abort();
     operation.current = null;
     setBusy(false);
+  }
+  function clear() {
+    cancel();
     setAnalysis(null);
     setSource(null);
     setName('');
@@ -105,46 +139,58 @@ function Dashboard({
     setError('');
     setNotice('cleared');
   }
-  function demo() {
-    operation.current?.abort();
-    operation.current = null;
-    setBusy(false);
-    const data = sampleData();
-    setSource(data);
-    setAnalysis(calculateAbc(data, targets));
-    setName('Örnek stok verisi');
-    setError('');
-    setIsDemo(true);
-    setNotice('loaded');
-  }
-  async function loadFile(file: File) {
-    operation.current?.abort();
+  async function demo() {
+    cancel();
     const controller = new AbortController();
     operation.current = controller;
+    setBusy(true);
     setError('');
     setNotice('');
-    setBusy(true);
     try {
-      if (!/\.(csv|xlsx)$/i.test(file.name))
-        throw new Error('Yalnızca Excel ve CSV dosyaları desteklenir.');
-      if (file.size > FILE_LIMITS.bytes)
-        throw new Error('Dosya boyutu 20 MB sınırını aşıyor. Daha küçük bir dosya seçin.');
-      const bytes = await file.arrayBuffer();
+      const { calculateAbc, sampleData } = await import('./core/abc');
       if (controller.signal.aborted) return;
-      const result = await processAnalysis(
-        { kind: 'file', bytes, name: file.name, targets },
-        controller.signal,
-      );
-      if (!controller.signal.aborted) {
-        setSource(result.source);
-        setAnalysis(result.analysis);
-        setName(file.name);
-        setIsDemo(false);
-        setNotice('loaded');
+      const data = sampleData();
+      setSource(data);
+      setAnalysis(calculateAbc(data, targets));
+      setName('Örnek stok verisi');
+      setIsDemo(true);
+      setNotice('loaded');
+    } catch {
+      if (!controller.signal.aborted) setError('Örnek veri yüklenemedi.');
+    } finally {
+      if (operation.current === controller) {
+        operation.current = null;
+        setBusy(false);
       }
+    }
+  }
+  function loadFile(file: File) {
+    setError('');
+    setNotice('');
+    return importer.open(file);
+  }
+  async function restorePackage(load: () => Promise<ArrayBuffer>) {
+    if (busy || operation.current)
+      throw new Error('Önce devam eden işlemin tamamlanmasını bekleyin.');
+    const controller = new AbortController();
+    operation.current = controller;
+    setBusy(true);
+    setNotice('');
+    setError('');
+    try {
+      const bytes = await load();
+      if (controller.signal.aborted) return;
+      const result = await processAnalysis({ kind: 'decode', bytes }, controller.signal);
+      if (controller.signal.aborted) return;
+      importer.reset();
+      setSource(result.source);
+      setAnalysis(result.analysis);
+      setTargets(result.analysis.targets);
+      setName(result.name);
+      setIsDemo(false);
+      setNotice('restored');
     } catch (error) {
-      if (!controller.signal.aborted)
-        setError(error instanceof Error ? error.message : 'Dosya okunamadı.');
+      if (!controller.signal.aborted) throw error;
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -153,7 +199,7 @@ function Dashboard({
     }
   }
   async function apply(next: Targets) {
-    if (operation.current) return;
+    if (busy || operation.current) return;
     try {
       validateTargets(next);
     } catch (error) {
@@ -197,8 +243,22 @@ function Dashboard({
   const menu = useRef<HTMLButtonElement>(null);
   const rail = useRef<HTMLElement>(null);
   const fileName = isDemo ? t('Örnek stok verisi', 'Sample inventory') : name;
-  const title =
-    page === 'analysis' ? t('Analiz Paneli', 'Dashboard') : t('ABC Rehberi', 'ABC guide');
+  const title = t(workspacePages[page][1], workspacePages[page][2]);
+  useEffect(() => {
+    document.title = `${title} | Inventory Intelligence`;
+  }, [title]);
+  const dashboard = page === 'overview' || page === 'analysis';
+  const inventoryPage =
+    page === 'xyz' || page === 'optimization' || page === 'movement' || page === 'simulation'
+      ? page
+      : null;
+  const [inventoryVisited, setInventoryVisited] = useState(Boolean(inventoryPage));
+  if (inventoryPage && !inventoryVisited) setInventoryVisited(true);
+  const [comparisonVisited, setComparisonVisited] = useState(
+    page === 'period' || page === 'scenario',
+  );
+  if ((page === 'period' || page === 'scenario') && !comparisonVisited) setComparisonVisited(true);
+  const loading = <p role="status">{t('Yükleniyor…', 'Loading…')}</p>;
   const count = number(analysis?.rows.length ?? 0, 0);
   const notices = {
     cleared: t(
@@ -208,6 +268,10 @@ function Dashboard({
     loaded: t(
       `${fileName} yüklendi. ${count} ürün analiz edildi.`,
       `${fileName} loaded. Products analysed: ${count}.`,
+    ),
+    restored: t(
+      `${fileName} geri yüklendi. ${count} ürün analiz edildi.`,
+      `${fileName} restored. Products analysed: ${count}.`,
     ),
     targets: t('Hedefler güncellendi.', 'Targets updated.'),
     recalculated: t(
@@ -223,8 +287,11 @@ function Dashboard({
         <i />
       </span>
       <span>
-        <strong>ABC</strong>
-        <small>{t('Stok analizi', 'Inventory analysis')}</small>
+        <strong>
+          Inventory
+          <br />
+          Intelligence
+        </strong>
       </span>
     </>
   );
@@ -268,7 +335,7 @@ function Dashboard({
         {t('İçeriğe geç', 'Skip to content')}
       </a>
       <header className="mobile-header">
-        <a className="brand" href="#analiz">
+        <a className="brand" href="#genel-bakis">
           {brand}
         </a>
         <button
@@ -284,7 +351,7 @@ function Dashboard({
       </header>
       {mobileOpen && <div className="nav-backdrop" aria-hidden="true" onClick={dismissMenu} />}
       <aside ref={rail} id="sidebar" className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
-        <a href="#analiz" className="brand desktop-brand" onClick={() => setPage('analysis')}>
+        <a href="#genel-bakis" className="brand desktop-brand" onClick={() => setPage('overview')}>
           {brand}
         </a>
         <span className="nav-heading">{t('Çalışma alanı', 'Workspace')}</span>
@@ -315,10 +382,40 @@ function Dashboard({
           </div>
           <DashboardPreferences theme={theme} onTheme={onTheme} onLanguage={onLanguage} />
         </div>
-        <div hidden={page !== 'analysis'}>
+        {busy && (
+          <div className="notice" role="status">
+            {t('Veriler arka planda işleniyor…', 'Processing your inventory…')}{' '}
+            <button className="text-button" onClick={cancel}>
+              {t('İşlemi iptal et', 'Cancel operation')}
+            </button>
+          </div>
+        )}
+        {activeError && (
+          <div className="notice error" role="alert">
+            {displayError(
+              activeError,
+              language,
+              'Could not analyse the inventory. Check the file or targets and try again.',
+            )}
+            {analysis && (
+              <span>
+                {t(
+                  ' Önceki geçerli analiz korunuyor.',
+                  ' The previous analysis is still available.',
+                )}
+              </span>
+            )}
+          </div>
+        )}
+        {notice && (
+          <div className="notice success" role="status">
+            {notices[notice]}
+          </div>
+        )}
+        <div hidden={!dashboard}>
           <header className="page-hero dashboard-hero">
             <div>
-              <h1>{t('Stok öncelikleri', 'Inventory priorities')}</h1>
+              <h1>{title}</h1>
               <p>
                 {t(
                   'Yıllık tüketim değerine göre stoklarınızı sınıflandırın ve kontrol önceliklerini belirleyin.',
@@ -349,43 +446,20 @@ function Dashboard({
             onDemo={demo}
             onClear={clear}
           />
-          {busy && (
-            <div className="notice" role="status">
-              {t('Veriler arka planda işleniyor…', 'Processing your inventory…')}{' '}
-              <button className="text-button" onClick={clear}>
-                {t('İşlemi iptal et', 'Cancel operation')}
-              </button>
-            </div>
-          )}
-          {error && (
-            <div className="notice error" role="alert">
-              {displayError(
-                error,
-                language,
-                'Could not analyse the inventory. Check the file or targets and try again.',
-              )}
-              {analysis && (
-                <span>
-                  {t(
-                    ' Önceki geçerli analiz korunuyor.',
-                    ' The previous analysis is still available.',
-                  )}
-                </span>
-              )}
-            </div>
-          )}
-          {notice && (
-            <div className="notice success" role="status">
-              {notices[notice]}
-            </div>
+          {importer.draft && (
+            <Suspense fallback={loading}>
+              <ImportEditor importer={importer} disabled={busy} />
+            </Suspense>
           )}
           {analysis ? (
-            <>
-              <ChartsPanel analysis={analysis} theme={theme} />
-              <AnalysisInsights analysis={analysis} />
-              <ResultsTables analysis={analysis} />
-              <ReportDownload analysis={analysis} />
-            </>
+            page === 'analysis' && (
+              <Suspense fallback={loading}>
+                <ChartsPanel analysis={analysis} theme={theme} />
+                <AnalysisInsights analysis={analysis} />
+                <ResultsTables analysis={analysis} />
+                <ReportDownload analysis={analysis} />
+              </Suspense>
+            )
           ) : (
             <section className="empty-state">
               <div className="empty-symbol" aria-hidden="true">
@@ -403,13 +477,61 @@ function Dashboard({
             </section>
           )}
         </div>
+        {inventoryVisited && (
+          <div hidden={!inventoryPage}>
+            <Suspense fallback={loading}>
+              <InventoryWorkspace
+                page={inventoryPage}
+                abcRows={isDemo ? undefined : analysis?.rows}
+              />
+            </Suspense>
+          </div>
+        )}
+        {comparisonVisited && analysis && source && (
+          <div hidden={page !== 'period' && page !== 'scenario'}>
+            <Suspense fallback={loading}>
+              <ComparisonWorkspace
+                mode={page === 'scenario' ? 'scenario' : 'period'}
+                analysis={analysis}
+                source={source}
+                name={fileName}
+              />
+            </Suspense>
+          </div>
+        )}
+        {(page === 'period' || page === 'scenario') && !analysis && (
+          <section className="panel">
+            <h1>{title}</h1>
+            <p>
+              {t(
+                'Başlamak için güncel dönem dosyasını yükleyin.',
+                'Upload the current period file to begin.',
+              )}
+            </p>
+            <a className="button primary" href="#analiz">
+              {t('ABC analizine git', 'Go to ABC analysis')}
+            </a>
+          </section>
+        )}
+        {page === 'history' && (
+          <Suspense fallback={loading}>
+            <AnalysisLibrary
+              analysis={analysis}
+              name={fileName}
+              busy={busy}
+              onRestore={restorePackage}
+            />
+          </Suspense>
+        )}
         {page === 'guide' && (
-          <GuidePage
-            onReturn={() => {
-              window.location.hash = 'analiz';
-              setPage('analysis');
-            }}
-          />
+          <Suspense fallback={loading}>
+            <GuidePage
+              onReturn={() => {
+                window.location.hash = 'analiz';
+                setPage('analysis');
+              }}
+            />
+          </Suspense>
         )}
         <footer className="main-footer">
           <span>BarisDevLab</span>

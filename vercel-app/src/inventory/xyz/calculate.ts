@@ -19,11 +19,12 @@ export interface XyzRow {
 export function calculateXyz(
   rows: readonly PeriodDemand[],
   { maxX, maxY }: XyzThresholds,
+  withSku = false,
 ): XyzRow[] {
   nonNegative(maxX, 'X üst sınırı');
   nonNegative(maxY, 'Y üst sınırı');
   if (maxY <= maxX) throw new Error('Y üst sınırı X üst sınırından büyük olmalıdır.');
-  validateProducts(rows, (name) => normalizeProduct(name.trim()));
+  validateProducts(rows, withSku ? (code) => code.trim() : normalizeProduct);
   validateAlignedDemand(rows, 2);
   return rows.map(({ product, demand }) => {
     const statistics = demandMoments(demand);

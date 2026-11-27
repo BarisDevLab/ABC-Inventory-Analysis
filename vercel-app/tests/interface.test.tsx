@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import App from '../src/App';
 import { calculateAbc, sampleData } from '../src/core/abc';
-import { readInventoryFile } from '../src/io/read-file';
+import { encodePackage } from '../src/io/analysis-package';
+import { runAnalysisRequest } from '../src/processing/operations';
+import type { AnalysisResults } from '../src/processing/operations';
 import { processAnalysis } from '../src/processing/client';
 import { downloadExcel } from '../src/export/download';
 import { Plot, downloadPng } from '../src/charts/Plot';
@@ -21,19 +23,24 @@ vi.mock('../src/export/download', () => ({ downloadExcel: vi.fn(async () => {}) 
 vi.mock('../src/processing/client', () => ({ processAnalysis: vi.fn() }));
 beforeEach(() => {
   window.localStorage.clear();
-  window.history.replaceState(null, '', '/');
+  window.history.replaceState(null, '', '/#analiz');
   vi.mocked(processAnalysis).mockImplementation(async (request: AnalysisRequest) => {
-    // Excel parsing itself is covered by files.test.ts and the real-browser run.
-    // jsdom is not the worker's browser realm; emulate its typed response here.
     if (request.kind === 'file' && request.name === 'xlsx-corrupt.xlsx')
       throw new Error('Excel dosyası okunamadı.');
-    const source =
-      request.kind === 'file'
-        ? request.name === 'xlsx-demo.xlsx'
-          ? sampleData()
-          : await readInventoryFile(request.bytes, request.name)
-        : request.source;
-    return { source, analysis: calculateAbc(source, request.targets) };
+    if (request.kind === 'file' && request.name === 'xlsx-demo.xlsx') {
+      // Excel parsing itself is covered in the Node and real-browser suites.
+      return runAnalysisRequest({
+        ...request,
+        name: 'demo.csv',
+        bytes: new TextEncoder().encode(
+          'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n' +
+            sampleData()
+              .rows.map((row) => row.join(';'))
+              .join('\n'),
+        ).buffer,
+      });
+    }
+    return runAnalysisRequest(request);
   });
 });
 afterEach(async () => {
@@ -41,8 +48,9 @@ afterEach(async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
   vi.clearAllMocks();
 });
-function demo() {
+async function demo() {
   fireEvent.click(screen.getByRole('button', { name: 'Örnek veriyle dene' }));
+  await waitFor(() => expect(document.querySelector('[data-kpi=total]')).toBeTruthy());
 }
 function file(filename: string) {
   const raw = readFileSync(resolve(process.cwd(), 'tests/fixtures/files', filename));
@@ -71,20 +79,21 @@ describe('Gerçek React ekran entegrasyonu', () => {
     expect((screen.getByLabelText('Son ürün') as HTMLInputElement).value).toBe('500');
   });
   it('ilk açılışta veri veya otomatik demo yoktur', () => {
+    window.history.replaceState(null, '', '/');
     render(<App />);
     expect(screen.getByRole('heading', { name: 'İlk analizinize hazır mısınız?' })).toBeTruthy();
     expect(document.querySelectorAll('[data-kpi]').length).toBe(0);
     expect(processAnalysis).not.toHaveBeenCalled();
   });
-  it('demo gerçek KPI ve grafiklerle gösterilir', () => {
+  it('demo gerçek KPI ve grafiklerle gösterilir', async () => {
     render(<App />);
-    demo();
+    await demo();
     expect(document.querySelector('[data-kpi=total]')?.getAttribute('data-value')).toBe(
       '304.000,00 TL',
     );
     expect(document.querySelector('[data-kpi=a_share]')?.getAttribute('data-value')).toBe('%88,82');
     expect(document.querySelectorAll('[data-kpi]').length).toBe(6);
-    expect(screen.getAllByRole('img').length).toBe(2);
+    expect(await screen.findAllByRole('img')).toHaveLength(2);
   });
   it.each(['csv-cp1254-semicolon.csv', 'csv-utf-8-sig-comma.csv', 'xlsx-demo.xlsx'])(
     '%s yükleme ve worker dönüşü arayüze bağlanır',
@@ -101,7 +110,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
   );
   it('bozuk dosya hatası önceki geçerli analizi silmez', async () => {
     render(<App />);
-    demo();
+    await demo();
     upload('xlsx-corrupt.xlsx');
     await screen.findByRole('alert');
     expect(screen.getByRole('alert').textContent).toContain('Excel dosyası okunamadı');
@@ -116,9 +125,9 @@ describe('Gerçek React ekran entegrasyonu', () => {
     });
     await waitFor(() => expect(document.querySelectorAll('[data-kpi]').length).toBe(6));
   });
-  it('geçersiz hedef toplamı hesaplama başlatmaz', () => {
+  it('geçersiz hedef toplamı hesaplama başlatmaz', async () => {
     render(<App />);
-    demo();
+    await demo();
     fireEvent.change(screen.getByRole('slider', { name: /A grubu hedefi/ }), {
       target: { value: 90 },
     });
@@ -129,7 +138,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
   });
   it('geçerli hedefler yeniden hesaplanır; rehberden dönünce korunur', async () => {
     render(<App />);
-    demo();
+    await demo();
     fireEvent.change(screen.getByRole('slider', { name: /A grubu hedefi/ }), {
       target: { value: 0 },
     });
@@ -145,8 +154,8 @@ describe('Gerçek React ekran entegrasyonu', () => {
         '%0,00',
       ),
     );
-    fireEvent.click(screen.getByRole('link', { name: 'ABC Rehberi' }));
-    expect(screen.getAllByRole('tab').length).toBe(4);
+    fireEvent.click(screen.getByRole('link', { name: 'Kullanım ve yöntem rehberi' }));
+    expect(await screen.findAllByRole('tab')).toHaveLength(4);
     fireEvent.click(screen.getByRole('tab', { name: 'Çözümlü Örnekler' }));
     expect(screen.getByText('Örnek 2 · Hedefler değişirse ne olur?')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Analiz paneline dön' }));
@@ -157,10 +166,10 @@ describe('Gerçek React ekran entegrasyonu', () => {
   });
   it('Pareto filtreleri KPI, dağılım ve Excel girdisini değiştirmez', async () => {
     render(<App />);
-    demo();
-    const pareto = screen
-      .getByRole('heading', { name: 'Değerin yoğunlaştığı ürünler' })
-      .closest('section')!;
+    await demo();
+    const pareto = (
+      await screen.findByRole('heading', { name: 'Değerin yoğunlaştığı ürünler' })
+    ).closest('section')!;
     for (const checkbox of within(pareto).getAllByRole('checkbox').slice(0, 3))
       fireEvent.click(checkbox);
     expect(within(pareto).getByRole('status').textContent).toContain('gösterilecek ürün yok');
@@ -175,8 +184,8 @@ describe('Gerçek React ekran entegrasyonu', () => {
   });
   it('PNG düğmesi yerel grafik indirme işlevini çağırır', async () => {
     render(<App />);
-    demo();
-    fireEvent.click(screen.getByRole('button', { name: 'PNG indir' }));
+    await demo();
+    fireEvent.click(await screen.findByRole('button', { name: 'PNG indir' }));
     await waitFor(() => expect(downloadPng).toHaveBeenCalledWith(null, 'abc_pareto_analizi'));
   });
   it('boş şablon veri yüklemeden indirilebilir', async () => {
@@ -185,26 +194,28 @@ describe('Gerçek React ekran entegrasyonu', () => {
     await waitFor(() => expect(downloadExcel).toHaveBeenCalled());
     expect(vi.mocked(downloadExcel).mock.calls[0][0]).toEqual({ kind: 'template' });
   });
-  it('temizleme başlangıç ekranına döndürür', () => {
+  it('temizleme başlangıç ekranına döndürür', async () => {
     render(<App />);
-    demo();
+    await demo();
     fireEvent.click(screen.getByRole('button', { name: 'Analizi temizle' }));
     expect(document.querySelectorAll('[data-kpi]').length).toBe(0);
     expect(screen.getByText('İlk analizinize hazır mısınız?')).toBeTruthy();
   });
-  it('mobil menü açık/kapalı durumunu ve sayfa değişimini yönetir', () => {
+  it('mobil menü açık/kapalı durumunu ve sayfa değişimini yönetir', async () => {
     render(<App />);
     const toggle = screen.getByRole('button', { name: 'Menüyü aç' });
     fireEvent.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    fireEvent.click(screen.getByRole('link', { name: 'ABC Rehberi' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Kullanım ve yöntem rehberi' }));
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByRole('tab', { name: 'Genel Bakış' })).toBeTruthy();
+    expect(await screen.findByRole('tab', { name: 'Genel Bakış' })).toBeTruthy();
   });
-  it('rehber sekmeleri ok tuşlarıyla kullanılabilir', () => {
+  it('rehber sekmeleri ok tuşlarıyla kullanılabilir', async () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('link', { name: 'ABC Rehberi' }));
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Genel Bakış' }), { key: 'ArrowRight' });
+    fireEvent.click(screen.getByRole('link', { name: 'Kullanım ve yöntem rehberi' }));
+    fireEvent.keyDown(await screen.findByRole('tab', { name: 'Genel Bakış' }), {
+      key: 'ArrowRight',
+    });
     expect(
       screen.getByRole('tab', { name: 'Hesaplama Adımları' }).getAttribute('aria-selected'),
     ).toBe('true');
@@ -212,7 +223,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
     expect(screen.getByRole('heading', { name: 'ABC Analizinin Sınırlamaları' })).toBeTruthy();
   });
   it('yeni dosya analiz beklerken temizlenirse geç sonucu uygulamaz', async () => {
-    let resolve!: (value: Awaited<ReturnType<typeof processAnalysis>>) => void;
+    let resolve!: (value: AnalysisResults['file']) => void;
     vi.mocked(processAnalysis).mockImplementationOnce(
       () =>
         new Promise((done) => {
@@ -223,8 +234,35 @@ describe('Gerçek React ekran entegrasyonu', () => {
     upload('csv-utf-8-comma.csv');
     await waitFor(() => expect(processAnalysis).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'İşlemi iptal et' }));
-    await act(async () => resolve({ source: sampleData(), analysis: calculateAbc(sampleData()) }));
+    await act(async () => {
+      const request = vi.mocked(processAnalysis).mock.calls[0][0];
+      if (request.kind === 'file') resolve(await runAnalysisRequest(request));
+    });
     await waitFor(() => expect(document.querySelectorAll('[data-kpi]').length).toBe(0));
+  });
+  it('JSON paketi hedefleri ve kontrolleri geri yükler, bozuk paket geçerli analizi korur', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Analiz geçmişi' }));
+    fireEvent.click(await screen.findByText('Analiz paketini içe veya dışa aktar'));
+    const input = screen.getByLabelText('JSON analiz paketi seç');
+    const load = (bytes: ArrayBuffer) => {
+      const file = new File([bytes], 'analiz.json');
+      Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+      fireEvent.change(input, { target: { files: [file] } });
+    };
+    load(encodePackage('Kaydedilen analiz', calculateAbc(sampleData(), { a: 0, b: 0, c: 100 })));
+    await waitFor(() =>
+      expect(document.querySelector('.file-name')?.textContent).toBe('Kaydedilen analiz'),
+    );
+    expect((screen.getByRole('slider', { name: /A grubu hedefi/ }) as HTMLInputElement).value).toBe(
+      '0',
+    );
+    expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
+    await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+    load(new TextEncoder().encode('bozuk').buffer);
+    await screen.findByRole('alert');
+    expect(screen.getByRole('alert').textContent).toContain('Geçersiz ABC analiz paketi');
+    expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
   });
   it('büyük tablolar 50 ürünlük sayfalarla tüm satırlara erişim sağlar', () => {
     const source = sampleData();
@@ -239,21 +277,21 @@ describe('Gerçek React ekran entegrasyonu', () => {
   });
 });
 
-it('switching languages and theme preserves the active inventory and localises numbers', () => {
+it('switching languages and theme preserves the active inventory and localises numbers', async () => {
   render(<App />);
-  demo();
+  await demo();
   fireEvent.change(screen.getByLabelText('Arayüz dili'), { target: { value: 'en' } });
   expect(document.documentElement.lang).toBe('en');
   expect(screen.getByRole('heading', { name: 'Inventory overview' })).toBeTruthy();
   expect(document.querySelector('[data-kpi=total]')?.getAttribute('data-value')).toBe(
     '304,000.00 TL',
   );
-  expect(screen.getByRole('button', { name: 'Download Excel report' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Download Excel report' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Dark theme' }));
   expect(document.documentElement.dataset.theme).toBe('dark');
   expect(window.localStorage.getItem('abc:theme')).toBe('dark');
-  fireEvent.click(screen.getByRole('link', { name: 'ABC guide' }));
-  expect(screen.getByRole('tab', { name: 'Worked examples' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'User and methodology guide' }));
+  expect(await screen.findByRole('tab', { name: 'Worked examples' })).toBeTruthy();
 });
 
 it('search respects Turkish product spelling and does not change the full analysis', async () => {
@@ -285,10 +323,23 @@ it('charts cap the number of rendered ranks while preserving access to later pro
 });
 
 describe('Stok karar desteği arayüzü', () => {
-  function openModule(name: string) {
-    const navigation = screen.getByRole('navigation', { name: 'Stok karar destek modülleri' });
-    fireEvent.click(within(navigation).getByRole('button', { name }));
-    return within(screen.getByRole('region', { name }));
+  async function openModule(name: string) {
+    const page = ['XYZ', 'ABC-XYZ'].includes(name)
+      ? 'XYZ ve ABC-XYZ'
+      : ['FSN', 'VED'].includes(name)
+        ? 'FSN ve VED'
+        : name === 'Maliyet simülasyonu'
+          ? name
+          : 'Stok optimizasyonu';
+    const link = screen.getByRole('link', { name: page });
+    if (link.getAttribute('aria-current') !== 'page') fireEvent.click(link);
+    if (name !== 'Maliyet simülasyonu') {
+      const navigation = await screen.findByRole('navigation', {
+        name: 'Stok karar destek modülleri',
+      });
+      fireEvent.click(within(navigation).getByRole('button', { name }));
+    }
+    return within(await screen.findByRole('region', { name }));
   }
 
   function fillField(panel: ReturnType<typeof within>, label: string | RegExp, value: string) {
@@ -303,8 +354,8 @@ describe('Stok karar desteği arayüzü', () => {
     render(<App />);
     upload('csv-utf-8-comma.csv');
     await waitFor(() => expect(document.querySelector('[data-kpi=total]')).toBeTruthy());
-    fireEvent.click(screen.getByRole('link', { name: 'Stok karar desteği' }));
-    const xyz = openModule('XYZ');
+    fireEvent.click(screen.getByRole('link', { name: 'XYZ ve ABC-XYZ' }));
+    const xyz = await openModule('XYZ');
     calculate(xyz);
     expect(xyz.getByRole('alert').textContent).toContain('talep verilerini');
     fillField(xyz, 'Ürün ve dönemsel talep (adet)', 'Motor;10;10\nRulman;0;0\nYeni ürün;0;25');
@@ -312,7 +363,7 @@ describe('Stok karar desteği arayüzü', () => {
     fillField(xyz, 'Y üst sınırı (CV oranı)', '0,75');
     calculate(xyz);
     expect(xyz.getByRole('table').textContent).toContain('Talep yok');
-    const matrix = openModule('ABC-XYZ');
+    const matrix = await openModule('ABC-XYZ');
     expect(matrix.getAllByRole('button')).toHaveLength(9);
     expect(matrix.getByRole('button', { name: /AX 1 ürün/ }).getAttribute('aria-pressed')).toBe(
       'true',
@@ -322,28 +373,28 @@ describe('Stok karar desteği arayüzü', () => {
     expect(matrix.getByText('ABC kaydı eksik · 1 ürün')).toBeTruthy();
     fireEvent.click(matrix.getByRole('button', { name: /CZ 0 ürün/ }));
     expect(matrix.getByRole('heading', { name: 'CZ · 0 ürün' })).toBeTruthy();
-    fillField(openModule('XYZ'), 'X üst sınırı (CV oranı)', '0,5');
-    expect(openModule('ABC-XYZ').getByRole('button', { name: /AX 0 ürün/ })).toBeTruthy();
+    fillField(await openModule('XYZ'), 'X üst sınırı (CV oranı)', '0,5');
+    expect((await openModule('ABC-XYZ')).getByRole('button', { name: /AX 0 ürün/ })).toBeTruthy();
   });
 
-  it('yerleşik ABC örneği matrisi beslemez, modüller boş açılır', () => {
+  it('yerleşik ABC örneği matrisi beslemez, modüller boş açılır', async () => {
     render(<App />);
-    demo();
-    fireEvent.click(screen.getByRole('link', { name: 'Stok karar desteği' }));
-    expect(screen.getByRole('heading', { name: 'Stok karar desteği' })).toBeTruthy();
-    const matrix = openModule('ABC-XYZ');
+    await demo();
+    fireEvent.click(screen.getByRole('link', { name: 'XYZ ve ABC-XYZ' }));
+    expect(await screen.findByRole('heading', { name: 'XYZ ve ABC-XYZ' })).toBeTruthy();
+    const matrix = await openModule('ABC-XYZ');
     expect(matrix.getByText(/kendi stok dosyanızı yükleyin/)).toBeTruthy();
     expect(matrix.queryByText('Motor')).toBeNull();
-    const eoq = openModule('EOQ');
+    const eoq = await openModule('EOQ');
     expect((eoq.getByRole('textbox', { name: /Yıllık talep/ }) as HTMLInputElement).value).toBe('');
     calculate(eoq);
     expect(eoq.getByRole('alert').textContent).toContain('Yıllık talep');
   });
 
-  it('EOQ eğrisini oluşturur ve formu temizler', () => {
+  it('EOQ eğrisini oluşturur ve formu temizler', async () => {
     window.history.replaceState(null, '', '/#stok-karar-destegi');
     render(<App />);
-    const eoq = openModule('EOQ');
+    const eoq = await openModule('EOQ');
     fillField(eoq, /Yıllık talep/, '1000');
     fillField(eoq, /Sipariş maliyeti/, '40');
     fillField(eoq, /Elde bulundurma maliyeti/, '2');
@@ -354,17 +405,17 @@ describe('Stok karar desteği arayüzü', () => {
     expect(eoq.queryByRole('img')).toBeNull();
   });
 
-  it('ROP, emniyet stoku, FSN, VED ve simülasyon, kendi girdilerinden sonuç gösterir', () => {
+  it('ROP, emniyet stoku, FSN, VED ve simülasyon, kendi girdilerinden sonuç gösterir', async () => {
     window.history.replaceState(null, '', '/#stok-karar-destegi');
     render(<App />);
-    const rop = openModule('ROP');
+    const rop = await openModule('ROP');
     fillField(rop, /Ortalama talep/, '7,5');
     fillField(rop, /tedarik süresi L/, '2,5');
     fillField(rop, /Emniyet stoku/, '3');
     calculate(rop);
     expect(rop.getByText('21,75 adet')).toBeTruthy();
 
-    const safety = openModule('Emniyet stoku');
+    const safety = await openModule('Emniyet stoku');
     fireEvent.change(safety.getByRole('combobox', { name: 'İstatistiksel model' }), {
       target: { value: 'empirical' },
     });
@@ -375,18 +426,18 @@ describe('Stok karar desteği arayüzü', () => {
     fireEvent.click(safety.getByRole('button', { name: 'Temizle' }));
     expect((safety.getByRole('combobox') as HTMLSelectElement).value).toBe('');
 
-    const fsn = openModule('FSN');
+    const fsn = await openModule('FSN');
     fillField(fsn, /dönemsel stok çıkışı/, 'Parça;1;0');
     fillField(fsn, /Hızlı hareket eşiği/, '50');
     calculate(fsn);
     expect(within(fsn.getByRole('table')).getByText('F')).toBeTruthy();
 
-    const ved = openModule('VED');
+    const ved = await openModule('VED');
     fillField(ved, /operasyon etkisi, güvenlik etkisi/, 'Parça;düşük;yüksek;Güvenlik için gerekli');
     calculate(ved);
     expect(ved.getByRole('table').textContent).toContain('V · Hayati');
 
-    const simulation = openModule('Maliyet simülasyonu');
+    const simulation = await openModule('Maliyet simülasyonu');
     fillField(simulation, /^Dönemsel talep/, '3;4;7;2');
     fillField(simulation, /Başlangıç stoku/, '2');
     fillField(simulation, /Sabit tedarik süresi/, '1');

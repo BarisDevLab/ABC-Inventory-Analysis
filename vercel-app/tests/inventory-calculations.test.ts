@@ -107,6 +107,24 @@ describe('Dönemsel girdiler ve sınıflandırma', () => {
     ).toThrow(/birden fazla/);
   });
 
+  it('SKU matching preserves leading zeroes and case even with duplicate product names', () => {
+    const xyz = calculateXyz([
+      { product: '001', demand: [5, 5] },
+      { product: 'AB', demand: [0, 10] },
+      { product: 'ab', demand: [3, 3] },
+    ], { maxX: 0.25, maxY: 0.75 }, true);
+    const result = buildAbcXyz([
+      { product: 'Bearing', sku: '001', group: 'A' },
+      { product: 'Bearing', sku: '1', group: 'A' },
+      { product: 'Bearing', sku: 'AB', group: 'B' },
+      { product: 'Bearing', sku: 'ab', group: 'C' },
+    ], xyz);
+    expect(result.cells.find((cell) => cell.category === 'AX')?.products).toEqual(['Bearing · 001']);
+    expect(result.cells.find((cell) => cell.category === 'BZ')?.products).toEqual(['Bearing · AB']);
+    expect(result.cells.find((cell) => cell.category === 'CX')?.products).toEqual(['Bearing · ab']);
+    expect(result.missingXyz).toEqual(['Bearing · 1']);
+  });
+
   it('FSN miktar yerine sıklığı ölçer ve eşik değerini hızlı sayar', () => {
     const results = calculateFsn(
       [row('A', 1, 0, 1, 0), row('B', 0, 1000, 0, 0), row('C', 0, 0, 0, 0)],

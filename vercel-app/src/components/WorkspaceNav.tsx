@@ -1,7 +1,25 @@
 import { useLocale } from '../ui/locale';
 import type { Language, Theme } from '../ui/locale';
 
-export type Page = 'analysis' | 'guide';
+export const workspacePages = {
+  overview: ['#genel-bakis', 'Genel bakış', 'Overview'],
+  analysis: ['#analiz', 'ABC analizi', 'ABC analysis'],
+  xyz: ['#stok-karar-destegi', 'XYZ ve ABC-XYZ', 'XYZ and ABC-XYZ'],
+  period: ['#donemsel-karsilastirma', 'Dönemsel karşılaştırma', 'Period comparison'],
+  scenario: ['#senaryo', 'Senaryo analizi', 'Scenario analysis'],
+  optimization: ['#stok-optimizasyonu', 'Stok optimizasyonu', 'Inventory optimization'],
+  movement: ['#fsn-ved', 'FSN ve VED', 'FSN and VED'],
+  simulation: ['#maliyet-simulasyonu', 'Maliyet simülasyonu', 'Cost simulation'],
+  history: ['#analiz-gecmisi', 'Analiz geçmişi', 'Analysis history'],
+  guide: ['#rehber', 'Kullanım ve yöntem rehberi', 'User and methodology guide'],
+} as const;
+
+export type Page = keyof typeof workspacePages;
+const pages = Object.keys(workspacePages) as Page[];
+
+export function pageFromHash(hash: string): Page {
+  return pages.find((page) => workspacePages[page][0] === hash) ?? 'overview';
+}
 
 export function WorkspaceNav({
   page,
@@ -11,23 +29,21 @@ export function WorkspaceNav({
   onNavigate: (page: Page) => void;
 }) {
   const { t } = useLocale();
-  const pages = [
-    { page: 'analysis', hash: '#analiz', icon: '▦', label: t('Analiz Paneli', 'Dashboard') },
-    { page: 'guide', hash: '#rehber', icon: '▤', label: t('ABC Rehberi', 'ABC guide') },
-  ] as const;
   return (
     <nav aria-label={t('Ana gezinme', 'Primary navigation')}>
-      {pages.map((item) => (
-        <a
-          key={item.page}
-          href={item.hash}
-          aria-current={page === item.page ? 'page' : undefined}
-          onClick={() => onNavigate(item.page)}
-        >
-          <span aria-hidden="true">{item.icon}</span>
-          {item.label}
-        </a>
-      ))}
+      {pages.map((item) => {
+        const [hash, tr, en] = workspacePages[item];
+        return (
+          <a
+            key={item}
+            href={hash}
+            aria-current={page === item ? 'page' : undefined}
+            onClick={() => onNavigate(item)}
+          >
+            {t(tr, en)}
+          </a>
+        );
+      })}
     </nav>
   );
 }
