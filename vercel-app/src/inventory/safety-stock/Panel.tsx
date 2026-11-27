@@ -188,8 +188,8 @@ export function SafetyStockPanel() {
       <Method>
         <p>
           {t(
-            'Sabit süre: SS = zₚ · s_d · √L. Beklenen talep = μ_d · L. s_d dönemsel talebin örneklem sapmasıdır.',
-            'Fixed lead time: SS = zₚ · s_d · √L. Expected demand = μ_d · L. Here s_d is the sample deviation of periodic demand.',
+            'Sabit süre: SS = zₚ · s_d · √L. Beklenen talep = μ_d · L. s_d, eşit dönemlerdeki bağımsız ve aynı dağılımlı talebin örneklem sapmasıdır. Kesirli L için varyansın süreyle orantılı arttığı varsayılır.',
+            'Fixed lead time: SS = zₚ · s_d · √L. Expected demand = μ_d · L. Here s_d is the sample deviation of independent, identically distributed demand in equal periods. A fractional L assumes variance grows in proportion to elapsed time.',
           )}
         </p>
         <p>

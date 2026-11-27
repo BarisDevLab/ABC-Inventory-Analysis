@@ -1,5 +1,5 @@
 import { UserInputError } from '../core/user-error';
-import { analysisSource, calculateAbc, FIELDS, GROUPS, SKU_FIELD, pythonSum, validateTargets } from '../core/abc';
+import { analysisSource, calculateAbc, FIELDS, GROUPS, SKU_FIELD, validateTargets } from '../core/abc';
 import type { Analysis, Group } from '../core/abc';
 import type { Workbook, Worksheet } from 'exceljs';
 
@@ -80,10 +80,8 @@ export async function createExcelReport(input: Analysis): Promise<Uint8Array> {
     row.product, row.quantity, row.price, row.value, row.share, row.cumulative, row.group,
     ...(withSku ? [row.sku!] : []),
   ]));
-  // Match create_excel's denominator: sum of grouped values, not the original Series.sum.
-  const total = pythonSum(analysis.summary.map(group => group.value));
   addSheet(book, 'Grup Özeti', ['ABC Grubu', 'Ürün Sayısı', 'Toplam Değer (TL)', 'Değer Payı (%)'],
-    analysis.summary.map(group => [group.group, group.count, group.value, group.value / total * 100]));
+    analysis.summary.map(group => [group.group, group.count, group.value, group.share]));
   const { a, b, c } = analysis.targets;
   addSheet(book, 'Analiz Ayarları', ['Ayar', 'Değer'], [
     ['A hedef payı', `%${a}`], ['B hedef payı', `%${b}`], ['C hedef payı', `%${c}`],

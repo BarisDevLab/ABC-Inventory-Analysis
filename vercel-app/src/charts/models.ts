@@ -59,7 +59,8 @@ export function paretoModel(
     t('Kümülatif pay', 'Cumulative share') + ': %{customdata[4]}%<extra></extra>',
   ].join('<br>');
   const upper = maximum === 0 ? 1 : Number.isFinite(maximum * 1.15) ? maximum * 1.15 : maximum;
-  const ticks = Array.from({ length: 6 }, (_, index) => maximum === 0 ? index / 5 : maximum / 5 * index);
+  // Multiplying by the fraction avoids premature underflow for subnormal values.
+  const ticks = [...new Set(Array.from({ length: 6 }, (_, index) => (maximum || 1) * (index / 5)))];
   const scale = compact && maximum >= 1000 ? 1000 : 1;
   const interval = Math.max(1, Math.ceil(rows.length / (compact ? 4 : 8)));
   const shown = x.filter(index => index % interval === 0);

@@ -13,8 +13,8 @@ export function GuideMethods() {
       page: 'xyz',
       formula: 'CV = s / μ',
       description: t(
-        'XYZ, eşit dönemlerdeki örneklem standart sapmasını ortalamaya böler. Tamamen sıfır talep CV üretmez. ABC-XYZ, geçerli değişkenlik sınıfını yıllık değer sınıfıyla SKU veya ürün adı üzerinden eşleştirir.',
-        'XYZ divides the sample standard deviation by the mean across equal periods. All-zero demand has undefined CV. ABC-XYZ joins a valid variability class to the annual value class by SKU or product name.',
+        'XYZ, eşit dönemlerdeki örneklem standart sapmasını ortalamaya böler. Tamamen sıfır talepte CV tanımsızdır. X ve Y eşikleri işletmeye özgüdür. ABC-XYZ, geçerli değişkenlik sınıfını yıllık değer sınıfıyla SKU veya ürün adı üzerinden eşleştirir.',
+        'XYZ divides the sample standard deviation by the mean across equal periods. All-zero demand has undefined CV. The X and Y thresholds are business choices. ABC-XYZ joins a valid variability class to the annual value class by SKU or product name.',
       ),
     },
     {
@@ -23,8 +23,8 @@ export function GuideMethods() {
       page: 'period',
       formula: 'ΔV = V₂ − V₁',
       description: t(
-        'İki dönem aynı ABC hedefleriyle sınıflandırılır. Kod eşleşmesi büyük/küçük harfe duyarlıdır. Yüzde farkı önceki değere göre hesaplanır ve önceki değer sıfırsa tanımsızdır.',
-        'Apply the same ABC targets to both periods. SKU matching is case-sensitive. Percentage change uses the previous value as its base and is undefined when that value is zero.',
+        'İki dönem aynı ABC hedefleriyle sınıflandırılır. Kod eşleşmesi büyük/küçük harfe duyarlıdır. Yüzde farkı önceki değeri baz alır ve baz sıfırsa tanımsızdır. Dönemler eşdeğer kapsam, ölçü birimi ve para biriminde olmalıdır.',
+        'Apply the same ABC targets to both periods. SKU matching is case-sensitive. Percentage change uses the previous value as its base and is undefined when that value is zero. Compare equivalent periods with the same units and currency.',
       ),
     },
     {
@@ -33,8 +33,8 @@ export function GuideMethods() {
       page: 'scenario',
       formula: 'A + B + C = 100%',
       description: t(
-        'Aynı envantere alternatif değer hedefleri uygulayın. Geçiş matrisi sınıf değiştiren ürünleri gösterir. Değişim sınıfları ve payları etkiler, yıllık tüketim değerlerini korur.',
-        'Apply alternative value targets to the same inventory. The transition matrix shows class changes. Target changes affect classes and shares while retaining annual usage values.',
+        'Aynı envantere alternatif değer hedefleri uygulayın. Geçiş matrisi sınıf değiştiren ürünleri gösterir. Eşik değişikliği grup paylarını değiştirebilir. Ürün değerleri ve ürünlerin tekil payları sabit kalır.',
+        'Apply alternative value targets to the same inventory. The transition matrix shows class changes. Changing thresholds may alter group shares. Item values and individual item shares stay fixed.',
       ),
     },
     {
@@ -63,8 +63,8 @@ export function GuideMethods() {
       page: 'movement',
       formula: t('FSN → sıklık · VED → kritiklik', 'FSN → frequency · VED → criticality'),
       description: t(
-        'FSN, stok çıkışı olan dönemlerin oranını değerlendirir. VED, güvenlik ve operasyon etkilerinin en yükseğini kullanarak ürünü hayati, gerekli veya isteğe bağlı olarak sınıflandırır.',
-        'FSN uses the share of periods with positive issues. VED classifies an item as vital, essential, or desirable using the greater of its safety and operational impacts.',
+        'FSN, stok çıkışı olan dönemlerin oranını değerlendirir. Dönem uzunluğu ve hızlı hareket eşiği işletme tercihidir. VED, güvenlik ve operasyon etkilerinin en yükseğini kullanarak ürünü hayati, gerekli veya isteğe bağlı olarak sınıflandırır.',
+        'FSN uses the share of periods with positive issues. Period length and the fast-moving threshold are business choices. VED classifies an item as vital, essential, or desirable using the greater of its safety and operational impacts.',
       ),
     },
     {
@@ -106,6 +106,65 @@ export function GuideMethods() {
           </article>
         ))}
       </div>
+      <details className="guide-panel">
+        <summary>{t('Akademik kaynaklar', 'Academic references')}</summary>
+        <ul>
+          <li>
+            <a
+              href="https://doi.org/10.1201/9781315374406"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Silver, Pyke &amp; Thomas · Inventory and Production Management in Supply Chains
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://doi.org/10.1287/opre.38.6.947"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Harris · How Many Parts to Make at Once
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/coefvari.htm"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              NIST · Coefficient of Variation
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://doi.org/10.1080/00031305.1996.10473566"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Hyndman &amp; Fan · Sample Quantiles in Statistical Packages
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://doi.org/10.1051/matecconf/201819714005"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Storage Design Using FSN Analysis
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://doi.org/10.4103/0975-1483.63170"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ABC and VED Analysis of a Pharmacy Store
+            </a>
+          </li>
+        </ul>
+      </details>
     </>
   );
 }

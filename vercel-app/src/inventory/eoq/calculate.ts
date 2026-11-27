@@ -10,7 +10,12 @@ function multiplyAndDivide(left: number, right: number, divisor: number) {
   if (left === 0 || right === 0) return 0;
   const product = left * right;
   const direct = product / divisor;
-  if (direct > 0 && Number.isFinite(direct)) return direct;
+  const minimumNormal = 2 ** -1022;
+  if (product >= minimumNormal && direct > 0 && Number.isFinite(direct)) return direct;
+  // A subnormal intermediate product can lose significant bits before division.
+  const ratio = left / divisor;
+  const reordered = ratio * right;
+  if (ratio >= minimumNormal && reordered > 0 && Number.isFinite(reordered)) return reordered;
   return finiteResult(Math.exp(Math.log(left) + Math.log(right) - Math.log(divisor)));
 }
 
