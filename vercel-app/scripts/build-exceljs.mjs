@@ -20,7 +20,7 @@ hash.update(await readFile(join(root,'scripts/excel-crypto.cjs')));
 for(const file of files){hash.update(relative(excelRoot,file));hash.update(await readFile(file));}
 const sourceSha256=hash.digest('hex'),generated=join(root,'src/generated'),artifact=join(generated,'exceljs-browser.cjs'),manifest=join(generated,'provenance.json');
 const notices=join(root,'public/third-party/ExcelJS-NOTICES.txt');
-try{const prior=JSON.parse(await readFile(manifest,'utf8'));const bytes=await readFile(artifact);await readFile(notices);if(prior.sourceSha256===sourceSha256&&prior.artifactSha256===createHash('sha256').update(bytes).digest('hex')){console.log('ExcelJS secure browser bundle is current.');process.exit(0);}}catch{}
+try{const prior=JSON.parse(await readFile(manifest,'utf8'));const bytes=await readFile(artifact);await readFile(notices);if(prior.sourceSha256===sourceSha256&&prior.artifactSha256===createHash('sha256').update(bytes).digest('hex')){console.log('ExcelJS secure browser bundle is current.');process.exit(0);}}catch{ /* Regenerate when the cached files are missing or unreadable. */ }
 const workspace=join(root,'.tmp/exceljs-build',sourceSha256);
 await mkdir(workspace,{recursive:true});await mkdir(generated,{recursive:true});await mkdir(dirname(notices),{recursive:true});
 await cp(join(excelRoot,'lib'),join(workspace,'lib'),{recursive:true});
@@ -54,7 +54,7 @@ packages.set(excelRoot,excel);packages.set(uuidRoot,uuid);
 const licenseTexts=[];
 for(const [directory,info]of [...packages.entries()].sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name)))){
   const candidates=(await readdir(directory)).filter(name=>/^(licen[cs]e|copying)(\.|$)/i.test(name));
-  const parts=[];for(const candidate of candidates){try{parts.push(await readFile(join(directory,candidate),'utf8'));}catch{}}
+  const parts=[];for(const candidate of candidates){try{parts.push(await readFile(join(directory,candidate),'utf8'));}catch{ /* Try the remaining license candidates. */ }}
   licenseTexts.push(`${info.name} ${info.version} (${typeof info.license==='string'?info.license:JSON.stringify(info.license??'see package')})\n${parts.join('\n')}`);
 }
 await writeFile(notices,licenseTexts.join('\n\n'+'='.repeat(72)+'\n\n'));

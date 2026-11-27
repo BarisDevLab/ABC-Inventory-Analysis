@@ -1,7 +1,7 @@
 import type { Cell, InputTable, Targets, Analysis } from '../core/abc';
 import { calculateAbc, DEFAULT_TARGETS, FIELDS } from '../core/abc';
-import data from './python-file-data.json';
-import unicode from '../core/python-unicode.json';
+import data from './file-decoding-data.json';
+import unicode from '../core/unicode-data.json';
 import type { CellValue } from 'exceljs';
 
 export const FILE_LIMITS = Object.freeze({ bytes: 20 * 1024 * 1024, inflatedBytes: 100 * 1024 * 1024, rows: 100_000, columns: 1000, cells: 1_000_000 });

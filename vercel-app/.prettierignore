@@ -1,0 +1,6 @@
+dist/
+src/generated/
+coverage/
+.tmp/
+tests/fixtures/
+package-lock.json

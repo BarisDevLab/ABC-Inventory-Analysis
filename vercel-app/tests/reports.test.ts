@@ -1,8 +1,6 @@
-import { createHash } from 'node:crypto';
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import ExcelJS from 'exceljs';
-import reference from './fixtures/report-reference.json';
+import reference from './fixtures/report-golden.json';
 import { calculateAbc, sampleData } from '../src/core/abc';
 import type { Analysis, InputTable } from '../src/core/abc';
 import { createExcelReport, createExcelTemplate, EXCEL_MIME, REPORT_FILENAME, TEMPLATE_FILENAME } from '../src/export/excel-report';
@@ -19,17 +17,10 @@ function close(actual: unknown, expected: unknown) {
   } else expect(actual).toEqual(expected);
 }
 
-describe('Python Excel raporu/şablon eşdeğerliği', () => {
-  it('Python referansının kaynak özeti güncel', () => {
-    expect(createHash('sha256').update(readFileSync(new URL('../../abc_core.py',import.meta.url))).digest('hex')).toBe(reference.metadata.core_sha256);
-  });
+describe('Excel raporu ve şablon referansları', () => {
   for (const test of reference.cases) it(test.name, async () => {
     const buffer = test.template ? await createExcelTemplate()
       : await createExcelReport(calculateAbc(test.source as InputTable,test.targets));
-    // Synthetic outputs, independently reopened by scripts/report_reference.py --verify.
-    const output = new URL('../.tmp/report-validation/',import.meta.url);
-    mkdirSync(output,{recursive:true});
-    writeFileSync(new URL(`${test.name}.xlsx`,output),buffer);
     const book = new ExcelJS.Workbook();
     await book.xlsx.load(buffer.slice().buffer);
     expect(book.worksheets.map(sheet => sheet.name)).toEqual(test.sheets.map(sheet => sheet.name));
@@ -126,9 +117,17 @@ describe('Tarayıcı indirme ve worker yaşam döngüsü',()=>{
     const create=vi.spyOn(URL,'createObjectURL').mockReturnValue('blob:local-test');
     const revoke=vi.spyOn(URL,'revokeObjectURL').mockImplementation(()=>{});
     vi.stubGlobal('document',{createElement:vi.fn(()=>anchor),body:{appendChild}});
-    let worker: { onmessage?: (event:{data:ReportResponse})=>void; onerror?:()=>void; onmessageerror?:()=>void; terminate:typeof terminate;postMessage:typeof postMessage };
-    vi.stubGlobal('Worker',class { constructor(){worker=this;} terminate=terminate;postMessage=postMessage; });
-    return {terminate,postMessage,click,remove,appendChild,anchor,create,revoke,worker:()=>worker!};
+    class MockWorker {
+      static instance: MockWorker;
+      onmessage?: (event: { data: ReportResponse }) => void;
+      onerror?: () => void;
+      onmessageerror?: () => void;
+      terminate = terminate;
+      postMessage = postMessage;
+      constructor() { MockWorker.instance = this; }
+    }
+    vi.stubGlobal('Worker', MockWorker);
+    return {terminate,postMessage,click,remove,appendChild,anchor,create,revoke,worker:()=>MockWorker.instance};
   }
   it('Blob MIME, yerel bağlantı ve URL temizliği doğrudur',()=>{
     vi.useFakeTimers(); const env=environment();

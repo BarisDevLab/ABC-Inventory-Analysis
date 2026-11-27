@@ -25,7 +25,7 @@ const browser=spawn(process.argv[2]??'C:\\Program Files\\Google\\Chrome\\Applica
 let stderr='';browser.stderr.on('data',data=>{stderr+=data;});
 let socket,session,id=0;const pending=new Map(),handlers=[];
 function send(method,params={},sessionId=session){return new Promise((resolve,reject)=>{const requestId=++id;const timer=setTimeout(()=>{pending.delete(requestId);reject(new Error(`${method} timed out`));},30000);pending.set(requestId,{resolve,reject,timer});socket.send(JSON.stringify({id:requestId,method,params,...(sessionId?{sessionId}:{})}));});}
-async function poll(fn,label,timeout=30000){const start=Date.now();while(Date.now()-start<timeout){try{const value=await fn();if(value)return value;}catch{}await delay(150);}throw new Error(`Timed out: ${label}`);}
+async function poll(fn,label,timeout=30000){const start=Date.now();while(Date.now()-start<timeout){try{const value=await fn();if(value)return value;}catch{ /* Retry while the browser is starting or navigating. */ }await delay(150);}throw new Error(`Timed out: ${label}`);}
 async function evaluate(expression){const response=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(response.exceptionDetails)throw new Error(response.exceptionDetails.text+' '+response.exceptionDetails.exception?.description);return response.result.value;}
 const wait=(expression,label=expression,timeout=30000)=>poll(()=>evaluate(`Boolean(${expression})`),label,timeout);
 const click=text=>evaluate(`(()=>{const button=Array.from(document.querySelectorAll('button')).find(el=>el.textContent.trim()===${JSON.stringify(text)}&&!el.disabled&&el.getBoundingClientRect().width);if(!button)throw new Error('Missing button: '+${JSON.stringify(text)});button.click();return true;})()`);
@@ -153,10 +153,10 @@ try {
   const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
   assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
   result.success=true;
-}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');await screenshot('failure');}catch{}}
+}catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
 finally {
-  if(socket?.readyState===1){try{result.cspViolations=await evaluate('window.__cspViolations??[]');}catch{}}
-  if(socket?.readyState===1){try{await send('Browser.close',{},undefined);}catch{}socket.close();}browser.kill();
+  if(socket?.readyState===1){try{result.cspViolations=await evaluate('window.__cspViolations??[]');}catch{ /* The page may already be unavailable. */ }}
+  if(socket?.readyState===1){try{await send('Browser.close',{},undefined);}catch{ /* Close the socket even if Chrome has exited. */ }socket.close();}browser.kill();
   await writeFile(resolve(run,'review.json'),JSON.stringify(result,null,2));await writeFile(resolve(run,'browser-stderr.txt'),stderr);
   console.log(JSON.stringify({success:result.success,checks:checks.length,errors:errors.length,run,failure:result.failure},null,2));
   process.exitCode=result.success?0:1;
