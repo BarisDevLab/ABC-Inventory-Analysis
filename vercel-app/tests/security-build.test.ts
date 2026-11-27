@@ -13,6 +13,18 @@ describe('Güvenli bağımlılık ve tarayıcı paketi sözleşmesi',()=>{
     expect(createHash('sha256').update(artifact).digest('hex')).toBe(manifest.artifactSha256);
     expect(manifest.uuidModules).toContain('dist/cjs-browser/v35.js');
   });
+  it('Browserify ve elliptic zincirini hem npm kilidinden hem ExcelJS paketinden çıkarır',()=>{
+    const lock = JSON.parse(readFileSync('package-lock.json','utf8'));
+    const provenance = JSON.parse(readFileSync('src/generated/provenance.json','utf8'));
+    const excluded = ['browserify','elliptic','crypto-browserify','browserify-sign','create-ecdh'];
+    const locked = Object.keys(lock.packages).map(path=>path.split('node_modules/').at(-1));
+    expect(provenance.bundler).toBe('esbuild');
+    expect(provenance.bundledPackages).toContain('exceljs');
+    for (const name of excluded) {
+      expect(locked).not.toContain(name);
+      expect(provenance.bundledPackages).not.toContain(name);
+    }
+  });
   it('UUID v3 ve v5 küçük dış tampona sessiz yazmaz',()=>{
     const namespace='6ba7b810-9dad-11d1-80b4-00c04fd430c8';
     for(const fn of [v3,v5])expect(()=>fn('abc',namespace,new Uint8Array(8),4)).toThrow(RangeError);

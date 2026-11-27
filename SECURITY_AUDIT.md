@@ -14,7 +14,7 @@ Denetim tarihi 27 Kasım 2026. Başlangıç noktası `main` dalındaki `c99c478`
 | Düşük | Geçmişi topluca temizlemek kayıtları siliyor, IndexedDB veritabanı kalıyordu. | Toplu silme veritabanını kaldırıyor. Listeleme boş veritabanı oluşturmuyor. Mühendislik formlarında otomatik doldurma kapatma isteği veriliyor. |
 | Düşük | Canlı `/.vite/manifest.json` derleme girişlerini, kaynak yollarını ve paket grafiğini yayımlıyordu. İncelenen içerikte kimlik bilgisi saptanmadı. | Vercel dağıtım derlemesi manifesti çıkarmıyor. Yerel derlemede CI doğrulaması için manifest üretiliyor. Source map üretimi açıkça kapatıldı. |
 | Düşük | 16 eski commit’in `author` ve `committer` alanlarında depo sahibinden farklı bir hesapla ilişkilendirilen bir e-posta var. Diğer eşleşme GitHub’ın iki imzalı birleştirmede kullandığı hizmet adresi. | Eski commit meta verileri herkese açık. Bu çalışma ortamında yeni commit’ler için doğrulanmış BarisDevLab noreply kimliği yapılandırıldı ve her iki alanı denetleyen yerel Git kancası kuruldu. |
-| Düşük | npm taramasında geliştirme ağacında tek düşük önem düzeyli `elliptic` bildirimi ve ona bağlı dört paket kaydı bulundu. | Düzeltme yayımlanmamış. Etkilenen zincir tarayıcı ExcelJS paketinden çıkarılıyor ve derleme bunu denetliyor. [GHSA-848j-6mx2-7j84](https://github.com/advisories/GHSA-848j-6mx2-7j84) |
+| Düşük | İlk npm taramasında Browserify üzerinden gelen `elliptic` bildirimi ve ona bağlı dört paket kaydı bulundu. | Düzeltildi. Browserify kaldırıldı ve zincir npm kilit dosyasından çıktı. Üretim ExcelJS paketinin esbuild girdi grafiğinde zincirdeki modüller bulunmuyor. [GHSA-848j-6mx2-7j84](https://github.com/advisories/GHSA-848j-6mx2-7j84) |
 
 ## Hassas veri ve dağıtım dosyaları
 
@@ -38,7 +38,7 @@ Denetim tarihi 27 Kasım 2026. Başlangıç noktası `main` dalındaki `c99c478`
 
 ## Bağımlılıklar, CI ve sürüm doğrulaması
 
-- Çevrimiçi `npm audit` ve `npm audit --omit=dev` çalıştırıldı. Üretim bağımlılıklarında bulgu yok. Geliştirme zincirindeki düşük bulgu için uyumlu bir düzeltme bulunmadığı için sürüm zorlanmadı. ExcelJS ve UUID sabitlemeleri, npm kilit bütünlükleri ve Action commit sabitlemeleri korundu.
+- İlk denetimde çevrimiçi `npm audit` ve `npm audit --omit=dev` çalıştırıldı. Üretim bağımlılıklarında bulgu çıkmadı. Geliştirme zincirindeki düşük bulgu sonraki Dependabot incelemesinde bağımlılık kaldırılarak giderildi. ExcelJS ve UUID sabitlemeleri, npm kilit bütünlükleri ve Action commit sabitlemeleri korundu.
 - GitHub Actions yalnızca `contents: read` kullanıyor, checkout kimlik bilgilerini saklamıyor ve PR denetimini `pull_request` ile çalıştırıyor. CI ve Vercel paket kurulumunda bağımlılık yaşam döngüsü betikleri devre dışı. Projenin kendi incelenen derleme adımları çalışmaya devam ediyor. Temiz kurulum bu seçenekle doğrulandı.
 - 380 otomatik test, TypeScript, ESLint, Prettier, üretim ve Vercel dağıtım modu derlemeleri, derlenmiş Worker ve paket grafiği doğrulaması geçti. Regresyon testleri tutarsız ZIP meta verileri, beklenmeyen hata ayrıntılarının gizlenmesi, cross-origin başlıkları ve tarayıcı geçmişinin kalıcı olarak silinmesini kapsıyor. Vite’ın mevcut paket boyutu uyarıları sürüyor.
 
@@ -72,3 +72,10 @@ Bu inceleme `main` dalında bildirilen on uyarıyı ve PR #6’daki kaynak düze
 Tarayıcı aracındaki #1–#5 için mevcut test girdileri sabitti veya yerel test kodunda belirleniyordu. Gözlenen akışlar üretim sayfasında uzaktan kod çalıştırmaya izin vermiyordu. Yine de dinamik kod dizgeleri tamamen kaldırıldı. CDP ile yürütülen callback’ler test kaynak kodunda tanımlı. Değişken değerler ayrı argüman alanında iletiliyor. CodeQL yapılandırması, kapsamı ve uyarı durumu değiştirilmedi.
 
 Bu takipte 384 otomatik test geçti. TypeScript, ESLint, Prettier, üretim derlemesi ve derlenmiş Worker doğrulaması başarılı. Yerel masaüstü Chromium akışında 59 kontrol ve 221 HTTP isteği değerlendirildi. Harici istek, yükleme, CSP ihlali ve tarayıcı hatası görülmedi. Testler geçersiz ABC gruplarını, seyrek XLSX koordinatlarını, iki Worker’ın ileti sınırını ve ağ verisinin test tanılarına aktarılmamasını kapsıyor. GitHub tarama sonucu PR kontrollerinden izlenebilir. [PR #6 kontrolleri](https://github.com/BarisDevLab/ABC-Inventory-Analysis/pull/6/checks)
+
+
+## Dependabot #1 · GHSA-848j-6mx2-7j84
+
+- GitHub bildirimi `elliptic` 6.6.1’i kapsıyor ve yayımlanmış bir düzeltme sürümü göstermiyor. Kilit dosyasında yol `browserify → crypto-browserify → browserify-sign / create-ecdh → elliptic` idi. Browserify yalnızca ExcelJS tarayıcı derleyicisiydi. ExcelJS’in kullandığı dar karma ve rastgele sayı uyarlayıcısı bu genel amaçlı kripto zincirine ihtiyaç duymuyordu. [Güvenlik bildirimi](https://github.com/advisories/GHSA-848j-6mx2-7j84)
+- Browserify kaldırıldı. Zaten kurulu olan esbuild, sabitlenmiş ExcelJS kaynak kodunu ve mevcut tarayıcı UUID uyarlamasını paketliyor. Akış, tampon ve diğer gerekli tarayıcı uyarlayıcıları açıkça listeleniyor. Derlemeye girmeyen eski geriye uyumluluk paketleri de doğrudan geliştirme bağımlılıklarından çıkarıldı. Hazır ExcelJS dağıtımı kullanılsaydı projenin denetlediği UUID çözümlemesi kaybedilecekti.
+- Temiz `npm ci --ignore-scripts` kurulumunda kilit dosyası ve kurulu paket ağacı, Browserify ve ilgili kripto zincirinin kaldırıldığını doğruladı. esbuild girdi grafiği ve paket kaynak özeti üretimde bu modüllerin bulunmadığını doğruladı. Derleme bu zincir yeniden paketlenirse hata veriyor. Hem tam `npm audit` hem `npm audit --omit=dev` sıfır bulgu bildirdi. Dependabot bildiriminin varsayılan dal durumu, değişiklik `main` dalına ulaşana kadar açık kalabilir.
