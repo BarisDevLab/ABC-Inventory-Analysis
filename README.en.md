@@ -9,7 +9,7 @@
 
 Review inventory value, demand variability, and replenishment policies in your browser. Start with an Excel or CSV file, or open the built-in synthetic example.
 
-[Live application](https://abc-inventory-analysis.vercel.app) · [Türkçe](README.md) · [Technical guide (Turkish)](vercel-app/README.md)
+[Live application](https://abc-inventory-analysis.vercel.app) · [Türkçe](README.md) · [Technical guide (Turkish)](vercel-app/README.md) · [Release notes](CHANGELOG.md)
 [Full logo](vercel-app/public/brand-logo-full.svg) · [Transparent](vercel-app/public/brand-logo-transparent.svg) · [Light theme](vercel-app/public/brand-logo-light.svg) · [Dark theme](vercel-app/public/brand-logo-dark.svg) · [Favicon](vercel-app/public/favicon.svg)
 
 ## Application screenshots
@@ -68,3 +68,11 @@ npm audit
 ```
 
 Run `npm run preview` to serve the local production build.
+
+## Licensing and copyright
+
+The original project source code, documentation, and brand assets are provided without a general open-source license. Existing copyright rights in these materials are reserved.
+
+Third-party components remain subject to their own licenses. Their license texts and copyright notices are available in the files below.
+
+[React and Plotly notices](vercel-app/public/third-party/APP-NOTICES.txt) · [ExcelJS notices](vercel-app/public/third-party/ExcelJS-NOTICES.txt) · [Geist OFL](vercel-app/public/fonts/geist-LICENSE.txt)

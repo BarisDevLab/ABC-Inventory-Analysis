@@ -9,7 +9,7 @@
 
 Stok değerini, talep değişkenliğini ve ikmal politikalarını tarayıcıda inceleyin. Excel veya CSV dosyasıyla başlayın ya da uygulamanın sentetik örnek verisini açın.
 
-[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [English](README.en.md) · [Teknik kılavuz](vercel-app/README.md)
+[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [English](README.en.md) · [Teknik kılavuz](vercel-app/README.md) · [Sürüm notları](CHANGELOG.md)
 [Tam logo](vercel-app/public/brand-logo-full.svg) · [Şeffaf](vercel-app/public/brand-logo-transparent.svg) · [Açık tema](vercel-app/public/brand-logo-light.svg) · [Koyu tema](vercel-app/public/brand-logo-dark.svg) · [Favicon](vercel-app/public/favicon.svg)
 
 ## Uygulamadan görüntüler
@@ -68,3 +68,11 @@ npm audit
 ```
 
 Yerel üretim çıktısını görmek için `npm run preview` çalıştırın.
+
+## Lisans ve telif hakları
+
+Projenin özgün kaynak kodu, dokümantasyonu ve marka varlıkları için genel bir açık kaynak lisansı verilmemiştir. Bu içerik üzerindeki mevcut telif hakları saklıdır.
+
+Üçüncü taraf bileşenler kendi lisanslarına tabidir. İlgili lisans metinleri ve telif bildirimleri aşağıdaki dosyalarda yer alır.
+
+[React ve Plotly bildirimleri](vercel-app/public/third-party/APP-NOTICES.txt) · [ExcelJS bildirimleri](vercel-app/public/third-party/ExcelJS-NOTICES.txt) · [Geist OFL](vercel-app/public/fonts/geist-LICENSE.txt)
