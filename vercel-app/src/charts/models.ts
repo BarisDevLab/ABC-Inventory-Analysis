@@ -8,14 +8,14 @@ export function visibleRows(analysis: Analysis, groups: readonly Group[], first:
 }
 
 const dark = {
-  surface: '#0D121B', text: '#f0f5ff', muted: '#adbed7',
-  grid: '#24344b', axis: '#566b87', hover: '#16243a', hoverEdge: '#6099ed',
-  highlight: '#ff75af', edges: { A: '#7aabff', B: '#ffd57a', C: '#61e2e7' },
+  surface: '#0D121B', text: '#f4f7fc', muted: '#bfcbdd',
+  grid: '#283344', axis: '#687991', hover: '#111b2a', hoverEdge: '#679fff',
+  highlight: '#ff3478', edges: { A: '#6da3ff', B: '#ffd26a', C: '#79f0ff' },
 };
 const light = {
-  surface: '#ffffff', text: '#192940', muted: '#4d6381',
-  grid: '#e0e8f4', axis: '#a2b4cf', hover: '#f7faff', hoverEdge: '#8faede',
-  highlight: '#b82969', edges: { A: '#1b57be', B: '#976000', C: '#087d86' },
+  surface: '#ffffff', text: '#181b23', muted: '#50555f',
+  grid: '#e1e2e6', axis: '#898f9a', hover: '#ffffff', hoverEdge: '#5474ae',
+  highlight: '#c01955', edges: { A: '#1b57be', B: '#946300', C: '#007a8c' },
 };
 
 export function chartStyle(language: Language, theme: Theme) {
@@ -24,7 +24,7 @@ export function chartStyle(language: Language, theme: Theme) {
   const fmt = (value: number) => detail(value, language);
   const axis: Partial<LayoutAxis> = {
     automargin: true, showline: true, linecolor: palette.axis, tickcolor: palette.axis,
-    ticks: 'outside', ticklen: 4, tickfont: { color: palette.muted, size: 11 },
+    ticks: 'outside', ticklen: 4, tickfont: { color: palette.muted, size: 12 },
     gridcolor: palette.grid, zerolinecolor: palette.axis,
   };
   const layout: Partial<Layout> = {
@@ -73,8 +73,8 @@ export function paretoModel(
           line: { color: rows.map(row => palette.edges[row.group]), width: rows.length <= 80 ? 1 : 0 },
         }, customdata: custom, hovertemplate: hover },
       { type: 'scatter', x, y: rows.map(row => row.cumulative), yaxis: 'y2', name: t('Kümülatif pay', 'Cumulative share'),
-        mode: rows.length <= 35 ? 'lines+markers' : 'lines', line: { color: lineColor, width: 3 },
-        marker: { size: 7, color: palette.surface, line: { color: lineColor, width: 2 } }, customdata: custom, hovertemplate: hover },
+        mode: rows.length <= 35 ? 'lines+markers' : 'lines', line: { color: lineColor, width: 3.3 },
+        marker: { size: 8, color: lineColor, line: { color: palette.surface, width: 2 } }, customdata: custom, hovertemplate: hover },
       ...[
         { threshold: targets.a, label: 'A/B', color: palette.edges.B },
         { threshold: targets.a + targets.b, label: 'B/C', color: palette.edges.C },
@@ -84,9 +84,9 @@ export function paretoModel(
         name: `${label} · ${percent(threshold, language, Number.isInteger(threshold) ? 0 : 2)}`, hoverinfo: 'skip' as const,
       })),
     ],
-    layout: { ...layout, height: compact ? 440 : 415, dragmode: mode, hovermode: 'closest',
+    layout: { ...layout, height: compact ? 440 : 435, dragmode: mode, hovermode: 'closest',
       uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 69, t: 56, b: compact ? 110 : 75 },
-      legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.04, yanchor: 'bottom', font: { size: compact ? 10 : 11 } },
+      legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.04, yanchor: 'bottom', font: { size: compact ? 10 : 12 } },
       xaxis: { ...axis, range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,
         ticktext: shown.map(index => {
           const name = Array.from(rows[index].product);
@@ -113,7 +113,7 @@ export function distributionModel(analysis: Analysis, language: Language = 'tr',
       marker: { colors: analysis.summary.map(group => COLORS[group.group]), line: { color: palette.surface, width: 2 } },
       textinfo: 'none',
       customdata: analysis.summary.map(group => [fmt(group.value), number(group.count, 0, language), fmt(group.share)]),
-      hovertemplate: t('Grup', 'Group') + ' %{label}<br>' + t('Yıllık değer', 'Annual value') + ': %{customdata[0]} TL<br>' +
+      hovertemplate: '<b>' + t('Grup', 'Group') + ' %{label}</b><br>' + t('Yıllık değer', 'Annual value') + ': %{customdata[0]} TL<br>' +
         t('Ürün sayısı', 'Products') + ': %{customdata[1]}<br>' + t('Değer payı', 'Value share') + ': %{customdata[2]}%<extra></extra>',
     }],
     layout: { ...layout, height: 290, showlegend: false, margin: { l: 8, r: 8, t: 12, b: 12 },

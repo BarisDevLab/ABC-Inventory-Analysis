@@ -293,11 +293,13 @@
     --series-color: var(--class-c);
   }
   .inventory-bars li:nth-child(4n + 4) {
-    --series-color: var(--metric-pink);
+    --series-color: var(--accent-pink);
   }
   .inventory-bar {
+    position: relative;
     height: 14px;
-    border-radius: 3px;
+    border-radius: 4px;
+    overflow: visible;
     background:
       repeating-linear-gradient(
         to right,
@@ -309,13 +311,29 @@
   .inventory-bar > span {
     background: linear-gradient(
       90deg,
-      color-mix(in srgb, var(--series-color) 76%, var(--surface)),
+      color-mix(in srgb, var(--series-color) 86%, var(--ink)),
       var(--series-color)
     );
-    border-radius: 2px;
+    border-radius: inherit;
+    box-shadow: inset 0 1px color-mix(in srgb, var(--ink) 24%, transparent);
   }
-  .inventory-bar > span:hover {
-    filter: saturate(1.2) brightness(1.07);
+  .inventory-bar:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    inset-block-end: calc(100% + 0.35rem);
+    inset-inline-start: 0;
+    z-index: 1;
+    width: max-content;
+    max-width: 100%;
+    padding: 0.32rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--series-color) 65%, var(--control-line));
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 4px 12px var(--chart-tooltip-shadow);
+    font-size: 0.76rem;
+    font-weight: 620;
+    pointer-events: none;
   }
   .inventory-bars strong {
     font-variant-numeric: tabular-nums;

@@ -23,86 +23,98 @@
   font-family: Geist, 'Segoe UI', system-ui, sans-serif;
   font-synthesis: none;
   color-scheme: light;
-  --canvas: #eef2f8;
+  --canvas: #f4f4f5;
   --surface: #ffffff;
-  --soft: #eaf0f9;
-  --ink: #101b2c;
-  --muted: #506079;
-  --line: #d3dded;
-  --control-line: #aebfd7;
-  --primary: #1558c1;
+  --soft: #f2f2f3;
+  --ink: #16181d;
+  --muted: #50535d;
+  --line: #dddde1;
+  --control-line: #aaaeb7;
+  --primary: #1959ba;
   --on-primary: #ffffff;
-  --active: #e4efff;
-  --good: #0d6470;
-  --good-bg: #e1f4f6;
-  --teal: #006a73;
-  --teal-bg: #def6f7;
+  --active: #eaf1fd;
+  --good: #08684f;
+  --good-bg: #e1f4eb;
+  --teal: #006674;
+  --teal-bg: #e4f7f9;
   --danger: #a2264c;
   --danger-bg: #fdeaf0;
   --amber: #805201;
   --amber-bg: #fff0cf;
-  --rail: #e7edf8;
+  --rail: #f9f9fa;
   --rail-ink: var(--ink);
   --rail-muted: var(--muted);
   --rail-line: var(--line);
-  --focus: #1558c1;
-  --class-a: #347cff;
-  --class-b: #ffbc38;
-  --class-c: #10c7cd;
-  --shadow: 0 1px 2px #1429470c, 0 8px 24px #14294708;
-  --feature: #e8f2ff;
-  --feature-end: #f8fbff;
-  --feature-text: #102242;
-  --feature-muted: #455a76;
-  --feature-line: #4483ed44;
+  --focus: #1959ba;
+  --accent-blue: #2979ff;
+  --accent-cyan: #00e5ff;
+  --accent-gold: #ffb800;
+  --accent-pink: #ff3478;
+  --accent-green: #00e5a0;
+  --accent-orange: #ff783b;
+  --class-a: var(--accent-blue);
+  --class-b: var(--accent-gold);
+  --class-c: var(--accent-cyan);
+  --card-edge: 51%;
+  --accent-wash: 8%;
+  --card-shadow: 10%;
+  --chart-tooltip-shadow: #171b2630;
+  --nav-indicator: #2466ce;
+  --nav-icon: #676d7a;
+  --shadow: 0 1px 2px #181a240c, 0 8px 24px #181a2408;
+  --feature: #f3f3f5;
+  --feature-end: #ffffff;
+  --feature-text: #16181d;
+  --feature-muted: #50535d;
+  --feature-line: #c9cdd6;
   --feature-accent: #175bc3;
-  --feature-neutral: #d77f00;
-  --feature-teal: #007c85;
   --feature-sheen: #ffffffbb;
-  --metric-teal: #006f7b;
-  --metric-pink: #ab175e;
-  --metric-blue: #1554c4;
-  --guide-gold: #a76900;
-  --feature-glow: #245ce01a;
+  --metric-teal: #006b7a;
+  --metric-pink: #ae1950;
+  --metric-blue: #1d56b5;
+  --feature-glow: #181a2410;
   background: var(--canvas);
   color: var(--ink);
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
   --canvas: #07090e;
+  --card-edge: 84%;
+  --accent-wash: 19%;
+  --card-shadow: 15%;
+  --chart-tooltip-shadow: #000a;
+  --nav-indicator: var(--accent-blue);
+  --nav-icon: #95a7c0;
   --surface: #0d121b;
-  --soft: #151e2d;
+  --soft: #151b26;
   --ink: #f0f5ff;
-  --muted: #a8b8ce;
-  --line: #26354d;
-  --control-line: #465b78;
-  --primary: #79abff;
+  --muted: #b3becf;
+  --line: #2a3445;
+  --control-line: #4b5b73;
+  --primary: #80b1ff;
   --on-primary: #08192f;
   --active: #152946;
-  --good: #8ce7ec;
-  --good-bg: #112e38;
-  --teal: #67e8ed;
+  --good: #00e5a0;
+  --good-bg: #102d26;
+  --teal: #00e5ff;
   --teal-bg: #0d303a;
   --danger: #ffabc6;
   --danger-bg: #3d2331;
-  --amber: #ffd267;
+  --amber: #ffca44;
   --amber-bg: #372b14;
-  --rail: #0a0e17;
+  --rail: #0a0d14;
   --focus: #78b8ff;
   --shadow: 0 2px 9px #02040988;
-  --feature: #101d33;
+  --feature: #101828;
   --feature-end: #0d121b;
   --feature-text: #f1f6ff;
-  --feature-muted: #b0c4e1;
+  --feature-muted: #b6c2d4;
   --feature-line: #659aff5b;
   --feature-accent: #77aaff;
-  --feature-neutral: #ffca52;
-  --feature-teal: #43dfe7;
   --feature-sheen: #81bdff31;
-  --metric-teal: #36e2e7;
-  --metric-pink: #ff5e9f;
-  --metric-blue: #71a9ff;
-  --guide-gold: #ffcf51;
+  --metric-teal: var(--accent-cyan);
+  --metric-pink: var(--accent-pink);
+  --metric-blue: var(--accent-blue);
   --feature-glow: #3269cc29;
 }
 * {
@@ -369,6 +381,34 @@ small,
   color: var(--good);
 }
 @media (min-width: 861px) {
+  .desktop-identity .brand-mark {
+    background: linear-gradient(145deg, #4691ff, #1753cd);
+    color: #fff;
+    box-shadow:
+      inset 0 1px #ffffff4d,
+      0 4px 14px #2979ff48;
+  }
+  .sidebar nav a > .icon,
+  .sidebar .nav-group-toggle > .icon:first-child {
+    color: var(--nav-icon);
+  }
+  .sidebar .nav-group:has([aria-current='page']) .nav-group-toggle > .icon:first-child,
+  .sidebar nav [aria-current='page'] > .icon {
+    color: var(--primary);
+  }
+  .sidebar nav [aria-current='page'] {
+    border-color: color-mix(in srgb, var(--nav-indicator) 29%, var(--rail-line));
+    background: linear-gradient(102deg, var(--active), var(--rail));
+    box-shadow:
+      inset 2px 0 var(--nav-indicator),
+      0 3px 10px var(--feature-glow);
+  }
+  .sidebar nav [aria-current='page']:hover {
+    background: var(--active);
+  }
+  .nav-children:has([aria-current='page']) {
+    border-inline-start-color: color-mix(in srgb, var(--nav-indicator) 58%, var(--rail-line));
+  }
   .rail-collapsed {
     --rail-width: 64px;
   }
@@ -1126,6 +1166,9 @@ input[type='checkbox'] {
 }
 .plot-host .cursor-pointer {
   cursor: pointer;
+}
+.plot-host .hoverlayer :is(.hovertext, .axistext) path {
+  filter: drop-shadow(0 3px 5px var(--chart-tooltip-shadow));
 }
 .plot-host:not(.plot-loaded),
 .plot-placeholder {

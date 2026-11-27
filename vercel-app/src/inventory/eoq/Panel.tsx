@@ -15,7 +15,7 @@ function CostCurve({ input, optimum, theme }: { input: EoqInput; optimum: number
   const { palette, axis, layout: base } = chartStyle(language, theme);
   const layout: Partial<Layout> = {
     ...base,
-    height: 385,
+    height: 410,
     margin: { l: 81, r: 24, b: 80, t: 48 },
     xaxis: {
       ...axis,
@@ -67,11 +67,11 @@ function CostCurve({ input, optimum, theme }: { input: EoqInput; optimum: number
       line: {
         color: theme === 'dark' ? COLORS[series] : palette.edges[series],
         dash,
-        width: key === 'total' ? 3.2 : 2.2,
+        width: key === 'total' ? 3.3 : 2.4,
       },
       marker: {
-        color: COLORS[series],
-        size: points.map((point) => (point.quantity === optimum ? 9 : 4)),
+        color: theme === 'dark' ? COLORS[series] : palette.edges[series],
+        size: points.map((point) => (point.quantity === optimum ? 10 : 5)),
         line: { color: palette.surface, width: 1 },
       },
       hovertemplate: `<b>${name}</b><br>${t('Sipariş miktarı', 'Order quantity')} · %{customdata[0]}<br>${t('Yıllık maliyet', 'Annual cost')} · %{customdata[1]} TL<extra></extra>`,

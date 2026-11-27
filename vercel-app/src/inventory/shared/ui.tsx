@@ -202,7 +202,7 @@ export function BarChart({
             <span
               className="inventory-bar"
               aria-hidden="true"
-              title={`${label} · ${formatValue(value)}`}
+              data-tooltip={`${label} · ${formatValue(value)}`}
             >
               <span style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
             </span>

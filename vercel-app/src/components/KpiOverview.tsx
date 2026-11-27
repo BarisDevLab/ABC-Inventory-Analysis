@@ -17,14 +17,14 @@ export function KpiOverview({
       label: t('Yıllık tüketim değeri', 'Annual usage value'),
       value: money(analysis.total),
       note: t('Tüm ürünler', 'All products'),
-      icon: 'coins',
+      icon: featured ? 'inventory-value' : 'coins',
     },
     {
       key: 'products',
       label: t('Analiz edilen ürün', 'Products analysed'),
       value: number(analysis.rows.length, 0),
       note: t('Benzersiz stok kalemi', 'Unique stock items'),
-      icon: 'box',
+      icon: featured ? 'inventory-count' : 'box',
     },
     {
       key: 'a_share',
@@ -34,7 +34,7 @@ export function KpiOverview({
         `Hedef ${percent(analysis.targets.a, 0)}`,
         `Target ${percent(analysis.targets.a, 0)}`,
       ),
-      icon: 'pie',
+      icon: featured ? 'inventory-share' : 'pie',
     },
   ] satisfies { key: string; label: string; value: string; note: string; icon: IconName }[];
   return (
@@ -61,7 +61,11 @@ export function KpiOverview({
               </div>
               <div className="kpi-composition-track" aria-hidden="true">
                 {analysis.rows.slice(0, analysis.insights.top_count).map((row) => (
-                  <span key={row.sku ?? row.product} style={{ width: `${row.share}%` }} />
+                  <span
+                    key={row.sku ?? row.product}
+                    className={`tone-${row.group}`}
+                    style={{ width: `${row.share}%` }}
+                  />
                 ))}
               </div>
             </div>

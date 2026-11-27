@@ -7,6 +7,8 @@ import { useLocale } from '../ui/locale';
 import { groupPolicies } from './AnalysisInsights';
 import { ProductTable } from './ResultsTables';
 
+const policyIcons = { A: 'target', B: 'sliders', C: 'box' } as const;
+
 function GuideExamples() {
   const { t, money } = useLocale();
   const [first, second] = useMemo(
@@ -292,9 +294,14 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                             key={policy.group}
                             className={`guide-class tone-${policy.group}`}
                           >
-                            <span className={`group-badge group-${policy.group}`}>
-                              {policy.group}
-                            </span>
+                            <div className="guide-class-heading">
+                              <span className={`guide-class-letter group-${policy.group}`}>
+                                {policy.group}
+                              </span>
+                              <span className="guide-class-icon">
+                                <Icon name={policyIcons[policy.group]} />
+                              </span>
+                            </div>
                             <h3>{policy.title}</h3>
                             <small>
                               {t('Varsayılan hedef', 'Default target')}{' '}
