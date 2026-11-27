@@ -6,7 +6,9 @@ GitHub Release listesi ve uzak Git etiketleri boş. Hazırlıktan önce uygulama
 
 ## Proje lisansı
 
-Depo kökünde proje lisans metni, npm paketinde proje lisans alanı ve GitHub lisans bilgisinde bir lisans kaydı bulunamadı. Paket özel olarak işaretli. Herkese açık depo görünürlüğü, proje kaynak kodu için genel bir açık kaynak lisansı verildiği anlamına gelmez. Açık kaynak dağıtımı hedefleniyorsa depo sahibi uygun lisansı seçmeli ve katkılar için gerekli hakları doğrulamalı. Bu hazırlık proje lisansı atamaz. [GitHub lisans rehberi](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)
+Depo sahibinin v1.0.0 için kararı, projenin özgün kaynak koduna, dokümantasyonuna ve marka varlıklarına genel bir açık kaynak lisansı vermemektir. Bu içerik üzerindeki mevcut telif hakları saklıdır. Depo herkese açıktır ve npm paketi özel olarak işaretlidir.
+
+Üçüncü taraf bileşenler kendi lisanslarına tabidir. Proje hakkındaki bu karar, üçüncü taraf lisanslarının verdiği hakları ve getirdiği yükümlülükleri etkilemez.
 
 ## Üçüncü taraf bileşenler
 
@@ -18,4 +20,4 @@ Depo kökünde proje lisans metni, npm paketinde proje lisans alanı ve GitHub l
 
 ## Yayın öncesi durum
 
-Sürüm notları [CHANGELOG.md](CHANGELOG.md) dosyasında. Bu çalışma etiketi, GitHub Release’i veya canlı dağıtımı yayımlamaz. Açık kaynak lisans kararı yayın öncesinde depo sahibine aittir.
+Sürüm notları [CHANGELOG.md](CHANGELOG.md) dosyasında. Bu çalışma etiketi, GitHub Release’i veya canlı dağıtımı yayımlamaz. Proje lisans durumu ve üçüncü taraf bildirimleri her iki README’de belgelenmiştir.

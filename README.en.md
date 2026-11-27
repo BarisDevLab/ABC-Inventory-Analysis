@@ -68,3 +68,11 @@ npm audit
 ```
 
 Run `npm run preview` to serve the local production build.
+
+## Licensing and copyright
+
+The original project source code, documentation, and brand assets are provided without a general open-source license. Existing copyright rights in these materials are reserved.
+
+Third-party components remain subject to their own licenses. Their license texts and copyright notices are available in the files below.
+
+[React and Plotly notices](vercel-app/public/third-party/APP-NOTICES.txt) · [ExcelJS notices](vercel-app/public/third-party/ExcelJS-NOTICES.txt) · [Geist OFL](vercel-app/public/fonts/geist-LICENSE.txt)

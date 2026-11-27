@@ -68,3 +68,11 @@ npm audit
 ```
 
 Yerel üretim çıktısını görmek için `npm run preview` çalıştırın.
+
+## Lisans ve telif hakları
+
+Projenin özgün kaynak kodu, dokümantasyonu ve marka varlıkları için genel bir açık kaynak lisansı verilmemiştir. Bu içerik üzerindeki mevcut telif hakları saklıdır.
+
+Üçüncü taraf bileşenler kendi lisanslarına tabidir. İlgili lisans metinleri ve telif bildirimleri aşağıdaki dosyalarda yer alır.
+
+[React ve Plotly bildirimleri](vercel-app/public/third-party/APP-NOTICES.txt) · [ExcelJS bildirimleri](vercel-app/public/third-party/ExcelJS-NOTICES.txt) · [Geist OFL](vercel-app/public/fonts/geist-LICENSE.txt)
