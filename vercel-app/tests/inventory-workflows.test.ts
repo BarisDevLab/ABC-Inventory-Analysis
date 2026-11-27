@@ -129,6 +129,14 @@ describe('Karşılaştırma ve yerel analiz paketi', () => {
     await expect(runAnalysisRequest({ kind: 'period', previous, current })).resolves.toEqual(comparison);
   });
 
+  it('karşılaştırmada ABC dışında bir grubu reddeder', () => {
+    const previous = calculateAbc(skuTable([['Vida', 1, 10, '01']]));
+    const current = structuredClone(previous);
+    Object.assign(current.rows[0], { group: 'D' });
+    expect(() => compareAnalyses(previous, current)).toThrow('geçersiz ABC grubu');
+    expect(() => compareAnalyses(current, previous)).toThrow('geçersiz ABC grubu');
+  });
+
   it('SKU iki tarafta yoksa Türkçe ürün adını kullanır ve belirsiz eşleştirmeyi durdurur', () => {
     const previous = calculateAbc({ columns: [...FIELDS], rows: [['İĞNE', 1, 40]] });
     const current = calculateAbc(skuTable([['iğne', 1, 50, '01']]));

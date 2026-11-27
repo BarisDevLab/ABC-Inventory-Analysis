@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import reference from './fixtures/file-golden.json';
@@ -67,6 +68,17 @@ describe('Tarayıcı dosya giriş sözleşmesi ve gizlilik', () => {
     expect(calculateAbc(await readInventoryFile(combined.subarray(2,-2),'slice.csv')).total).toBe(2);
     expect(combined).toEqual(before);
   });
+  it('seyrek XLSX koordinatlarını boş hücreleri koruyarak matrise aktarır', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Stok');
+    sheet.addRow([...FIELDS]);
+    sheet.getCell('A4').value = 'Vida';
+    sheet.getCell('C4').value = 25;
+    const input = new Uint8Array(await workbook.xlsx.writeBuffer());
+    const table = await readInventoryFile(input, 'sparse.xlsx');
+    expect(table.rows).toEqual([[null, null, null], [null, null, null], ['Vida', null, 25]]);
+  });
+
   it('xlsx alt görünümünü doğru okur', async () => {
     const raw = bytes('xlsx-demo.xlsx'), wrapped = new Uint8Array(raw.length + 8);
     wrapped.set(raw, 4);

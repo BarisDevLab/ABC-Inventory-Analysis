@@ -272,23 +272,26 @@ async function readXlsx(bytes: Uint8Array, selected = 0, header = 1, selectable 
 }
 
 function readWorksheet(sheet: Worksheet, header: number) {
-  const populated: { index: number; values: Cell[] }[] = [];
+  const populated = new Map<number, Map<number, Cell>>();
   const dates = new Map<string, Date>();
   const codeOverrides = new Map<string, string>();
   let width = 0, lastRow = 0;
   sheet.eachRow((row, index) => {
-    const values: Cell[] = [];
+    const values = new Map<number, Cell>();
     row.eachCell((cell, column) => {
       const value = excelValue(cell.value);
       // NA markers and Excel errors still occupy a real row; only genuinely
       // empty cells (including formulas without a stored result) trim the tail.
       const raw = cell.value;
-      if (raw instanceof Date) dates.set(`${index-1}:${column-1}`, raw);
       const present = raw != null && raw !== '' && !(typeof raw === 'object'
         && ('formula' in raw || 'sharedFormula' in raw) && raw.result == null);
       if (present) {
+        if (!Number.isSafeInteger(index) || index < 1 || !Number.isSafeInteger(column) || column < 1) {
+          throw new FileImportError(XLSX_ERROR);
+        }
         checkDimensions(index, column);
-        values[column - 1] = value;
+        if (raw instanceof Date) dates.set(`${index-1}:${column-1}`, raw);
+        values.set(column - 1, value);
         const code = typeof raw === 'string' ? raw :
           typeof raw === 'object' && raw && 'result' in raw && typeof raw.result === 'string' ? raw.result : null;
         if (code && value === null) codeOverrides.set(`${index-1}:${column-1}`, code);
@@ -300,13 +303,13 @@ function readWorksheet(sheet: Worksheet, header: number) {
         lastRow = Math.max(lastRow, index);
       }
     });
-    populated.push({ index, values });
+    if (values.size) populated.set(index - 1, values);
   });
   checkDimensions(lastRow, width);
-  const matrix: Cell[][] = Array.from({ length: lastRow }, () => Array<Cell>(width).fill(null));
-  for (const row of populated) if (row.index <= lastRow) {
-    row.values.forEach((value, index) => { matrix[row.index - 1][index] = value; });
-  }
+  const matrix: Cell[][] = Array.from({ length: lastRow }, (_, row) => {
+    const values = populated.get(row);
+    return Array.from({ length: width }, (_, column) => values?.get(column) ?? null);
+  });
   // pandas infers a homogeneous date column and formats astype(str) by column:
   // all-midnight -> date only; a fractional time -> milliseconds for every row.
   for (let column = 0; column < width; column++) {

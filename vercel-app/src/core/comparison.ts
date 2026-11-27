@@ -41,7 +41,7 @@ export function compareAnalyses(previous: Analysis, current: Analysis): Comparis
     return products;
   };
   const before = index(previous.rows), after = index(current.rows);
-  const matrix = { A: { A: 0, B: 0, C: 0 }, B: { A: 0, B: 0, C: 0 }, C: { A: 0, B: 0, C: 0 } };
+  const transitions = new Map(GROUPS.map(group => [group, new Map(GROUPS.map(destination => [destination, 0]))]));
   let added = 0, removed = 0, moved = 0;
   const changes: ProductChange[] = [];
   for (const id of new Set([...after.keys(), ...before.keys()])) {
@@ -49,13 +49,23 @@ export function compareAnalyses(previous: Analysis, current: Analysis): Comparis
     if (!previous) added++;
     else if (!current) removed++;
     else {
-      matrix[previous.group][current.group]++;
+      const destinations = transitions.get(previous.group);
+      const count = destinations?.get(current.group);
+      if (destinations === undefined || count === undefined) {
+        throw new UserInputError('Karşılaştırmada geçersiz ABC grubu var.');
+      }
+      destinations.set(current.group, count + 1);
       if (previous.group !== current.group) moved++;
     }
     const oldValue = previous?.value ?? 0, newValue = current?.value ?? 0;
     changes.push({ previous, current, difference: newValue - oldValue, percent: percentage(oldValue, newValue) });
   }
   changes.sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+  const counts = (group: Group) => {
+    const destinations = transitions.get(group)!;
+    return { A: destinations.get('A')!, B: destinations.get('B')!, C: destinations.get('C')! };
+  };
+  const matrix = { A: counts('A'), B: counts('B'), C: counts('C') };
   return {
     identity: bySku ? 'sku' : 'product', matrix, changes, added, removed, moved,
     previousTotal: previous.total, currentTotal: current.total,
