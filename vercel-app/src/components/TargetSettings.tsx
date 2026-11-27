@@ -1,3 +1,4 @@
+import { useLocale } from '../ui/locale';
 import { useState } from 'react';
 import type { Targets } from '../core/abc';
 export function TargetSettings({
@@ -9,23 +10,24 @@ export function TargetSettings({
   busy: boolean;
   onApply: (targets: Targets) => Promise<void>;
 }) {
+  const { t, percent } = useLocale();
   const [draft, setDraft] = useState<Targets>(targets),
-    [message, setMessage] = useState('');
+    [invalidTotal, setInvalidTotal] = useState<number | null>(null);
   const sum = draft.a + draft.b + draft.c;
   return (
     <section className="target-settings" aria-labelledby="targets-heading">
-      <h2 id="targets-heading">Hedef değer payları</h2>
-      <p className="muted">Ürün sayısını değil, parasal değeri ifade eder.</p>
+      <h2 id="targets-heading">{t('Hedef değer payları', 'Value targets')}</h2>
+      <p className="muted">
+        {t('Ürün sayısını değil, parasal değeri ifade eder.', 'Targets use annual value.')}
+      </p>
       <form
         onSubmit={async (event) => {
           event.preventDefault();
           if (sum !== 100) {
-            setMessage(
-              `Hedeflerin toplamı %100 olmalı. Şu an %${sum}. Önceki geçerli hedefler korunuyor.`,
-            );
+            setInvalidTotal(sum);
             return;
           }
-          setMessage('');
+          setInvalidTotal(null);
           await onApply({ ...draft });
         }}
       >
@@ -35,7 +37,8 @@ export function TargetSettings({
               <span className={`group-badge group-${group.toUpperCase()}`}>
                 {group.toUpperCase()}
               </span>{' '}
-              grubu hedefi <output htmlFor={`target-${group}`}>%{draft[group]}</output>
+              {t('grubu hedefi', 'group target')}{' '}
+              <output htmlFor={`target-${group}`}>{percent(draft[group], 0)}</output>
             </label>
             <input
               id={`target-${group}`}
@@ -50,23 +53,34 @@ export function TargetSettings({
           </div>
         ))}
         <div className={`target-total ${sum !== 100 ? 'invalid' : ''}`}>
-          <span>Hedefler toplamı</span>
-          <strong>%{sum} / 100</strong>
+          <span>{t('Hedefler toplamı', 'Target total')}</span>
+          <strong>{percent(sum, 0)} / 100</strong>
         </div>
         <button className="button primary" disabled={busy} type="submit">
-          Hedefleri uygula
+          {t('Hedefleri uygula', 'Apply targets')}
         </button>
-        {message && <p role="alert">{message}</p>}
+        {invalidTotal !== null && (
+          <p role="alert">
+            {t(
+              `Hedeflerin toplamı %100 olmalı. Şu an ${percent(invalidTotal, 0)}. Önceki geçerli hedefler korunuyor.`,
+              `Targets must add up to 100%. Current total: ${percent(invalidTotal, 0)}. Previous targets are still applied.`,
+            )}
+          </p>
+        )}
       </form>
       <div className="applied-targets">
-        <span className="small-heading">GEÇERLİ SINIRLAR</span>
+        <span className="small-heading">{t('GEÇERLİ SINIRLAR', 'CURRENT THRESHOLDS')}</span>
         <p>
-          A/B <strong>%{targets.a}</strong> · B/C <strong>%{targets.a + targets.b}</strong>
+          A/B <strong>{percent(targets.a, 0)}</strong> · B/C{' '}
+          <strong>{percent(targets.a + targets.b, 0)}</strong>
         </p>
         <small>
-          A %{targets.a} / B %{targets.b} / C %{targets.c}
+          A {percent(targets.a, 0)} / B {percent(targets.b, 0)} / C {percent(targets.c, 0)}
           <br />
-          Sınırı aşan ürün başladığı grupta kalır.
+          {t(
+            'Sınırı aşan ürün başladığı grupta kalır.',
+            'A product that crosses a threshold stays in its starting group.',
+          )}
         </small>
       </div>
     </section>

@@ -1,6 +1,8 @@
+import { displayError, useLocale } from '../ui/locale';
 import { useEffect, useRef, useState } from 'react';
 import { downloadExcel } from '../export/download';
 export function TemplateDownload() {
+  const { t, language } = useLocale();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const pending = useRef<AbortController | null>(null);
@@ -24,9 +26,13 @@ export function TemplateDownload() {
   return (
     <div>
       <button className="button secondary" disabled={busy} onClick={download}>
-        {busy ? 'Şablon hazırlanıyor…' : 'Boş Excel şablonu indir'}
+        {busy
+          ? t('Şablon hazırlanıyor…', 'Preparing template…')
+          : t('Boş Excel şablonu indir', 'Download blank Excel template')}
       </button>
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert">{displayError(error, language, 'Could not download the template.')}</p>
+      )}
     </div>
   );
 }

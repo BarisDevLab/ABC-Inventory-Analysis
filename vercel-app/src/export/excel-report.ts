@@ -2,9 +2,7 @@ import { calculateAbc, FIELDS, GROUPS, pythonSum, validateTargets } from '../cor
 import type { Analysis, Group } from '../core/abc';
 import type { Workbook, Worksheet } from 'exceljs';
 
-export const EXCEL_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-export const REPORT_FILENAME = 'abc_stok_analiz_raporu.xlsx';
-export const TEMPLATE_FILENAME = 'stok_sablonu.xlsx';
+export { EXCEL_MIME, REPORT_FILENAME, TEMPLATE_FILENAME } from "./excel-format";
 export const REPORT_HEADERS = [...FIELDS, 'Yıllık Değer (TL)', 'Değer Payı (%)', 'Kümülatif Pay (%)', 'ABC Grubu'];
 const WIDTHS: Record<string, number> = {
   'Ürün': 30, 'Yıllık Tüketim': 20, 'Birim Fiyat (TL)': 22, 'Yıllık Değer (TL)': 24,

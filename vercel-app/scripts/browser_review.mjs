@@ -86,7 +86,7 @@ try {
   await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===4");await screenshot('04-desktop-guide','.page-hero');
   for(let index=1;index<4;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
   assert(await evaluate("document.querySelector('[role=tabpanel]').textContent.includes('Tedarik Zinciri Yönetimi')"),'Guide engineering content present');
-  await click('← Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
+  await click('Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
   await set('#target-a',90);await click('Hedefleri uygula');assert(await evaluate("document.querySelector('[role=alert]').textContent.includes('Önceki geçerli hedefler')"),'Invalid targets retain previous settings');
   await set('#target-a',0);await set('#target-b',0);await set('#target-c',100);await click('Hedefleri uygula');await wait("document.querySelector('[data-kpi=C]').dataset.value==='5'");
   assert(await evaluate("document.querySelector('[data-kpi=a_share]').dataset.value==='%0,00'"),'Valid targets recalculate through real analysis worker');
@@ -137,7 +137,7 @@ try {
     assert(await evaluate("document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false'&&document.activeElement.classList.contains('menu-toggle')"),`${label}: Escape closes menu and restores focus`);
     await click('☰');await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert(await evaluate("document.activeElement.closest('#sidebar')!==null"),`${label}: keyboard focus remains in open navigation`);
-    await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelector('[role=tablist]')");await screenshot(`09-${label}-guide`,'.guide-tabs');assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: guide has no page overflow`);await click('← Analiz paneline dön');
+    await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelector('[role=tablist]')");await screenshot(`09-${label}-guide`,'.guide-tabs');assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: guide has no page overflow`);await click('Analiz paneline dön');
   }
   await viewport(1440,1000);const tiny=resolve(run,'tiny.csv');await writeFile(tiny,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nHassas parça;1;2e-300\nİkinci;1;4e-301');await upload(tiny);await wait("document.querySelector('[data-kpi=products]').dataset.value==='2'");
   await wait("document.querySelector('.plot-host').data[0].y[0]===2e-300");assert(await evaluate("document.querySelector('.plot-host').data[0].customdata[0][2]!=='0,00'"),'Tiny values retain nonzero tooltip');await screenshot('10-desktop-tiny','.chart-container');

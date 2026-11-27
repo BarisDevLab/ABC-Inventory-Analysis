@@ -1,48 +1,90 @@
 import type { Analysis } from '../core/abc';
-import { money, percent } from '../ui/format';
-import { policies } from './GuidePage';
+import { useLocale } from '../ui/locale';
+import type { Translate } from '../ui/locale';
+
+export function groupPolicies(t: Translate) {
+  return [
+    {
+      group: 'A',
+      title: t('Yüksek öncelik', 'High priority'),
+      description: t(
+        'Ayrıntılı tedarik planlama ve sık stok kontrolü.',
+        'Plan replenishment closely and check stock frequently.',
+      ),
+    },
+    {
+      group: 'B',
+      title: t('Dengeli kontrol', 'Balanced control'),
+      description: t(
+        'Düzenli gözden geçirme, periyodik sayım ve dengeli sipariş politikaları.',
+        'Review regularly, schedule cycle counts and balance replenishment.',
+      ),
+    },
+    {
+      group: 'C',
+      title: t('Yalın takip', 'Simple monitoring'),
+      description: t(
+        'Daha basit, düşük maliyetli stok izleme.',
+        'Use simpler, lower-cost stock monitoring.',
+      ),
+    },
+  ] as const;
+}
+
 export function AnalysisInsights({ analysis }: { analysis: Analysis }) {
+  const { t, money, percent, number, language } = useLocale();
+  const { top_product, top_value, top_count, top_share, a_share, counts } = analysis.insights;
   return (
-    <>
-      <section className="insights panel" aria-labelledby="insights-heading">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">VERİDEN KARAR DESTEĞİ</span>
-            <h2 id="insights-heading">Verinin anlattıkları</h2>
-          </div>
-          <span className="subtle-label">Tam veri kümesi</span>
+    <section className="panel insights" aria-labelledby="insights-heading">
+      <div className="panel-heading">
+        <h2 id="insights-heading">{t('Stok kontrolü öncelikleri', 'Stock control priorities')}</h2>
+      </div>
+      <div className="insight-grid">
+        <div>
+          <span>{t('En yüksek yıllık tüketim değeri', 'Highest annual usage value')}</span>
+          <h3>{top_product}</h3>
+          <strong>{money(top_value)}</strong>
         </div>
-        <div className="insight-grid">
-          <div>
-            <span>En yüksek yıllık tüketim değeri</span>
-            <h3>{analysis.insights.top_product}</h3>
-            <strong>{money(analysis.insights.top_value)}</strong>
-          </div>
-          <div>
-            <span>İlk {analysis.insights.top_count} ürünün toplam değer payı</span>
-            <strong className="concentration">{percent(analysis.insights.top_share)}</strong>
-            <p>A grubu gerçekleşen payı: {percent(analysis.insights.a_share)}</p>
-          </div>
+        <div>
+          <span>
+            {t(
+              `İlk ${top_count} ürünün toplam değer payı`,
+              `Value share of the top ${top_count} products`,
+            )}
+          </span>
+          <strong className="concentration">{percent(top_share)}</strong>
+          <p>
+            {t('A grubu gerçekleşen payı', 'Actual share of group A')}: {percent(a_share)}
+          </p>
         </div>
-        <p>{analysis.commentary[2]}</p>
-      </section>
+      </div>
+      <p>
+        {language === 'tr'
+          ? analysis.commentary[2]
+          : counts.A
+            ? `Prioritise the ${number(counts.A, 0)} group A products for frequent checks and detailed replenishment planning. They represent ${percent(a_share)} of annual value.`
+            : 'These targets leave group A empty. Consider the B/C distribution and operational criticality when setting control priorities.'}
+      </p>
       <div className="policy-grid">
-        {policies.map((policy) => (
-          <article key={policy.group} className="policy">
-            <span className={`group-badge group-${policy.group}`}>{policy.group}</span>
+        {groupPolicies(t).map(({ group, title, description }) => (
+          <article key={group} className="policy">
+            <span className={`group-badge group-${group}`}>{group}</span>
             <div>
-              <h3>{policy.title}</h3>
-              <p>{policy.description}</p>
+              <h3>{title}</h3>
+              <p>{description}</p>
               <small>
-                Bu analizde {analysis.insights.counts[policy.group as 'A' | 'B' | 'C']} ürün
+                {t(`${number(counts[group], 0)} ürün`, `${number(counts[group], 0)} products`)}
               </small>
             </div>
           </article>
         ))}
       </div>
-      <p className="warning-note">
-        Düşük ekonomik değere sahip kritik parçalar ayrıca değerlendirilmelidir.
+      <p className="caption">
+        {t(
+          'Düşük ekonomik değere sahip kritik parçalar ayrıca değerlendirilmelidir.',
+          'Review operationally critical parts separately, even when their annual value is low.',
+        )}
       </p>
-    </>
+    </section>
   );
 }

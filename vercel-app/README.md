@@ -44,3 +44,26 @@ Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfaları
 - Kullanıcı verisi tarayıcı belleğinde kalır. Harici servis, CDN veya kalıcı tarayıcı deposu kullanılmaz. Excel indirmeleri yerel Blob bağlantısıyla yapılır. Formül tetikleyebilecek önekler içeren ürün adları dâhil tüm ürün adları açıkça metin hücresi olarak yazılır.
 - CSP, `connect-src 'none'` ile ağ bağlantılarını engeller ve script ile worker kaynaklarını uygulamanın kendi kaynağıyla sınırlar. Üretim yanıtları ayrıca çerçeveleme, MIME koklama, yönlendiren bilgisi ve tarayıcı izinlerini sınırlar.
 - Derleme, ExcelJS tarayıcı paketini sabit sürümlü kaynaktan oluşturur. Kullanılmayan eliptik eğri modüllerinin pakete girmesi derlemede engellenir. [Lisans bildirimleri](public/third-party/ExcelJS-NOTICES.txt)
+
+## Dashboard
+
+- Masaüstü ve dar ekranlarda aynı analiz, hedefler, stok dökümü ve Excel dışa aktarımı kullanılabilir. Mobil gezinme Escape ile kapanır ve odak menü düğmesine döner. Rehber sekmeleri ok tuşlarıyla çalışır.
+- Dil ve tema tercihleri tarayıcıda saklanır. İngilizce arayüz yerelleştirilmiş sayı gösterimi kullanır. Giriş başlıkları ve Excel rapor şeması Türkçe kalır.
+- Rota eklemek için `WorkspaceNav`, sonuç bölümü eklemek için `App.tsx` içindeki dashboard bileşenleri kullanılır. Sunum dili `ui/locale.ts`, renkler `style.css` tema değişkenleri üzerinden paylaşılır.
+
+## Performans
+
+`npm run build` ardından `npm run verify:production` çalıştırın. Kontrol derlenen modül worker'larıyla CSV, XLSX ve Excel şablonu akışını sınar. Paket manifestinde Plotly ve ExcelJS'nin ilk açılış yolunda olmadığını ve XLSX okuma ile Excel üretiminin aynı ExcelJS dosyasına yöneldiğini doğrular.
+
+`npm run benchmark` sentetik CSV girdileriyle yükleme, hesaplama, Pareto model hazırlığı ve model kopyalama sürelerini ölçer. `npm run benchmark -- /yol/eski-checkout/vercel-app` önceden derlenmiş bir checkout'u ölçer. Her veri boyutu beş ayrı Node 24.22.3 sürecinde ölçüldü ve medyan raporlandı. Tepe RSS tüm süreci, grafik belleği ise model ve kopyası için GC sonrası ek JavaScript heap'ini gösterir. Ölçümler tarayıcı çizim süresini içermez.
+
+| Ürün | Grafik hazırlığı önce / sonra (ms) | Grafik belleği önce / sonra (MiB) | Tepe RSS önce / sonra (MiB) |
+| ---: | ---: | ---: | ---: |
+| 1.000 | 4,54 / 3,65 | 0,63 / 0,35 | 43,25 / 42,81 |
+| 10.000 | 32,62 / 3,56 | 6,06 / 0,35 | 66,18 / 63,56 |
+| 50.000 | 155,12 / 3,42 | 30,78 / 0,36 | 167,71 / 148,64 |
+| 100.000 | 343,93 / 3,83 | 61,79 / 0,36 | 265,49 / 261,28 |
+
+100.000 satırda CSV okuma ve hesaplama sonrasında elde tutulan ek heap her iki sürümde 17,98 MiB oldu. Hesaplanan toplamlar tüm boyutlarda eşleşti. Pareto grafiği bir seferde en çok 500 sıra çizer. Kümülatif paylar, stok dökümü ve Excel raporu tam analizden gelir.
+
+ExcelJS'nin iki ayrı çıktısı toplam 1.424 kB (gzip 396 kB) tutuyordu. Modül worker'ları tek üretim grafiğinde birleştirerek ve güncel tarayıcılarda gerekmeyen global polyfill'leri çıkararak bunu ortak bir 625 kB (gzip 175 kB) dosyaya indirdik. CSV ve örnek veri ExcelJS isteği göndermez. XLSX okuma ve Excel dışa aktarımı modülü gerektiğinde yükler. Plotly Basic 1.130 kB (gzip 378 kB) tutuyor ve grafik görünüm alanına yaklaşınca yükleniyor. Her iki paket de Vite'ın mevcut 500 kB uyarı sınırını aşıyor.

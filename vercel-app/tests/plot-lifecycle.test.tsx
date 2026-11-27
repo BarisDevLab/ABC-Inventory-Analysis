@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import type { Data, Layout, PlotlyHTMLElement } from 'plotly.js';
 import { Plot } from '../src/charts/Plot';
 import { loadPlotly } from '../src/charts/plotly';
@@ -57,4 +57,39 @@ it('Plotly mutasyonları başlangıç modelini bozmaz; mod değişimi veriyi yen
     [-0.6, 1.6],
     [-0.6, 1.6],
   ]);
+});
+
+it('does not request Plotly for charts that never approach the viewport', async () => {
+  let show!: IntersectionObserverCallback;
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        show = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const react = vi.fn(async (node: HTMLElement) => node as PlotlyHTMLElement);
+  vi.mocked(loadPlotly).mockResolvedValue({
+    react,
+    purge: vi.fn(),
+    Plots: { resize: vi.fn() },
+  } as unknown as typeof import('plotly.js'));
+  const props = { data: [] as Data[], layout: {}, label: 'Lazy chart' };
+  render(<Plot {...props} />).unmount();
+  expect(loadPlotly).not.toHaveBeenCalled();
+  render(<Plot {...props} />);
+  await act(async () =>
+    show([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver),
+  );
+  expect(react).toHaveBeenCalledOnce();
 });
