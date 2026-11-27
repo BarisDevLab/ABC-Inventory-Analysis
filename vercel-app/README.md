@@ -21,7 +21,7 @@ npm run preview
 
 ## Vercel yapılandırması
 
-Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` ile `dist/` dizinine yazılır. Uygulama API, veri deposu veya ortam değişkeni gerektirmez. Üretim başlıkları `vercel.json` dosyasındadır. `npm run preview` yerel üretim önizlemesine aynı başlıkları ekler.
+Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` ile `dist/` dizinine yazılır. Uygulama API, sunucu tarafı veri deposu veya ortam değişkeni gerektirmez. Üretim başlıkları `vercel.json` dosyasındadır. `npm run preview` yerel üretim önizlemesine aynı başlıkları ekler.
 
 ## Hesaplama ve test verileri
 
@@ -32,15 +32,15 @@ Vercel proje kökü `vercel-app` olarak kalır. Vite derlemesi `npm run build` i
 
 ## Dosya okuma ve rapor
 
-CSV’de tırnaklı alanlar ve satır sonları desteklenir. Yinelenen başlıklar, fazla alanlı satırlar ve NUL karakterleri reddedilir. XLSX’te ilk çalışma sayfası okunur. Metin ürün kodlarının baştaki sıfırları korunur. Formüller çalıştırılmaz. Dosyaya kaydedilmiş bir formül sonucu varsa o değer okunur. Tarihler tüketim veya birim fiyat olarak kullanılmaz.
+CSV’de tırnaklı alanlar ve satır sonları desteklenir. Fazla alanlı veri satırları ve NUL karakterleri reddedilir. Özel sütunlar konumlarına göre eşleştirilir. CSV başlık satırı numarası, fiziksel olarak boş satırları atlayarak mantıksal CSV kayıtlarını sayar. XLSX ilk sayfayla açılır ve başka bir sayfa seçilebilir. Metin SKU’larında ve basit sıfır dolgulu Excel kodlarında baştaki sıfırlar korunur. Formüller çalıştırılmaz. Dosyaya kaydedilmiş bir formül sonucu varsa o değer okunur. Tarihler tüketim veya birim fiyat olarak kullanılmaz.
 
-Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfalarını içerir. Boş şablonda yalnızca giriş başlıkları vardır. Rapor tam analizden üretilir. Para ve pay hücrelerinin görünümü iki ondalıkla sınırlıdır. Çok küçük değerlerin hücrede sıfır görünmesi sayısal değeri değiştirmez.
+Excel raporu **ABC Analizi**, **Grup Özeti** ve **Analiz Ayarları** sayfalarını içerir. SKU eşleştirilirse **ABC Analizi** sayfasına metin olarak eklenir. Boş şablonda yalnızca giriş başlıkları vardır. Rapor tam analizden üretilir. Para ve pay hücrelerinin görünümü iki ondalıkla sınırlıdır. Çok küçük değerlerin hücrede sıfır görünmesi sayısal değeri değiştirmez.
 
 ## Güvenlik ve gizlilik
 
 - Dosya üst sınırı 20 MiB’dir. Satır, sütun ve hücre üst sınırları sırasıyla 100.000, 1.000 ve 1.000.000’dur. XLSX satır sınırı başlığı da içerir.
 - XLSX, ExcelJS’ye verilmeden önce en fazla 10.000 ZIP girdisi ve hem bildirilen hem açılan veri için 100 MiB üst sınırı kontrol edilir. ZIP64, çok parçalı ve şifreli arşivler desteklenmez.
 - Analiz ve Excel üretimi ayrı Web Worker’larda çalışır. İptalde ve 120 saniyelik zaman aşımında ilgili worker sonlandırılır.
-- Kullanıcı verisi tarayıcı belleğinde kalır. Harici servis, CDN veya kalıcı tarayıcı deposu kullanılmaz. Excel indirmeleri yerel Blob bağlantısıyla yapılır. Formül tetikleyebilecek önekler içeren ürün adları dâhil tüm ürün adları açıkça metin hücresi olarak yazılır.
+- Kullanıcı dosyaları sunucuya gönderilmez. Yalnızca açıkça kaydedilen analizler, tarayıcıya ve siteye özgü IndexedDB geçmişinde saklanır. Geçmiş 10 kayıtla sınırlıdır ve tek tek veya tümüyle silinebilir. Excel ve sürümlü JSON paketleri yerel Blob bağlantısıyla indirilir. JSON paketleri en fazla 20 MiB olabilir. Excel çıktısında ürün adları ve SKU’lar metin hücresi olarak yazılır.
 - CSP, `connect-src 'none'` ile ağ bağlantılarını engeller ve script ile worker kaynaklarını uygulamanın kendi kaynağıyla sınırlar. Üretim yanıtları ayrıca çerçeveleme, MIME koklama, yönlendiren bilgisi ve tarayıcı izinlerini sınırlar.
 - Derleme, ExcelJS tarayıcı paketini sabit sürümlü kaynaktan oluşturur. Kullanılmayan eliptik eğri modüllerinin pakete girmesi derlemede engellenir. [Lisans bildirimleri](public/third-party/ExcelJS-NOTICES.txt)

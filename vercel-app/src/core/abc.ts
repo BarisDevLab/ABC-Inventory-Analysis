@@ -1,15 +1,17 @@
 import unicode from './unicode-data.json';
 
 export const FIELDS = ['Ürün', 'Yıllık Tüketim', 'Birim Fiyat (TL)'] as const;
+export const SKU_FIELD = 'SKU';
 export const GROUPS = ['A', 'B', 'C'] as const;
 export type Group = typeof GROUPS[number];
 export type Cell = string | number | boolean | null;
-export interface InputTable { columns: string[]; rows: Cell[][] }
+export interface InputTable { columns: string[]; rows: Cell[][]; hasSku?: true }
 export interface Targets { a: number; b: number; c: number }
 export const DEFAULT_TARGETS: Readonly<Targets> = { a: 80, b: 15, c: 5 };
 export const BOUNDARY_TOLERANCE = 1e-10;
+export const TARGETS_TOLERANCE = 1e-12;
 export interface AnalysisRow {
-  product: string; quantity: number; price: number; value: number;
+  product: string; sku?: string; quantity: number; price: number; value: number;
   share: number; cumulative: number; group: Group;
 }
 export interface GroupSummary { group: Group; count: number; value: number; share: number }
@@ -44,6 +46,10 @@ export function normalizeProduct(value: string): string {
     .map(char => casefold[char] ?? char).join('');
 }
 
+export function normalizeNumberDigits(value: string): string {
+  return Array.from(value).map(char => digits[char] ?? char).join('');
+}
+
 /** Parses the inventory number format and validates the entire string. */
 export function parseNumber(value: Cell | undefined): number {
   if (value == null) return NaN;
@@ -57,7 +63,7 @@ export function parseNumber(value: Cell | undefined): number {
       ? text.replaceAll('.', '').replaceAll(',', '.') : text.replaceAll(',', '');
   } else if (text.includes(',')) text = text.replaceAll(',', '.');
   text = pythonStrip(text);
-  text = Array.from(text).map(char => digits[char] ?? char).join('');
+  text = normalizeNumberDigits(text);
   if (/^[+-]?(inf(inity)?|nan)$/i.test(text)) {
     return /nan/i.test(text) ? NaN : text.startsWith('-') ? -Infinity : Infinity;
   }
@@ -97,7 +103,7 @@ export function validateTargets(targets: Targets): Targets {
     throw new Error("Hedef paylar 0–100 arasında olmalı; A ve B toplamı %100'ü aşmamalıdır.");
   }
   // UI contract: do not silently accept an invalid C share (Python core takes A/B only).
-  if (Math.abs(a + b + c - 100) > 1e-12) throw new Error('Hedeflerin toplamı %100 olmalıdır.');
+  if (Math.abs(a + b + c - 100) > TARGETS_TOLERANCE) throw new Error('Hedeflerin toplamı %100 olmalıdır.');
   return { a, b, c };
 }
 
@@ -164,7 +170,15 @@ export function calculateAbc(source: InputTable, selected: Targets = DEFAULT_TAR
   }
   const products = cells.map(row => pythonStrip(pythonString(row[0])));
   if (products.some(name => !name)) throw new Error('Ürün adı boş bırakılamaz.');
-  if (new Set(products.map(normalizeProduct)).size !== products.length) {
+  const skuIndex = source.hasSku ? columns.indexOf(SKU_FIELD) : -1;
+  if (source.hasSku && skuIndex === -1) throw new Error('Ürün kodu sütunu bulunamadı.');
+  const codes = skuIndex < 0 ? null : source.rows.map(row => {
+    const code = row[skuIndex];
+    return code == null ? '' : pythonStrip(pythonString(code));
+  });
+  if (codes?.some(code => !code)) throw new Error('SKU eşleştirildiğinde tüm ürün kodları doldurulmalıdır.');
+  if (codes && new Set(codes).size !== codes.length) throw new Error('Tekrarlanan ürün kodları var.');
+  if (!codes && new Set(products.map(normalizeProduct)).size !== products.length) {
     throw new Error('Tekrarlanan ürün adları var. Her ürünü tek satırda belirtin.');
   }
   const numeric = [1, 2].map(index => {
@@ -174,7 +188,7 @@ export function calculateAbc(source: InputTable, selected: Targets = DEFAULT_TAR
     return values;
   });
   const ranked = products.map((product, index) => ({
-    product, quantity: numeric[0][index], price: numeric[1][index],
+    product, ...(codes ? { sku: codes[index] } : {}), quantity: numeric[0][index], price: numeric[1][index],
     value: numeric[0][index] * numeric[1][index], index,
   }));
   if (ranked.some(row => !Number.isFinite(row.value))) throw new Error('Yıllık değer hesaplamasında çok büyük bir sayı oluştu.');
@@ -192,4 +206,15 @@ export function calculateAbc(source: InputTable, selected: Targets = DEFAULT_TAR
   });
   const insights = analysisInsights(rows);
   return { rows, total, targets, summary: summarizeGroups(rows, total), insights, commentary: engineeringCommentary(insights) };
+}
+
+/** Rebuild inputs in ranked order, preserving the original order of equal values. */
+export function analysisSource(rows: readonly AnalysisRow[]): InputTable {
+  const hasSku = rows.some(row => row.sku !== undefined);
+  return {
+    columns: hasSku ? [...FIELDS, SKU_FIELD] : [...FIELDS],
+    ...(hasSku ? { hasSku: true } : {}),
+    rows: rows.map(row => hasSku ? [row.product, row.quantity, row.price, row.sku ?? null]
+      : [row.product, row.quantity, row.price]),
+  };
 }

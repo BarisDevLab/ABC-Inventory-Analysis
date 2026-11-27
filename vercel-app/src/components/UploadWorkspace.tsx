@@ -82,13 +82,14 @@ export function UploadWorkspace({
       <details className="format-help">
         <summary>Dosya biçimi ve sayı yazımı</summary>
         <p>
-          Ürün, Yıllık Tüketim ve Birim Fiyat (TL) başlıkları zorunludur. Her ürün tek satırda
-          olmalıdır. Boş, negatif, geçersiz sayılar ve yinelenen ürünler kabul edilmez.
+          Ürün, yıllık tüketim ve birim fiyat alanlarını dosyanızdaki sütunlarla
+          eşleştirebilirsiniz. Her ürün tek satırda olmalıdır. Ürün kodu seçtiğinizde her kod
+          benzersiz olmalıdır.
         </p>
         <p>
-          1234.56 veya 1.234,56 yazabilirsiniz. Tek başına virgül veya nokta ondalık ayracıdır:
-          1,234 = 1.234. Binlik gruplama için 1 234 veya 1.234,00 kullanın. CSV: UTF-8 / Windows
-          Türkçe; virgül, noktalı virgül veya sekme ayracı.
+          1234.56, 1.234,56 veya 1,234.56 yazabilirsiniz. Otomatik biçim 1,234 gibi belirsiz
+          değerleri ondalık okur ve uyarır. CSV dosyaları UTF-8 veya Windows Türkçe olabilir ve
+          virgül, noktalı virgül ya da sekmeyle ayrılabilir.
         </p>
       </details>
     </section>

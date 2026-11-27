@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import App from '../src/App';
 import { calculateAbc, sampleData } from '../src/core/abc';
-import { readInventoryFile } from '../src/io/read-file';
+import { encodePackage } from '../src/io/analysis-package';
+import { runAnalysisRequest } from '../src/processing/operations';
+import type { AnalysisResults } from '../src/processing/operations';
 import { processAnalysis } from '../src/processing/client';
 import { downloadExcel } from '../src/export/download';
 import { Plot, downloadPng } from '../src/charts/Plot';
@@ -22,17 +24,22 @@ vi.mock('../src/processing/client', () => ({ processAnalysis: vi.fn() }));
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   vi.mocked(processAnalysis).mockImplementation(async (request: AnalysisRequest) => {
-    // Excel parsing itself is covered by files.test.ts and the real-browser run.
-    // jsdom is not the worker's browser realm; emulate its typed response here.
     if (request.kind === 'file' && request.name === 'xlsx-corrupt.xlsx')
       throw new Error('Excel dosyası okunamadı.');
-    const source =
-      request.kind === 'file'
-        ? request.name === 'xlsx-demo.xlsx'
-          ? sampleData()
-          : await readInventoryFile(request.bytes, request.name)
-        : request.source;
-    return { source, analysis: calculateAbc(source, request.targets) };
+    if (request.kind === 'file' && request.name === 'xlsx-demo.xlsx') {
+      // Excel parsing itself is covered in the Node and real-browser suites.
+      return runAnalysisRequest({
+        ...request,
+        name: 'demo.csv',
+        bytes: new TextEncoder().encode(
+          'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n' +
+            sampleData()
+              .rows.map((row) => row.join(';'))
+              .join('\n'),
+        ).buffer,
+      });
+    }
+    return runAnalysisRequest(request);
   });
 });
 afterEach(async () => {
@@ -211,7 +218,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
     expect(screen.getByRole('heading', { name: 'ABC Analizinin Sınırlamaları' })).toBeTruthy();
   });
   it('yeni dosya analiz beklerken temizlenirse geç sonucu uygulamaz', async () => {
-    let resolve!: (value: Awaited<ReturnType<typeof processAnalysis>>) => void;
+    let resolve!: (value: AnalysisResults['file']) => void;
     vi.mocked(processAnalysis).mockImplementationOnce(
       () =>
         new Promise((done) => {
@@ -222,8 +229,32 @@ describe('Gerçek React ekran entegrasyonu', () => {
     upload('csv-utf-8-comma.csv');
     await waitFor(() => expect(processAnalysis).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'İşlemi iptal et' }));
-    await act(async () => resolve({ source: sampleData(), analysis: calculateAbc(sampleData()) }));
+    await act(async () => {
+      const request = vi.mocked(processAnalysis).mock.calls[0][0];
+      if (request.kind === 'file') resolve(await runAnalysisRequest(request));
+    });
     await waitFor(() => expect(document.querySelectorAll('[data-kpi]').length).toBe(0));
+  });
+  it('JSON paketi hedefleri ve kontrolleri geri yükler, bozuk paket geçerli analizi korur', async () => {
+    render(<App />);
+    const input = screen.getByLabelText('JSON analiz paketi seç');
+    fireEvent.click(screen.getByText('Analiz paketini içe veya dışa aktar'));
+    const load = (bytes: ArrayBuffer) => {
+      const file = new File([bytes], 'analiz.json');
+      Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+      fireEvent.change(input, { target: { files: [file] } });
+    };
+    load(encodePackage('Kaydedilen analiz', calculateAbc(sampleData(), { a: 0, b: 0, c: 100 })));
+    await screen.findByText(/Kaydedilen analiz geri yüklendi/);
+    expect((screen.getByRole('slider', { name: /A grubu hedefi/ }) as HTMLInputElement).value).toBe(
+      '0',
+    );
+    expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
+    await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+    load(new TextEncoder().encode('bozuk').buffer);
+    await screen.findByRole('alert');
+    expect(screen.getByRole('alert').textContent).toContain('Geçersiz ABC analiz paketi');
+    expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
   });
   it('büyük tablolar 50 ürünlük sayfalarla tüm satırlara erişim sağlar', () => {
     const source = sampleData();

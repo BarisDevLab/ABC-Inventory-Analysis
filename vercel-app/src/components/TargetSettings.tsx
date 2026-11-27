@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TARGETS_TOLERANCE } from '../core/abc';
 import type { Targets } from '../core/abc';
 export function TargetSettings({
   targets,
@@ -9,9 +10,16 @@ export function TargetSettings({
   busy: boolean;
   onApply: (targets: Targets) => Promise<void>;
 }) {
+  const [applied, setApplied] = useState(targets);
   const [draft, setDraft] = useState<Targets>(targets),
     [message, setMessage] = useState('');
+  if (applied !== targets) {
+    setApplied(targets);
+    setDraft(targets);
+    setMessage('');
+  }
   const sum = draft.a + draft.b + draft.c;
+  const validSum = Math.abs(sum - 100) <= TARGETS_TOLERANCE;
   return (
     <section className="target-settings" aria-labelledby="targets-heading">
       <h2 id="targets-heading">Hedef değer payları</h2>
@@ -19,7 +27,7 @@ export function TargetSettings({
       <form
         onSubmit={async (event) => {
           event.preventDefault();
-          if (sum !== 100) {
+          if (!validSum) {
             setMessage(
               `Hedeflerin toplamı %100 olmalı. Şu an %${sum}. Önceki geçerli hedefler korunuyor.`,
             );
@@ -42,14 +50,14 @@ export function TargetSettings({
               type="range"
               min="0"
               max="100"
-              step="1"
+              step={Number.isInteger(targets[group]) ? 1 : 'any'}
               value={draft[group]}
               disabled={busy}
               onChange={(event) => setDraft({ ...draft, [group]: Number(event.target.value) })}
             />
           </div>
         ))}
-        <div className={`target-total ${sum !== 100 ? 'invalid' : ''}`}>
+        <div className={`target-total ${!validSum ? 'invalid' : ''}`}>
           <span>Hedefler toplamı</span>
           <strong>%{sum} / 100</strong>
         </div>

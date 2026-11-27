@@ -32,7 +32,7 @@ const click=text=>evaluate(`(()=>{const button=Array.from(document.querySelector
 const set=(selector,value)=>evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
 async function viewport(width,height,mobile=false){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await send('Emulation.setTouchEmulationEnabled',{enabled:mobile});await delay(500);}
 async function screenshot(name,selector){if(selector)await evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(el=>el.getBoundingClientRect().width).scrollIntoView({block:'start'})`);await delay(400);const image=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(resolve(run,`${name}.png`),Buffer.from(image.data,'base64'));}
-async function upload(path){const {root:document}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:document.nodeId,selector:'#inventory-file'});await send('DOM.setFileInputFiles',{nodeId,files:[path]});}
+async function upload(path,selector='#inventory-file'){const {root:document}=await send('DOM.getDocument');const {nodeId}=await send('DOM.querySelector',{nodeId:document.nodeId,selector});await send('DOM.setFileInputFiles',{nodeId,files:[path]});}
 async function download(name){await poll(async()=>{const files=await readdir(resolve(run,'downloads'));return files.includes(name);},name,45000);return readFile(resolve(run,'downloads',name));}
 try {
   const version=await poll(async()=>{const response=await fetch(`http://127.0.0.1:${port}/json/version`);return response.json();},'browser startup');result.browser=version.Browser;
@@ -144,6 +144,94 @@ try {
   const unsafe=resolve(run,'unsafe-name.csv');await writeFile(unsafe,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n<img src=x onerror="window.__injected=1">;1;10');await upload(unsafe);await wait("document.querySelector('[data-kpi=products]').dataset.value==='1'");
   assert(await evaluate("!document.querySelector('img[src=x]')&&!window.__injected"),'User product markup is text, not executable DOM');
   await click('Analizi temizle');assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'Clear returns to empty state');
+
+  if (!production) {
+    const select = (selector, value) => evaluate(`(()=>{
+      const select=document.querySelector(${JSON.stringify(selector)});
+      select.value=${JSON.stringify(value)};
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    })()`);
+    const clickSelector = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+    const total = value => `document.querySelector('[data-kpi=total]')?.dataset.value===${JSON.stringify(value)}`;
+    const comparison = '#comparison-heading + details';
+    const library = '#library-heading + details';
+    const history = library + ' + details';
+
+    await upload(resolve(root,'tests/fixtures/files/xlsx-first-sheet-only.xlsx'));
+    await wait(total('304.000,00 TL'));
+    await select('.inventory-editor select','1');
+    await wait("document.querySelector('.inventory-editor tbody').textContent.includes('Yanlış sayfa')");
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('100.000.000,00 TL'));
+    assert(true,'Excel worksheet selection calculates the chosen sheet in the worker');
+
+    const current = resolve(run,'guncel-donem.csv');
+    await writeFile(current,'Güncel dönem raporu\nUnit Price;SKU;Product;Quantity\n1.234;002;Yeni motor;1\n1;001;Vida;15\n1;004;Giren;5');
+    await upload(current);
+    await wait("document.querySelector('.inventory-editor tbody')?.textContent.includes('Unit Price')");
+    await set('.inventory-editor input[type=number]',2);
+    await click('Başlık satırını uygula');
+    await wait("!document.querySelector('.inventory-editor button.primary').disabled");
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('21,23 TL'));
+    assert(await evaluate("document.querySelector('.inventory-warning').textContent.includes('1 belirsiz sayı')"),'Ambiguous decimals are reported beside the custom header and mapping');
+    await select('.inventory-editor select:has(option[value=tr])','tr');
+    await click('Eşleştirmeyi analiz et');
+    await wait(total('1.254,00 TL'));
+    assert(await evaluate("document.querySelector('#results-heading').closest('section').textContent.includes('002')"),'Explicit locale reanalysis retains the SKU');
+
+    const previous = resolve(run,'onceki-donem.csv');
+    await writeFile(previous,'Ürün;Yıllık Tüketim;Birim Fiyat (TL);SKU\nVida;80;1;001\nEski motor;15;1;002\nÇıkan;5;1;003');
+    await clickSelector(comparison+' summary');
+    await upload(previous,comparison+' input[type=file]');
+    await wait(`document.querySelector('${comparison} .inventory-editor button.primary')?.disabled===false`);
+    await clickSelector(comparison+' .inventory-editor button.primary');
+    await wait(`document.querySelector('${comparison} > p:last-of-type').textContent.includes('onceki-donem.csv')`);
+    await click('Dönemleri karşılaştır');
+    await wait(`document.querySelector('${comparison}').textContent.includes('2 sınıf değiştiren · 1 eklenen · 1 çıkarılan')`);
+    assert(await evaluate(`document.querySelector('${comparison}').textContent.includes('1.154,00 TL')`),'Period comparison shows monetary deltas, additions, removals, and SKU transitions');
+    await screenshot('11-period-comparison',comparison);
+
+    await clickSelector(comparison+' + details summary');
+    await set(comparison+' + details label:nth-child(1) input',0);
+    await set(comparison+' + details label:nth-child(2) input',0);
+    await click('Eşikleri karşılaştır');
+    await wait(`document.querySelector('${comparison} + details').textContent.includes('1 ürünün sınıfı değişiyor')`);
+    assert(await evaluate(total('1.254,00 TL')),'Scenario leaves the primary dashboard unchanged');
+
+    await viewport(390,844,true);
+    assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),'Expanded inventory modules fit the mobile viewport');
+    await viewport(1440,1000);
+    await clickSelector(library+' summary');
+    await click('JSON analiz paketini indir');
+    const json = JSON.parse(await download('abc-analiz-paketi.json'));
+    assert(json.version===1&&json.rows[0][3]==='002','Downloaded JSON contains the recomputable, versioned SKU analysis');
+    assert(await evaluate("indexedDB.databases().then(items=>!items.some(item=>item.name==='abc-inventory-user-history'))"),'Ordinary imports, comparisons and JSON download never persist a history database');
+    await clickSelector(history+' summary');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    await click('Analizi geçmişe kaydet');
+    await wait("document.querySelector('.inventory-history li')?.textContent.includes('guncel-donem.csv')");
+    await send('Page.reload');
+    await wait("document.querySelector('.empty-state')");
+    await clickSelector(history+' summary');
+    await wait("document.querySelector('.inventory-history li')");
+    await click('Aç');
+    await wait(total('1.254,00 TL'));
+    assert(true,'Explicitly saved analysis restores after browser reload');
+    await click('Tüm geçmişi sil');
+    await click('Silme işlemini onayla');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    await click('Analizi temizle');
+    await clickSelector(library+' summary');
+    await upload(resolve(run,'downloads','abc-analiz-paketi.json'),library+' input[type=file]');
+    await wait(total('1.254,00 TL'));
+    assert(true,'JSON import recalculates the saved analysis through the real worker');
+    await send('Page.reload');
+    await wait("document.querySelector('.empty-state')");
+    await clickSelector(history+' summary');
+    await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    assert(true,'History deletion and default non-persistence survive browser reload');
+  }
   assert(errors.length===0,'No page runtime errors or blocked application requests');assert(!requests.some(url=>/^https?:/.test(url)&&!url.startsWith(base+'/')),'No external page requests');
   assert(!requests.some(url=>url.includes('exceljs.min')),'Old prebuilt ExcelJS bundle was never requested');
   result.cspViolations=await evaluate('window.__cspViolations');

@@ -1,4 +1,4 @@
-import { calculateAbc, FIELDS, GROUPS, pythonSum, validateTargets } from '../core/abc';
+import { analysisSource, calculateAbc, FIELDS, GROUPS, SKU_FIELD, pythonSum, validateTargets } from '../core/abc';
 import type { Analysis, Group } from '../core/abc';
 import type { Workbook, Worksheet } from 'exceljs';
 
@@ -23,10 +23,10 @@ function fullAnalysis(input: Analysis): Analysis {
     throw new Error(CONSISTENCY_ERROR);
   }
   if (input.rows.length > 100_000) throw new Error('Excel raporu en fazla 100.000 ürün içerebilir.');
-  const analysis = calculateAbc({ columns: [...FIELDS], rows: input.rows.map(row => [row.product, row.quantity, row.price]) }, input.targets);
+  const analysis = calculateAbc(analysisSource(input.rows), input.targets);
   if (analysis.total !== input.total || analysis.rows.some((row, index) => {
     const original = input.rows[index];
-    return row.product !== original.product || row.group !== original.group || row.value !== original.value
+    return row.product !== original.product || row.sku !== original.sku || row.group !== original.group || row.value !== original.value
       || row.share !== original.share || row.cumulative !== original.cumulative;
   })) throw new Error(CONSISTENCY_ERROR);
   return analysis;
@@ -76,8 +76,10 @@ async function workbook(): Promise<Workbook> {
 export async function createExcelReport(input: Analysis): Promise<Uint8Array> {
   const analysis = fullAnalysis(input);
   const book = await workbook();
-  addSheet(book, 'ABC Analizi', REPORT_HEADERS, analysis.rows.map(row => [
+  const withSku = analysis.rows[0].sku !== undefined;
+  addSheet(book, 'ABC Analizi', withSku ? [...REPORT_HEADERS, SKU_FIELD] : REPORT_HEADERS, analysis.rows.map(row => [
     row.product, row.quantity, row.price, row.value, row.share, row.cumulative, row.group,
+    ...(withSku ? [row.sku!] : []),
   ]));
   // Match create_excel's denominator: sum of grouped values, not the original Series.sum.
   const total = pythonSum(analysis.summary.map(group => group.value));

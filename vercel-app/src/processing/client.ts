@@ -1,7 +1,7 @@
-import type { Analysis, InputTable, Targets } from '../core/abc';
-export type AnalysisRequest = {kind:'file';bytes:ArrayBuffer;name:string;targets:Targets}|{kind:'calculate';source:InputTable;targets:Targets};
-export type AnalysisResponse = {ok:true;source:InputTable;analysis:Analysis}|{ok:false;message:string};
-export function processAnalysis(request: AnalysisRequest, signal: AbortSignal): Promise<{source:InputTable;analysis:Analysis}> {
+import type { AnalysisRequest, AnalysisResponse, AnalysisResults } from './operations';
+export type { AnalysisRequest } from './operations';
+
+export function processAnalysis<R extends AnalysisRequest>(request: R, signal: AbortSignal): Promise<AnalysisResults[R['kind']]> {
   if (signal.aborted) return Promise.reject(new Error('İşlem iptal edildi.'));
   return new Promise((resolve,reject)=>{
     let worker:Worker;
@@ -13,11 +13,11 @@ export function processAnalysis(request: AnalysisRequest, signal: AbortSignal): 
     signal.addEventListener('abort',abort,{once:true});
     worker.onmessage=(event:MessageEvent<AnalysisResponse>)=>{
       finish();const response=event.data;
-      if (response.ok) resolve({source:response.source,analysis:response.analysis});else reject(new Error(response.message));
+      if (response.ok) resolve(response.result as AnalysisResults[R['kind']]);else reject(new Error(response.message));
     };
     worker.onerror=()=>{finish();reject(new Error('Dosya işlenemedi. Daha küçük veya geçerli bir dosya deneyin.'));};
     worker.onmessageerror=()=>{finish();reject(new Error('Analiz sonucu okunamadı.'));};
-    try {worker.postMessage(request,request.kind==='file'?[request.bytes]:[]);}
+    try {worker.postMessage(request,'bytes' in request ? [request.bytes] : []);}
     catch {finish();reject(new Error('Veri analiz işlemine aktarılamadı.'));}
   });
 }

@@ -28,9 +28,11 @@ GitHub Actions, `main` dalını hedefleyen PR’larda ve `main` güncellemelerin
 ## Kullanım
 
 1. **Örnek veriyle dene** düğmesini kullanın veya Excel şablonunu indirip doldurun.
-2. CSV ya da `.xlsx` dosyanızı seçin. Sütun başlıklarını aşağıdaki gibi yazın.
+2. CSV ya da `.xlsx` dosyanızı seçin. Aşağıdaki başlıklarla hazırlanmış şablonlar doğrudan açılır. **Dosya önizlemesi ve sütun eşleştirme** ile Excel sayfasını, başlık satırını, ürün, tüketim ve fiyat sütunlarını seçebilirsiniz.
 3. A/B/C değer hedeflerini ayarlayın. Hedeflerin toplamı %100 olmalıdır.
 4. Sonuç tablolarını ve Pareto grafiğini inceleyin. Excel raporunu veya grafiği PNG olarak indirebilirsiniz. Uygulamadaki **ABC Analizi Rehberi** çözülmüş örnekler içerir.
+5. **Karşılaştırmalı analiz** bölümünde önceki dönemin dosyasını seçin veya alternatif A/B/C hedefleri girin.
+6. **Analiz paketleri ve yerel geçmiş** bölümünde geçerli analizi JSON olarak indirin, bir paketi açın veya seçtiğiniz analizi bu tarayıcıya kaydedin.
 
 | Ürün | Yıllık Tüketim | Birim Fiyat (TL) |
 | --- | ---: | ---: |
@@ -40,7 +42,7 @@ GitHub Actions, `main` dalını hedefleyen PR’larda ve `main` güncellemelerin
 | Kayış | 300 | 80 |
 | Vida | 2000 | 5 |
 
-Her ürün tek satırda olmalıdır. Tüketim ve birim fiyat sonlu, negatif olmayan sayılardır. CSV için UTF-8 ve Windows Türkçe (CP1254) kodlamaları ile virgül, noktalı virgül ve sekme ayraçları desteklenir. `1234.56` ve `1.234,56` aynı değeri ifade eder. Tek başına kullanılan virgül veya nokta ondalık ayıracıdır. Binlik gruplaması için `1 234` veya `1.234,00` yazın. Excel’de sayısal hücreler kullanabilirsiniz.
+Her ürün tek satırda olmalıdır. İsteğe bağlı SKU sütunu seçilirse kodlar dolu ve benzersiz olmalıdır. Başında sıfır bulunan uzun kodları Excel’de metin olarak saklayın. Tüketim ve birim fiyat sonlu, negatif olmayan sayılardır. CSV için UTF-8 ve Windows Türkçe (CP1254) kodlamaları ile virgül, noktalı virgül ve sekme ayraçları desteklenir. Otomatik sayı biçimi `1234.56`, `1.234,56` ve `1,234.56` değerlerini eşit okur. `1,234` gibi belirsiz sayıları ondalık olarak okur ve uyarı gösterir. Binlik ayıracı kullanıyorsanız Türkçe veya uluslararası sayı biçimini seçebilirsiniz.
 
 ## ABC hesaplama yöntemi
 
@@ -50,6 +52,12 @@ Her ürünün yıllık değeri tüketim miktarı ile birim fiyatın çarpımıd�
 
 Pareto filtresi hesaplanmış kümülatif yüzdeleri korur. Tablolar, dağılım grafiği ve Excel raporu tam analizi kullanır. Stok kararlarında ekonomik önemin yanı sıra tedarik süresi, talep değişkenliği ve operasyonel kritiklik de değerlendirilmelidir.
 
+## Dönem ve eşik karşılaştırmaları
+
+İki dönem de güncel ABC hedefleriyle sınıflandırılır. İki dosyada da SKU eşleştirildiyse ürünler büyük/küçük harfe duyarlı kodla eşlenir. Diğer durumlarda normalleştirilmiş ürün adı kullanılır. Geçiş matrisi iki dönemde de bulunan ürünleri sayar. Eklenen ve çıkarılan ürünler ayrı filtrelenebilir. Parasal fark güncel değerden önceki değer çıkarılarak hesaplanır. Önceki değer sıfır olduğunda yüzde farkı gösterilmez.
+
+Eşik senaryosu aynı veri kümesini alternatif hedeflerle değerlendirir ve her sınıf için ürün sayısını, parasal değeri ve değer payını karşılaştırır. JSON paketi geçerli analizin ürün verilerini, varsa SKU’larını ve ABC hedeflerini içerir. Paket açıldığında sonuçlar bu girdilerden yeniden hesaplanır.
+
 ## Güvenlik ve gizlilik
 
-Dosyalar yalnızca tarayıcı belleğinde işlenir. Uygulama kullanıcı dosyalarını yüklemez, kalıcı olarak saklamaz veya analitik servise iletmez. Üretimde CSP, `connect-src 'none'` ve diğer güvenlik başlıkları uygulanır. Dosya boyutu, çalışma sayfası boyutları ve açılmış ZIP verisi sınırlandırılır. Excel çıktısında ürün adları metin hücresi olarak yazılır. [Sınırlar ve teknik ayrıntılar](vercel-app/README.md#güvenlik-ve-gizlilik)
+Dosyalar tarayıcı belleğinde işlenir ve sunucuya veya analitik servise gönderilmez. Kalıcı kayıt varsayılan olarak kapalıdır. **Analizi geçmişe kaydet** ile seçtiğiniz analiz bu tarayıcıda saklanır. **Tüm geçmişi sil** ile kayıtlı analizlerin tamamını silebilirsiniz. Üretimde CSP, `connect-src 'none'` ve diğer güvenlik başlıkları uygulanır. Dosya boyutu, çalışma sayfası boyutları ve açılmış ZIP verisi sınırlandırılır. Excel çıktısında ürün adları metin hücresi olarak yazılır. [Sınırlar ve teknik ayrıntılar](vercel-app/README.md#güvenlik-ve-gizlilik)

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { calculateAbc, DEFAULT_TARGETS, sampleData, validateTargets } from './core/abc';
 import type { Analysis, InputTable, Targets } from './core/abc';
-import { FILE_LIMITS } from './io/read-file';
 import { processAnalysis } from './processing/client';
 import { UploadWorkspace } from './components/UploadWorkspace';
 import { TargetSettings } from './components/TargetSettings';
@@ -11,6 +10,10 @@ import { AnalysisInsights } from './components/AnalysisInsights';
 import { GuidePage } from './components/GuidePage';
 import { ReportDownload } from './components/ReportDownload';
 import { ChartsPanel } from './components/ChartsPanel';
+import { AnalysisLibrary } from './components/inventory/AnalysisLibrary';
+import { ComparisonWorkspace } from './components/inventory/ComparisonWorkspace';
+import { ImportEditor } from './components/inventory/ImportEditor';
+import { useInventoryImport } from './components/inventory/useInventoryImport';
 
 export default function App() {
   const [page, setPage] = useState(() =>
@@ -21,9 +24,18 @@ export default function App() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null),
     [source, setSource] = useState<InputTable | null>(null);
   const [name, setName] = useState(''),
-    [busy, setBusy] = useState(false),
+    [processing, setBusy] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
+  const importer = useInventoryImport(targets, (filename, result) => {
+    setSource(result.source);
+    setAnalysis(result.analysis);
+    setName(filename);
+    setError('');
+    setNotice(`${filename} yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
+  });
+  const busy = processing || importer.busy;
+  const activeError = error || importer.error;
   const operation = useRef<AbortController | null>(null),
     main = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -47,6 +59,7 @@ export default function App() {
     if (mobileOpen) document.querySelector<HTMLAnchorElement>('#sidebar nav a')?.focus();
   }, [mobileOpen]);
   function clear() {
+    importer.reset();
     operation.current?.abort();
     operation.current = null;
     setBusy(false);
@@ -57,6 +70,7 @@ export default function App() {
     setNotice('Analiz temizlendi. Yeni bir dosya yükleyebilirsiniz.');
   }
   function demo() {
+    importer.reset();
     operation.current?.abort();
     operation.current = null;
     setBusy(false);
@@ -67,33 +81,32 @@ export default function App() {
     setError('');
     setNotice('Örnek veri yüklendi. 5 ürün analiz edildi.');
   }
-  async function loadFile(file: File) {
-    operation.current?.abort();
-    const controller = new AbortController();
-    operation.current = controller;
+  function loadFile(file: File) {
     setError('');
     setNotice('');
+    return importer.open(file);
+  }
+  async function restorePackage(load: () => Promise<ArrayBuffer>) {
+    if (busy || operation.current)
+      throw new Error('Önce devam eden işlemin tamamlanmasını bekleyin.');
+    const controller = new AbortController();
+    operation.current = controller;
     setBusy(true);
+    setNotice('');
+    setError('');
     try {
-      if (!/\.(csv|xlsx)$/i.test(file.name))
-        throw new Error('Yalnızca Excel ve CSV dosyaları desteklenir.');
-      if (file.size > FILE_LIMITS.bytes)
-        throw new Error('Dosya boyutu 20 MB sınırını aşıyor. Daha küçük bir dosya seçin.');
-      const bytes = await file.arrayBuffer();
+      const bytes = await load();
       if (controller.signal.aborted) return;
-      const result = await processAnalysis(
-        { kind: 'file', bytes, name: file.name, targets },
-        controller.signal,
-      );
-      if (!controller.signal.aborted) {
-        setSource(result.source);
-        setAnalysis(result.analysis);
-        setName(file.name);
-        setNotice(`${file.name} yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
-      }
+      const result = await processAnalysis({ kind: 'decode', bytes }, controller.signal);
+      if (controller.signal.aborted) return;
+      importer.reset();
+      setSource(result.source);
+      setAnalysis(result.analysis);
+      setTargets(result.analysis.targets);
+      setName(result.name);
+      setNotice(`${result.name} geri yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
     } catch (error) {
-      if (!controller.signal.aborted)
-        setError(error instanceof Error ? error.message : 'Dosya okunamadı.');
+      if (!controller.signal.aborted) throw error;
     } finally {
       if (operation.current === controller) {
         operation.current = null;
@@ -102,7 +115,7 @@ export default function App() {
     }
   }
   async function apply(next: Targets) {
-    if (operation.current) return;
+    if (busy || operation.current) return;
     try {
       validateTargets(next);
     } catch (error) {
@@ -247,7 +260,8 @@ export default function App() {
             <small>Excel veya CSV ile başlayın.</small>
           )}
           <p className="caption">
-            Sayfalar arasında veriniz korunur. Yenileme sonrası veriler temizlenir.
+            Çalışma verileri yenilemede temizlenir. Yerel geçmişe yalnızca seçtiğiniz analizler
+            kaydedilir.
           </p>
         </div>
         <footer className="sidebar-footer">
@@ -290,6 +304,7 @@ export default function App() {
             onDemo={demo}
             onClear={clear}
           />
+          <ImportEditor importer={importer} disabled={busy} />
           {busy && (
             <div className="notice" role="status">
               Veriler arka planda işleniyor…{' '}
@@ -298,9 +313,9 @@ export default function App() {
               </button>
             </div>
           )}
-          {error && (
+          {activeError && (
             <div className="notice error" role="alert">
-              {error}
+              {activeError}
               {analysis && <span> Önceki geçerli analiz korunuyor.</span>}
             </div>
           )}
@@ -323,6 +338,7 @@ export default function App() {
               <AnalysisInsights analysis={analysis} />
               <ResultsTables analysis={analysis} />
               <ReportDownload analysis={analysis} />
+              {source && <ComparisonWorkspace analysis={analysis} source={source} name={name} />}
             </>
           ) : (
             <section className="empty-state">
@@ -341,6 +357,7 @@ export default function App() {
               </div>
             </section>
           )}
+          <AnalysisLibrary analysis={analysis} name={name} busy={busy} onRestore={restorePackage} />
         </div>
         {page === 'guide' && (
           <GuidePage

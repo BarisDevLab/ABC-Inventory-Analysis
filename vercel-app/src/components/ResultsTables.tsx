@@ -8,6 +8,7 @@ export function ProductTable({
   rows: readonly AnalysisRow[];
   caption?: string;
 }) {
+  const withSku = rows.some((row) => row.sku !== undefined);
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={caption}>
       <table>
@@ -16,6 +17,7 @@ export function ProductTable({
           <tr>
             {[
               'Ürün',
+              ...(withSku ? ['Ürün kodu'] : []),
               'Yıllık Tüketim',
               'Birim Fiyat (TL)',
               'Yıllık Değer (TL)',
@@ -31,10 +33,11 @@ export function ProductTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.product}>
+            <tr key={row.sku ?? row.product}>
               <th scope="row" className="product-name">
                 {row.product}
               </th>
+              {withSku && <td>{row.sku}</td>}
               <td>{number(row.quantity, Number.isInteger(row.quantity) ? 0 : 2)}</td>
               <td>{money(row.price)}</td>
               <td>{money(row.value)}</td>
