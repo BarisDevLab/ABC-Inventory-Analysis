@@ -7,8 +7,8 @@ export function visibleRows(analysis: Analysis, groups: readonly Group[], first:
   return analysis.rows.slice(first - 1, last).filter(row => groups.includes(row.group));
 }
 
-const dark = { surface: '#171f2e', text: '#dce5f3', grid: '#344155', hover: '#232f44' };
-const light = { surface: '#ffffff', text: '#293957', grid: '#e2e9f4', hover: '#f1f5fc' };
+const dark = { surface: '#1a1924', text: '#dedbed', grid: '#343140', hover: '#272437' };
+const light = { surface: '#ffffff', text: '#343147', grid: '#ebe9f2', hover: '#f3effb' };
 
 export function chartStyle(language: Language, theme: Theme) {
   const palette = theme === 'dark' ? dark : light;
@@ -16,7 +16,7 @@ export function chartStyle(language: Language, theme: Theme) {
   const fmt = (value: number) => detail(value, language);
   const layout: Partial<Layout> = {
     paper_bgcolor: palette.surface, plot_bgcolor: palette.surface,
-    font: { family: 'system-ui, sans-serif', color: palette.text, size: 12 },
+    font: { family: 'Geist, system-ui, sans-serif', color: palette.text, size: 12 },
     separators: language === 'en' ? '.,' : ',.',
     hoverlabel: { bgcolor: palette.hover, bordercolor: COLORS.A, font: { color: palette.text, size: 13 }, namelength: -1 },
   };
@@ -46,7 +46,7 @@ export function paretoModel(
   const scale = compact && maximum >= 1000 ? 1000 : 1;
   const interval = Math.max(1, Math.ceil(rows.length / (compact ? 4 : 8)));
   const shown = x.filter(index => index % interval === 0);
-  const lineColor = theme === 'dark' ? '#ff96aa' : '#b74862';
+  const lineColor = theme === 'dark' ? '#f598a9' : '#a43d61';
   const percentageTicks = [0, 20, 40, 60, 80, 100];
   return {
     data: [
@@ -64,7 +64,7 @@ export function paretoModel(
         name: `${label} · ${percent(threshold, language, Number.isInteger(threshold) ? 0 : 2)}`, hoverinfo: 'skip' as const,
       })),
     ],
-    layout: { ...layout, height: compact ? 440 : 475, dragmode: mode, hovermode: 'closest',
+    layout: { ...layout, height: compact ? 440 : 390, dragmode: mode, hovermode: 'closest',
       uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 60, t: 45, b: compact ? 110 : 85 },
       legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.12, font: { size: 10 } },
       xaxis: { range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,

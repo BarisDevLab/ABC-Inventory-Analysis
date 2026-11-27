@@ -155,7 +155,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
       ),
     );
     fireEvent.click(screen.getByRole('link', { name: 'Kullanım ve yöntem rehberi' }));
-    expect(await screen.findAllByRole('tab')).toHaveLength(4);
+    expect(await screen.findAllByRole('tab')).toHaveLength(5);
     fireEvent.click(screen.getByRole('tab', { name: 'Çözümlü Örnekler' }));
     expect(screen.getByText('Örnek 2 · Hedefler değişirse ne olur?')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Analiz paneline dön' }));
@@ -254,14 +254,14 @@ describe('Gerçek React ekran entegrasyonu', () => {
     await waitFor(() =>
       expect(document.querySelector('.file-name')?.textContent).toBe('Kaydedilen analiz'),
     );
-    expect((screen.getByRole('slider', { name: /A grubu hedefi/ }) as HTMLInputElement).value).toBe(
-      '0',
-    );
-    expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
     await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
     load(new TextEncoder().encode('bozuk').buffer);
     await screen.findByRole('alert');
     expect(screen.getByRole('alert').textContent).toContain('Geçersiz ABC analiz paketi');
+    fireEvent.click(screen.getByRole('link', { name: 'ABC analizi' }));
+    expect((screen.getByRole('slider', { name: /A grubu hedefi/ }) as HTMLInputElement).value).toBe(
+      '0',
+    );
     expect(document.querySelector('[data-kpi=C]')?.getAttribute('data-value')).toBe('5');
   });
   it('büyük tablolar 50 ürünlük sayfalarla tüm satırlara erişim sağlar', () => {
@@ -280,6 +280,8 @@ describe('Gerçek React ekran entegrasyonu', () => {
 it('switching languages and theme preserves the active inventory and localises numbers', async () => {
   render(<App />);
   await demo();
+  fireEvent.click(screen.getByRole('button', { name: 'Koyu tema' }));
+  expect(screen.getByRole('button', { name: 'Açık tema' })).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Arayüz dili'), { target: { value: 'en' } });
   expect(document.documentElement.lang).toBe('en');
   expect(screen.getByRole('heading', { name: 'Inventory overview' })).toBeTruthy();
@@ -287,11 +289,34 @@ it('switching languages and theme preserves the active inventory and localises n
     '304,000.00 TL',
   );
   expect(await screen.findByRole('button', { name: 'Download Excel report' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Light theme' }));
+  expect(document.documentElement.dataset.theme).toBe('light');
   fireEvent.click(screen.getByRole('button', { name: 'Dark theme' }));
   expect(document.documentElement.dataset.theme).toBe('dark');
   expect(window.localStorage.getItem('abc:theme')).toBe('dark');
   fireEvent.click(screen.getByRole('link', { name: 'User and methodology guide' }));
   expect(await screen.findByRole('tab', { name: 'Worked examples' })).toBeTruthy();
+});
+
+it('compacts a loaded source on overview and keeps targets on the ABC route', async () => {
+  window.history.replaceState(null, '', '/');
+  render(<App />);
+  await demo();
+  expect(screen.queryByRole('heading', { name: 'Excel veya CSV dosyanızı bırakın' })).toBeNull();
+  const source = within(screen.getByRole('region', { name: 'Analiz kaynağı' }));
+  expect(source.getByText('Örnek stok verisi')).toBeTruthy();
+  expect(source.getByRole('button', { name: 'Dosyayı değiştir' })).toBeTruthy();
+  expect(await source.findByRole('button', { name: 'Excel analiz raporunu indir' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'ABC değer dağılımı' })).toBeTruthy();
+  expect(screen.queryByRole('slider')).toBeNull();
+  const group = screen.getByRole('button', { name: 'Stok sınıflandırma' });
+  fireEvent.click(group);
+  expect(group.getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByRole('link', { name: 'ABC analizi' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Kenar menüsünü daralt' }));
+  expect(screen.getByRole('button', { name: 'Kenar menüsünü genişlet' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'ABC analizi' }));
+  expect(screen.getAllByRole('slider')).toHaveLength(3);
 });
 
 it('search respects Turkish product spelling and does not change the full analysis', async () => {
@@ -330,7 +355,7 @@ describe('Stok karar desteği arayüzü', () => {
         ? 'FSN ve VED'
         : name === 'Maliyet simülasyonu'
           ? name
-          : 'Stok optimizasyonu';
+          : 'Sipariş ve emniyet stoku';
     const link = screen.getByRole('link', { name: page });
     if (link.getAttribute('aria-current') !== 'page') fireEvent.click(link);
     if (name !== 'Maliyet simülasyonu') {

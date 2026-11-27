@@ -1,3 +1,4 @@
+import { Icon } from '../ui/Icon';
 import { useLocale } from '../ui/locale';
 import { TARGETS_TOLERANCE } from '../core/targets';
 import { useState } from 'react';
@@ -22,8 +23,13 @@ export function TargetSettings({
   }
   const sum = draft.a + draft.b + draft.c;
   return (
-    <section className="target-settings" aria-labelledby="targets-heading">
-      <h2 id="targets-heading">{t('Hedef değer payları', 'Value targets')}</h2>
+    <section className="panel target-settings" aria-labelledby="targets-heading">
+      <header className="panel-heading">
+        <h2 id="targets-heading">{t('Hedef değer payları', 'Value targets')}</h2>
+        <span className="section-icon">
+          <Icon name="sliders" />
+        </span>
+      </header>
       <p className="muted">
         {t('Ürün sayısını değil, parasal değeri ifade eder.', 'Targets use annual value.')}
       </p>

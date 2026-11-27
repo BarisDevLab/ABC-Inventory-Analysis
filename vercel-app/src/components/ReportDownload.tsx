@@ -1,3 +1,4 @@
+import { Icon } from '../ui/Icon';
 import { displayError, useLocale } from '../ui/locale';
 import { useEffect, useRef, useState } from 'react';
 import type { Analysis } from '../core/abc';
@@ -32,15 +33,12 @@ export function ReportDownload({ analysis }: { analysis: Analysis }) {
   }
   return (
     <section className="panel export-panel" aria-labelledby="report-heading" aria-busy={busy}>
-      <h2 id="report-heading">{t('Excel dosyaları', 'Excel exports')}</h2>
-      <p>
-        {t(
-          'Rapor tüm analiz ürünlerini ve uygulanan hedefleri içerir. Veriler sunucuya gönderilmez.',
-          'Export all products, group totals, and the applied targets.',
-        )}
-      </p>
+      <h2 className="sr-only" id="report-heading">
+        {t('Excel dosyaları', 'Excel exports')}
+      </h2>
       <div className="download-actions">
         <button className="button primary" disabled={busy} onClick={() => download('report')}>
+          <Icon name="download" />
           {t('Excel analiz raporunu indir', 'Download Excel report')}
         </button>
         <button className="button secondary" disabled={busy} onClick={() => download('template')}>

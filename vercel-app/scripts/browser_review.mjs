@@ -70,7 +70,7 @@ try {
   await send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__cspViolations=[];document.addEventListener('securitypolicyviolation',event=>window.__cspViolations.push({directive:event.effectiveDirective,blockedURI:event.blockedURI,disposition:event.disposition}));`});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__audit={longTasks:[],maxTimerDelay:0};let last=performance.now();setInterval(()=>{const now=performance.now();window.__audit.maxTimerDelay=Math.max(window.__audit.maxTimerDelay,now-last-50);last=now;},50);try{new PerformanceObserver(list=>{for(const entry of list.getEntries())window.__audit.longTasks.push(entry.duration);}).observe({entryTypes:['longtask']});}catch{}`});
-  await viewport(1440,1000);await send('Page.navigate',{url:base});await wait("document.querySelector('.empty-state')");
+  await viewport(1440,1000);await send('Page.navigate',{url:base});await wait("document.querySelector('.upload-workspace')");
   assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'First load has no automatic demo');
   assert(!requests.some(url=>url.includes('plotly-basic')),'Plotly not requested before analysis');await screenshot('01-desktop-empty');
   assert(!requests.some(url=>/exceljs(?:\.min|-browser)/.test(url)),'ExcelJS not requested before file or report work');
@@ -79,7 +79,7 @@ try {
   await route('analiz');
   await wait("document.querySelector('h1').textContent==='ABC analizi'");
   await click('Örnek veriyle dene');await wait("document.querySelector('.chart-container .plot-host')");await evaluate("document.querySelector('.chart-container .plot-host').scrollIntoView({block:'center'})");await wait("document.querySelector('.plot-host')?.data?.length===4",'Pareto rendered');await evaluate("document.querySelectorAll('.plot-host')[1].scrollIntoView({block:'center'})");await wait("document.querySelectorAll('.plot-host.plot-loaded').length===2",'Two charts rendered',10000);
-  assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Demo total matches Python');await screenshot('02-desktop-dashboard','.section-heading');await screenshot('03-desktop-pareto','.chart-container');
+  assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Demo total matches Python');await screenshot('02-desktop-dashboard','.dashboard-hero');await screenshot('03-desktop-pareto','.chart-container');
   await screenshot('03b-desktop-distribution','section[aria-labelledby="distribution-heading"]');await screenshot('03c-desktop-results','section[aria-labelledby="results-heading"]');await screenshot('03d-desktop-report','section[aria-labelledby="report-heading"]');
   await click('Dağılım grafiğini PNG indir');const donutPng=await download('abc_deger_dagilimi.png');assert(donutPng.readUInt32BE(16)===2880,'Distribution PNG download works');
   await evaluate("document.querySelector('.group-filters input').click()");await wait("document.querySelector('.plot-host').data[0].y.length===2");
@@ -87,8 +87,8 @@ try {
   await click('PNG indir');const png=await download('abc_pareto_analizi.png');assert(png.readUInt32BE(16)===2880&&png.readUInt32BE(20)===1600,'Real PNG download is 2880x1600');
   await click('Excel analiz raporunu indir');const report=await download('abc_stok_analiz_raporu.xlsx');assert(report[0]===0x50&&report[1]===0x4b,'Real worker Excel report downloads');
   await click('Boş Excel şablonu indir');await download('stok_sablonu.xlsx');assert(true,'Empty template downloads');
-  await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===4");await screenshot('04-desktop-guide','.page-hero');
-  for(let index=1;index<4;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
+  await evaluate("document.querySelector('nav a[href=\"#rehber\"]').click()");await wait("document.querySelectorAll('[role=tab]').length===5");await screenshot('04-desktop-guide','.page-hero');
+  for(let index=1;index<5;index++){await evaluate(`document.querySelectorAll('[role=tab]')[${index}].click()`);await screenshot(`04b-guide-topic-${index}`,'.guide-tabs');}
   assert(await evaluate("document.querySelector('[role=tabpanel]:not([hidden])').textContent.includes('Endüstri Mühendisliğinde Kullanımı')"),'Guide engineering content present');
   await click('Analiz paneline dön');await wait("!document.querySelector('.page-hero').parentElement.hidden");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Guide return preserves analysis');
   await set('#target-a',90);await click('Hedefleri uygula');assert(await evaluate("document.querySelector('[role=alert]').textContent.includes('Önceki geçerli hedefler')"),'Invalid targets retain previous settings');
@@ -97,7 +97,7 @@ try {
   await set('#target-a',80);await set('#target-b',15);await set('#target-c',5);await click('Hedefleri uygula');await wait("document.querySelector('[data-kpi=A]').dataset.value==='3'");
   for(const name of ['csv-cp1254-semicolon.csv','xlsx-demo.xlsx']){await upload(resolve(root,'tests/fixtures/files',name));await wait(`document.querySelector('.file-name')?.textContent===${JSON.stringify(name)}`);assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Real file/worker upload: '+name);}
   const droppedCsv='Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nSürüklenen parça;2;3';
-  await evaluate(`(()=>{const transfer=new DataTransfer();transfer.items.add(new File([${JSON.stringify(droppedCsv)}],'drop.csv',{type:'text/csv'}));document.querySelector('.drop-zone').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));return true;})()`);
+  await evaluate(`(()=>{const transfer=new DataTransfer();transfer.items.add(new File([${JSON.stringify(droppedCsv)}],'drop.csv',{type:'text/csv'}));document.querySelector('.source-bar').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));return true;})()`);
   await wait("document.querySelector('.file-name')?.textContent==='drop.csv'");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='6,00 TL'"),'Browser drop event uses real analysis worker');
   await upload(resolve(root,'tests/fixtures/files/xlsx-demo.xlsx'));await wait("document.querySelector('.file-name')?.textContent==='xlsx-demo.xlsx'");
   await upload(resolve(root,'tests/fixtures/files/xlsx-corrupt.xlsx'));await wait("document.querySelector('.notice.error')");assert(await evaluate("document.querySelector('[data-kpi=total]').dataset.value==='304.000,00 TL'"),'Corrupt Excel preserves prior valid analysis');
@@ -153,7 +153,7 @@ try {
   }
   await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'&&document.querySelector('.plot-host').data[0].y.length===60");
   for(const [width,height,label] of [[820,1180,'tablet'],[390,844,'mobile'],[360,800,'small-mobile']]){
-    await viewport(width,height,true);await screenshot(`06-${label}-dashboard`,'.section-heading');
+    await viewport(width,height,true);await screenshot(`06-${label}-dashboard`,'.dashboard-hero');
     assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: no horizontal page overflow`);
     const compact=await evaluate("document.querySelector('.chart-toolbar label input').checked");if(!compact)await evaluate("document.querySelector('.chart-toolbar label input').click()");
     await screenshot(`07-${label}-pareto`,'.chart-container');
@@ -331,7 +331,7 @@ try {
   result.cspViolations=await evaluate('window.__cspViolations');
   assert(result.cspViolations.length===0,'No CSP violations during real interaction and downloads');
   assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>['GET','HEAD'].includes(record.method)&&!record.hasPostData&&!record.bodyBytes),'No HTTP request bodies or upload methods in page and workers');
-  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
+  assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/fonts\/geist-latin(?:-ext)?\.woff2$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
   const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
   assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
   result.success=true;

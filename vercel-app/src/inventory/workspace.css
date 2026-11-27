@@ -1,16 +1,8 @@
-.inventory-intro {
-  margin: 26px 0 22px;
-}
-.inventory-intro h1 {
-  font-size: clamp(1.65rem, 4vw, 2.5rem);
-  margin: 0;
-}
-.inventory-intro p,
 .inventory-panel > p,
 .inventory-method p,
 .inventory-field small {
+  line-height: 1.52;
   color: var(--muted);
-  line-height: 1.55;
 }
 .inventory-navigation {
   display: flex;
@@ -21,10 +13,39 @@
 .inventory-workspace [aria-pressed='true'] {
   background: var(--active);
   border-color: var(--primary);
-  color: var(--ink);
+  color: var(--primary);
 }
 .inventory-panel h2 {
-  margin: 0 0 8px;
+  margin: 0 0 0.4rem;
+}
+.inventory-form-panel {
+  padding: clamp(1rem, 2vw, 1.55rem);
+}
+.inventory-form-panel > h2 {
+  font-size: 1.35rem;
+}
+.inventory-form-panel > p {
+  margin: 0.1rem 0 0;
+  max-width: 74ch;
+}
+@media (min-width: 1160px) {
+  .inventory-form-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(235px, 1fr);
+    align-items: start;
+    column-gap: 1.05rem;
+  }
+  .inventory-form-panel > :not(.inventory-form, .inventory-method) {
+    grid-column: 1 / -1;
+  }
+  .inventory-form-panel > .inventory-method {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .inventory-form-panel > .inventory-form {
+    grid-column: 1;
+    grid-row: 3;
+  }
 }
 .inventory-panel a {
   text-decoration: underline;
@@ -34,8 +55,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   align-items: start;
-  gap: 16px;
-  margin: 22px 0;
+  gap: 0.85rem;
+  margin: 1rem 0 0;
+  padding: 0.95rem;
+  background: var(--soft);
+  border-radius: 8px;
 }
 .inventory-field {
   display: grid;
@@ -52,17 +76,18 @@
 .inventory-field select,
 .inventory-field textarea {
   width: 100%;
-  min-height: 44px;
-  padding: 8px 11px;
-  border: 1px solid var(--muted);
+  min-height: 39px;
+  padding: 0.54rem 0.65rem;
+  border: 1px solid var(--control-line);
   border-radius: 7px;
-  background: var(--canvas);
+  background-color: var(--surface);
   color: inherit;
   font: inherit;
   font-weight: 400;
 }
 .inventory-field textarea {
   resize: vertical;
+  line-height: 1.55;
 }
 .inventory-field.wide,
 .inventory-actions {
@@ -70,12 +95,14 @@
 }
 .inventory-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
 }
 .inventory-results {
   display: grid;
   gap: 14px;
-  margin: 24px 0;
+  margin: 1rem 0 0;
   min-width: 0;
 }
 .inventory-result-status {
@@ -107,9 +134,9 @@
 .inventory-metrics > div,
 .inventory-cell-detail {
   padding: 12px;
-  border: 1px solid var(--line);
+  border: 0;
+  background: var(--soft);
   border-radius: 8px;
-  overflow-wrap: anywhere;
 }
 .inventory-metrics dt {
   color: var(--muted);
@@ -117,7 +144,9 @@
 }
 .inventory-metrics dd {
   margin: 5px 0 0;
-  font-weight: 650;
+  font-weight: 670;
+  font-size: 1.18rem;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
 }
 .inventory-bars {
@@ -157,14 +186,37 @@
   background: var(--primary);
 }
 .inventory-method {
-  margin-top: 24px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding: 0.8rem 0.9rem;
+  border-inline-start: 2px solid var(--primary);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--active) 70%, var(--surface));
+  min-width: 0;
 }
-.inventory-workspace summary {
-  color: var(--muted);
-  font-weight: 650;
-  cursor: pointer;
+.inventory-method p {
+  font-size: 0.82rem;
+}
+.inventory-method summary {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--primary);
+  font-size: 0.85rem;
+}
+.inventory-method summary::-webkit-details-marker {
+  display: none;
+}
+.inventory-method summary::after {
+  content: '';
+  width: 0.42rem;
+  height: 0.42rem;
+  border-block-end: 1px solid currentColor;
+  border-inline-end: 1px solid currentColor;
+  transform: rotate(-45deg);
+  margin-inline-start: auto;
+}
+.inventory-method[open] summary::after {
+  transform: rotate(45deg);
 }
 .inventory-matrix {
   table-layout: fixed;

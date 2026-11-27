@@ -4,7 +4,7 @@ import type { Analysis, InputTable, Targets } from './core/abc';
 import { processAnalysis } from './processing/client';
 import { UploadWorkspace } from './components/UploadWorkspace';
 import { TargetSettings } from './components/TargetSettings';
-import { KpiOverview } from './components/KpiOverview';
+import { GroupBreakdown, KpiOverview, LeadingProducts } from './components/KpiOverview';
 import {
   DashboardPreferences,
   WorkspaceNav,
@@ -15,6 +15,7 @@ import type { Page } from './components/WorkspaceNav';
 import { displayError, LanguageContext, preference, savePreference, useLocale } from './ui/locale';
 import type { Language, Theme } from './ui/locale';
 
+import { Icon } from './ui/Icon';
 import { useInventoryImport } from './components/inventory/useInventoryImport';
 
 const ResultsTables = lazy(() =>
@@ -94,6 +95,7 @@ function Dashboard({
     [notice, setNotice] = useState<
       'cleared' | 'loaded' | 'restored' | 'targets' | 'recalculated' | ''
     >('');
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const importer = useInventoryImport(targets, (filename, result) => {
     setSource(result.source);
@@ -303,7 +305,7 @@ function Dashboard({
 
   return (
     <div
-      className="app-shell"
+      className={`app-shell ${railCollapsed ? 'rail-collapsed' : ''}`}
       onKeyDown={(event) => {
         if (!mobileOpen) return;
         if (event.key === 'Escape') {
@@ -351,34 +353,51 @@ function Dashboard({
       </header>
       {mobileOpen && <div className="nav-backdrop" aria-hidden="true" onClick={dismissMenu} />}
       <aside ref={rail} id="sidebar" className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
-        <a href="#genel-bakis" className="brand desktop-brand" onClick={() => setPage('overview')}>
-          {brand}
-        </a>
-        <span className="nav-heading">{t('Çalışma alanı', 'Workspace')}</span>
+        <div className="desktop-identity">
+          <a
+            href="#genel-bakis"
+            className="brand desktop-brand"
+            aria-label="Inventory Intelligence"
+            onClick={() => setPage('overview')}
+          >
+            {brand}
+          </a>
+        </div>
         <WorkspaceNav
           page={page}
+          collapsed={railCollapsed && !mobileOpen}
           onNavigate={(next) => {
             if (next === page && mobileOpen) menu.current?.focus();
             setPage(next);
             setMobileOpen(false);
           }}
         />
-        <TargetSettings targets={targets} busy={busy} onApply={apply} />
-        <div className="sidebar-status">
-          <span className="nav-heading">{t('Veri durumu', 'Data status')}</span>
-          <p>
-            <span aria-hidden="true" className={`status-dot ${!name ? 'inactive' : ''}`} />
-            {name ? t('Veri hazır', 'Data ready') : t('Dosya bekleniyor', 'Waiting for a file')}
-          </p>
-          {fileName && <small className="file-name">{fileName}</small>}
+        <div className="rail-footer">
+          <Icon name="shield" />
+          <span>{t('Veriler cihazınızda kalır', 'Data stays on your device')}</span>
         </div>
-        <footer className="sidebar-footer">BarisDevLab</footer>
       </aside>
       <main id="main-content" ref={main} tabIndex={-1} className="main-content" inert={mobileOpen}>
         <div className="topbar">
-          <div className="breadcrumb">
-            {t('Çalışma alanı', 'Workspace')} <span aria-hidden="true">/</span>{' '}
-            <strong>{title}</strong>
+          <div className="topbar-start">
+            <button
+              type="button"
+              className="icon-button rail-toggle"
+              aria-expanded={!railCollapsed}
+              aria-controls="sidebar"
+              aria-label={
+                railCollapsed
+                  ? t('Kenar menüsünü genişlet', 'Expand sidebar')
+                  : t('Kenar menüsünü daralt', 'Collapse sidebar')
+              }
+              onClick={() => setRailCollapsed(!railCollapsed)}
+            >
+              <Icon name="panel" />
+            </button>
+            <div className="breadcrumb">
+              {t('Çalışma alanı', 'Workspace')} <Icon name="chevron" />
+              <strong>{title}</strong>
+            </div>
           </div>
           <DashboardPreferences theme={theme} onTheme={onTheme} onLanguage={onLanguage} />
         </div>
@@ -408,7 +427,10 @@ function Dashboard({
           </div>
         )}
         {notice && (
-          <div className="notice success" role="status">
+          <div
+            className={notice === 'loaded' || notice === 'restored' ? 'sr-only' : 'notice success'}
+            role="status"
+          >
             {notices[notice]}
           </div>
         )}
@@ -417,64 +439,81 @@ function Dashboard({
             <div>
               <h1>{title}</h1>
               <p>
-                {t(
-                  'Yıllık tüketim değerine göre stoklarınızı sınıflandırın ve kontrol önceliklerini belirleyin.',
-                  'Classify your inventory by annual usage value and identify which products need the most oversight.',
-                )}
+                {page === 'analysis'
+                  ? t(
+                      'Kümülatif değer payını inceleyin ve sınıf hedeflerini ayarlayın.',
+                      'Inspect cumulative value and tune classification targets.',
+                    )
+                  : t(
+                      'Envanter değerini, ürün dağılımını ve kontrol önceliklerini izleyin.',
+                      'Track inventory value, product distribution, and control priorities.',
+                    )}
               </p>
             </div>
-            <span className="privacy-pill">
-              <span aria-hidden="true">◈</span>{' '}
-              {t('Veriler cihazınızda kalır', 'Data stays on your device')}
-            </span>
+            {page === 'overview' && analysis && (
+              <a className="button secondary" href="#analiz">
+                {t('ABC analizini aç', 'Open ABC analysis')} <Icon name="arrow" />
+              </a>
+            )}
           </header>
-          {analysis && (
-            <section className="overview" aria-labelledby="overview-heading">
-              <div className="section-heading">
-                <h2 id="overview-heading">{t('Envanter özeti', 'Inventory overview')}</h2>
-                <span className="subtle-label">
-                  {t(`${count} ürün · Tam analiz`, `${count} products · Full analysis`)}
-                </span>
-              </div>
-              <KpiOverview analysis={analysis} />
-            </section>
-          )}
           <UploadWorkspace
             busy={busy}
             name={fileName}
+            count={count}
             onFile={loadFile}
             onDemo={demo}
             onClear={clear}
+            exports={
+              analysis && (
+                <Suspense fallback={loading}>
+                  <ReportDownload analysis={analysis} />
+                </Suspense>
+              )
+            }
           />
           {importer.draft && (
             <Suspense fallback={loading}>
               <ImportEditor importer={importer} disabled={busy} />
             </Suspense>
           )}
-          {analysis ? (
-            page === 'analysis' && (
+          {analysis && (
+            <section className="overview" aria-labelledby="overview-heading">
+              <h2 id="overview-heading" className="sr-only">
+                {t('Envanter özeti', 'Inventory overview')}
+              </h2>
+              <KpiOverview analysis={analysis} />
+              {page === 'overview' && (
+                <>
+                  <div className="overview-grid">
+                    <GroupBreakdown analysis={analysis} compact={false} />
+                    <Suspense fallback={loading}>
+                      <AnalysisInsights analysis={analysis} compact />
+                    </Suspense>
+                  </div>
+                  <LeadingProducts analysis={analysis} />
+                </>
+              )}
+              {page === 'analysis' && <GroupBreakdown analysis={analysis} compact />}
+            </section>
+          )}
+          <div
+            hidden={page !== 'analysis'}
+            className={analysis ? 'abc-chart-layout' : 'abc-chart-layout no-results'}
+          >
+            <div className="abc-settings">
+              <TargetSettings targets={targets} busy={busy} onApply={apply} />
+            </div>
+            {analysis && page === 'analysis' && (
               <Suspense fallback={loading}>
                 <ChartsPanel analysis={analysis} theme={theme} />
-                <AnalysisInsights analysis={analysis} />
-                <ResultsTables analysis={analysis} />
-                <ReportDownload analysis={analysis} />
               </Suspense>
-            )
-          ) : (
-            <section className="empty-state">
-              <div className="empty-symbol" aria-hidden="true">
-                ▥
-              </div>
-              <div>
-                <h2>{t('İlk analizinize hazır mısınız?', 'Ready for your first analysis?')}</h2>
-                <p>
-                  {t(
-                    'Dosyanızı yükleyin veya örnek veriyle başlayın. Sonuçlarınız, grafikleriniz ve Excel raporunuz burada görünecek.',
-                    'Upload a file or try the sample. Your results, charts, and Excel report will appear here.',
-                  )}
-                </p>
-              </div>
-            </section>
+            )}
+          </div>
+          {analysis && page === 'analysis' && (
+            <Suspense fallback={loading}>
+              <AnalysisInsights analysis={analysis} />
+              <ResultsTables analysis={analysis} />
+            </Suspense>
           )}
         </div>
         {inventoryVisited && (
@@ -501,7 +540,7 @@ function Dashboard({
           </div>
         )}
         {(page === 'period' || page === 'scenario') && !analysis && (
-          <section className="panel">
+          <section className="panel route-empty">
             <h1>{title}</h1>
             <p>
               {t(

@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/Icon';
 import { displayError, useLocale } from '../../ui/locale';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -98,7 +99,7 @@ export function ModuleForm<T>({
         {children}
         <div className="inventory-actions">
           <button type="submit" className="button primary">
-            {t('Hesapla', 'Calculate')}
+            <Icon name="calculator" /> {t('Hesapla', 'Calculate')}
           </button>
           <button type="reset" className="button secondary">
             {t('Temizle', 'Clear')}
@@ -230,7 +231,10 @@ export function Method({ children }: { children: ReactNode }) {
   const { t } = useLocale();
   return (
     <details className="inventory-method" open>
-      <summary>{t('Yöntem, varsayımlar ve birimler', 'Method, assumptions, and units')}</summary>
+      <summary>
+        <Icon name="book" />{' '}
+        {t('Yöntem, varsayımlar ve birimler', 'Method, assumptions, and units')}
+      </summary>
       {children}
     </details>
   );

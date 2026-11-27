@@ -1,3 +1,6 @@
+import { Icon } from '../ui/Icon';
+import { GuideMethods } from './GuideMethods';
+import './guide.css';
 import { useMemo, useRef, useState } from 'react';
 import { calculateAbc, sampleData } from '../core/abc';
 import { useLocale } from '../ui/locale';
@@ -65,9 +68,48 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
     t('Genel Bakış', 'Overview'),
     t('Hesaplama Adımları', 'Calculation'),
     t('Çözümlü Örnekler', 'Worked examples'),
+    t('Analiz Yöntemleri', 'Analysis methods'),
     t('Mühendislik Uygulamaları', 'Applications'),
   ];
   const policies = groupPolicies(t);
+  const tabIcons = ['layers', 'calculator', 'bars', 'book', 'box'] as const;
+  const applications = [
+    [
+      t('Stok yönetimi', 'Stock management'),
+      t(
+        'Ekonomik öneme göre stok kontrolü sıklığını belirleyin.',
+        'Set review frequency by economic importance.',
+      ),
+    ],
+    [
+      t('Satın alma', 'Purchasing'),
+      t(
+        'Yüksek değerli kalemlerin ikmalini önceliklendirin.',
+        'Prioritise replenishment of high-value items.',
+      ),
+    ],
+    [
+      t('Depo yönetimi', 'Warehouse management'),
+      t(
+        'Sayım ve takip yöntemini ABC grubuna göre seçin.',
+        'Set counting and monitoring policies by ABC group.',
+      ),
+    ],
+    [
+      t('Üretim planlama', 'Production planning'),
+      t(
+        'Önemli malzemelerin tüketimini ve maliyetini izleyin.',
+        'Track usage and cost of important materials.',
+      ),
+    ],
+    [
+      t('Tedarik zinciri', 'Supply chain'),
+      t(
+        'Kontrol kaynaklarını ekonomik etkisi yüksek ürünlere yönlendirin.',
+        'Focus control resources on products with the highest economic impact.',
+      ),
+    ],
+  ];
   const steps = [
     [
       t('Yıllık tüketim değerini hesaplayın', 'Calculate annual usage value'),
@@ -109,16 +151,33 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
     ],
   ];
   return (
-    <>
-      <header className="page-hero dashboard-hero">
+    <div className="guide-page">
+      <header className="page-hero guide-hero">
         <div>
-          <h1>{t('ABC analizi rehberi', 'ABC analysis guide')}</h1>
+          <span className="section-icon">
+            <Icon name="book" />
+          </span>
+          <h1>{t('Kullanım ve yöntem rehberi', 'User and methodology guide')}</h1>
           <p>
             {t(
-              'Yöntemi, hesaplama adımlarını ve stok kontrolünde nasıl kullanıldığını öğrenin.',
-              'Learn the method, follow the calculations, and apply the results to stock control.',
+              'ABC’nin hesaplama adımlarını, çözümlü örnekleri ve stok karar modellerini inceleyin.',
+              'Explore ABC calculations, worked examples, and decision models for stock management.',
             )}
           </p>
+        </div>
+        <div className="guide-hero-visual" aria-hidden="true">
+          <div className="guide-hero-bars">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+          <div className="guide-hero-key">
+            <i>A</i>
+            <i>B</i>
+            <i>C</i>
+          </div>
         </div>
       </header>
       <div className="guide-tabs" role="tablist" aria-label={t('Rehber konuları', 'Guide topics')}>
@@ -150,7 +209,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
               }
             }}
           >
-            {topic}
+            <Icon name={tabIcons[index]} /> {topic}
           </button>
         ))}
       </div>
@@ -168,25 +227,55 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
             <>
               {tab === 0 && (
                 <>
-                  <article className="panel guide-panel">
-                    <h2>{t('ABC Analizi Nedir?', 'What is ABC analysis?')}</h2>
-                    <p>
-                      {t(
-                        'ABC analizi, stok kalemlerini yıllık parasal tüketim değerine göre sınıflandırır. Böylece sınırlı stok kontrolü kaynakları ekonomik etkisi yüksek ürünlere ayrılabilir.',
-                        'ABC analysis classifies inventory by annual usage value so that stock control effort can focus on products with greater economic impact.',
-                      )}
-                    </p>
-                    <h3>{t('Pareto İlkesi', 'The Pareto principle')}</h3>
-                    <p>
-                      {t(
-                        'Az sayıda ürün toplam değerin büyük bölümünü oluşturabilir. %80–20 bir başlangıç yaklaşımıdır. Gerçek dağılımı verileriniz belirler.',
-                        'A small number of products may account for most of the value. The 80/20 split is a starting point. Your data determines the actual distribution.',
-                      )}
-                    </p>
-                  </article>
+                  <div className="guide-intro-grid">
+                    <article className="guide-feature">
+                      <span className="section-icon">
+                        <Icon name="layers" />
+                      </span>
+                      <h2>{t('ABC Analizi Nedir?', 'What is ABC analysis?')}</h2>
+                      <p>
+                        {t(
+                          'ABC analizi, stok kalemlerini yıllık parasal tüketim değerine göre sınıflandırır. Böylece sınırlı stok kontrolü kaynakları ekonomik etkisi yüksek ürünlere ayrılabilir.',
+                          'ABC analysis classifies inventory by annual usage value so that stock control effort can focus on products with greater economic impact.',
+                        )}
+                      </p>
+                      <p className="callout">
+                        {t(
+                          'Kontrol sıklığını ürünün ekonomik önemiyle uyumlu hale getirin.',
+                          'Align the frequency of stock checks with economic importance.',
+                        )}
+                      </p>
+                    </article>
+                    <article className="guide-feature pareto-feature">
+                      <span className="section-icon">
+                        <Icon name="signal" />
+                      </span>
+                      <h2>{t('Pareto İlkesi', 'The Pareto principle')}</h2>
+                      <p>
+                        {t(
+                          'Az sayıda ürün toplam değerin büyük bölümünü oluşturabilir. %80–20 bir başlangıç yaklaşımıdır. Gerçek dağılımı verileriniz belirler.',
+                          'A small number of products may account for most of the value. The 80/20 split is a starting point. Your data determines the actual distribution.',
+                        )}
+                      </p>
+                      <figure className="guide-target">
+                        <div className="value-spectrum" aria-hidden="true">
+                          <span className="tone-A" />
+                          <span className="tone-B" />
+                          <span className="tone-C" />
+                        </div>
+                        <figcaption>
+                          {t('Varsayılan ABC değer hedefleri', 'Default ABC value targets')} ·{' '}
+                          {percent(80, 0)} / {percent(15, 0)} / {percent(5, 0)}
+                        </figcaption>
+                      </figure>
+                    </article>
+                  </div>
+                  <div className="section-heading">
+                    <h2>{t('Grup bazlı kontrol politikaları', 'Stock control by group')}</h2>
+                  </div>
                   <div className="group-cards">
                     {policies.map((policy, index) => (
-                      <article key={policy.group} className="panel">
+                      <article key={policy.group} className={`guide-class tone-${policy.group}`}>
                         <span className={`group-badge group-${policy.group}`}>{policy.group}</span>
                         <h3>{policy.title}</h3>
                         <small>
@@ -196,14 +285,23 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                       </article>
                     ))}
                   </div>
+                  <p className="caption guide-target-note">
+                    {t(
+                      'Hedefler ürün sayısını değil, yıllık parasal değeri ifade eder.',
+                      'Targets describe annual usage value across products.',
+                    )}
+                  </p>
                 </>
               )}
               {tab === 1 && (
                 <article className="panel guide-panel">
                   <h2>{t('ABC Analizi Nasıl Yapılır?', 'How is ABC analysis calculated?')}</h2>
                   {steps.map(([title, text, formula], index) => (
-                    <details key={index} open={index === 0}>
-                      <summary>{title}</summary>
+                    <details className="guide-step" key={title} open={index === 0}>
+                      <summary>
+                        <span className="step-count">{index + 1}</span> {title}
+                        <Icon name="chevron" />
+                      </summary>
                       {formula && <p className="formula">{formula}</p>}
                       <p>{text}</p>
                     </details>
@@ -211,7 +309,8 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                 </article>
               )}
               {tab === 2 && <GuideExamples />}
-              {tab === 3 && (
+              {tab === 3 && <GuideMethods />}
+              {tab === 4 && (
                 <article className="panel guide-panel">
                   <h2>{t('Pareto Grafiği Nasıl Okunur?', 'How to read the Pareto chart')}</h2>
                   <p>
@@ -229,19 +328,28 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                   <h3>
                     {t('Endüstri Mühendisliğinde Kullanımı', 'Industrial engineering applications')}
                   </h3>
-                  <p>
-                    {t(
-                      'Stok kontrolü ve depo sayım sıklığını belirlemek, satın alma ve tedarik faaliyetlerini önceliklendirmek, üretimde önemli malzemelerin maliyetini izlemek için kullanılabilir.',
-                      'Use ABC to set inventory review and cycle-count frequencies, prioritise purchasing and replenishment, and monitor material costs in production.',
-                    )}
-                  </p>
-                  <h3>{t('ABC Analizinin Sınırlamaları', 'Limitations of ABC analysis')}</h3>
-                  <p>
-                    {t(
-                      'Yıllık tüketim değeri operasyonel kritiklik hakkında tek başına bilgi vermez. Tedarik süresi, talep değişkenliği, stok tükenme riski, tedarikçi güvenilirliği, güvenlik ve kalite gereksinimlerini ayrıca değerlendirin.',
-                      'Annual usage value alone cannot describe operational criticality. Also consider lead time, demand variability, stockout risk, supplier reliability, safety, and quality requirements.',
-                    )}
-                  </p>
+                  <div className="guide-applications">
+                    {applications.map(([title, detail], index) => (
+                      <div className="guide-application" key={title}>
+                        <span className="section-icon">
+                          <Icon
+                            name={(['sliders', 'coins', 'box', 'bars', 'compare'] as const)[index]}
+                          />
+                        </span>
+                        <h4>{title}</h4>
+                        <p>{detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <aside className="guide-limits">
+                    <h3>{t('ABC Analizinin Sınırlamaları', 'Limitations of ABC analysis')}</h3>
+                    <p>
+                      {t(
+                        'Yıllık tüketim değeri operasyonel kritiklik hakkında tek başına bilgi vermez. Tedarik süresi, talep değişkenliği, stok tükenme riski, tedarikçi güvenilirliği, güvenlik ve kalite gereksinimlerini ayrıca değerlendirin.',
+                        'Annual usage value alone cannot describe operational criticality. Also consider lead time, demand variability, stockout risk, supplier reliability, safety, and quality requirements.',
+                      )}
+                    </p>
+                  </aside>
                 </article>
               )}
             </>
@@ -251,6 +359,6 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
       <button className="button secondary back-button" onClick={onReturn}>
         {t('Analiz paneline dön', 'Return to dashboard')}
       </button>
-    </>
+    </div>
   );
 }

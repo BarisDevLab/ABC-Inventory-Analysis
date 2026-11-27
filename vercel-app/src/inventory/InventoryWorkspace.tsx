@@ -96,7 +96,7 @@ export function InventoryWorkspace({ page, theme, abcRows = EMPTY_ABC }: Invento
           key={key}
           id={`${id}-${key}`}
           aria-label={t(modules[key][1], modules[key][2])}
-          className="panel inventory-panel"
+          className={`panel inventory-panel ${key !== 'abc-xyz' ? 'inventory-form-panel' : ''}`}
           hidden={key !== active}
         >
           {panels[key]}
