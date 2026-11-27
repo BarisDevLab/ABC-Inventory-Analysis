@@ -14,7 +14,7 @@ function GuideExamples() {
     [],
   );
   return (
-    <article className="panel guide-panel">
+    <article className="panel guide-panel guide-cyan">
       <h2>{t('Çözümlü ABC Analizi Örneği', 'Worked ABC example')}</h2>
       <h3>{t('Örnek 1 · %80 / %15 / %5', 'Example 1 · 80% / 15% / 5%')}</h3>
       <ProductTable
@@ -228,7 +228,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
               {tab === 0 && (
                 <>
                   <div className="guide-intro-grid">
-                    <article className="guide-feature">
+                    <article className="guide-feature guide-blue">
                       <span className="section-icon">
                         <Icon name="layers" />
                       </span>
@@ -246,7 +246,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                         )}
                       </p>
                     </article>
-                    <article className="guide-feature pareto-feature">
+                    <article className="guide-feature pareto-feature guide-violet">
                       <span className="section-icon">
                         <Icon name="signal" />
                       </span>
@@ -294,7 +294,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
                 </>
               )}
               {tab === 1 && (
-                <article className="panel guide-panel">
+                <article className="panel guide-panel guide-violet">
                   <h2>{t('ABC Analizi Nasıl Yapılır?', 'How is ABC analysis calculated?')}</h2>
                   {steps.map(([title, text, formula], index) => (
                     <details className="guide-step" key={title} open={index === 0}>
@@ -311,7 +311,7 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
               {tab === 2 && <GuideExamples />}
               {tab === 3 && <GuideMethods />}
               {tab === 4 && (
-                <article className="panel guide-panel">
+                <article className="panel guide-panel guide-blue">
                   <h2>{t('Pareto Grafiği Nasıl Okunur?', 'How to read the Pareto chart')}</h2>
                   <p>
                     {t(

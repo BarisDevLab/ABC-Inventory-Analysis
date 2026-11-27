@@ -157,11 +157,12 @@ export function DashboardPreferences({
       <button
         className="theme-toggle"
         type="button"
+        aria-pressed={theme === 'dark'}
         onClick={() => onTheme(theme === 'dark' ? 'light' : 'dark')}
       >
-        <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+        <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
         <span>
-          {theme === 'dark' ? t('Açık tema', 'Light theme') : t('Koyu tema', 'Dark theme')}
+          {theme === 'dark' ? t('Koyu tema', 'Dark theme') : t('Açık tema', 'Light theme')}
         </span>
       </button>
     </div>

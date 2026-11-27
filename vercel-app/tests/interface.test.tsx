@@ -280,8 +280,10 @@ describe('Gerçek React ekran entegrasyonu', () => {
 it('switching languages and theme preserves the active inventory and localises numbers', async () => {
   render(<App />);
   await demo();
-  fireEvent.click(screen.getByRole('button', { name: 'Koyu tema' }));
-  expect(screen.getByRole('button', { name: 'Açık tema' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Açık tema' }));
+  expect(screen.getByRole('button', { name: 'Koyu tema' }).getAttribute('aria-pressed')).toBe(
+    'true',
+  );
   fireEvent.change(screen.getByLabelText('Arayüz dili'), { target: { value: 'en' } });
   expect(document.documentElement.lang).toBe('en');
   expect(screen.getByRole('heading', { name: 'Inventory overview' })).toBeTruthy();
@@ -289,9 +291,11 @@ it('switching languages and theme preserves the active inventory and localises n
     '304,000.00 TL',
   );
   expect(await screen.findByRole('button', { name: 'Download Excel report' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Light theme' }));
-  expect(document.documentElement.dataset.theme).toBe('light');
   fireEvent.click(screen.getByRole('button', { name: 'Dark theme' }));
+  expect(document.documentElement.dataset.theme).toBe('light');
+  const lightTheme = screen.getByRole('button', { name: 'Light theme' });
+  expect(lightTheme.getAttribute('aria-pressed')).toBe('false');
+  fireEvent.click(lightTheme);
   expect(document.documentElement.dataset.theme).toBe('dark');
   expect(window.localStorage.getItem('abc:theme')).toBe('dark');
   fireEvent.click(screen.getByRole('link', { name: 'User and methodology guide' }));

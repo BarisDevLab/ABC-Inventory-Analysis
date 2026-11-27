@@ -1357,6 +1357,99 @@ tbody tr:hover > *,
     min-height: 44px;
   }
 }
+@media (min-width: 861px) {
+  :root {
+    --light-a: #8060ea;
+    --light-b: #cb812b;
+    --light-c: #159b9a;
+    --light-blue: #5380da;
+    --edge-strength: 24%;
+    --glow-strength: 8%;
+    --wash-strength: 6%;
+    --highlight-strength: 16%;
+  }
+
+  :root[data-theme='dark'] {
+    --light-a: #aa8bff;
+    --light-b: #ffc066;
+    --light-c: #46dddf;
+    --light-blue: #6ea8ff;
+    --edge-strength: 37%;
+    --glow-strength: 15%;
+    --wash-strength: 10%;
+    --highlight-strength: 31%;
+  }
+
+  .main-content .panel:not(.export-panel),
+  .main-content .inventory-metrics > div,
+  .main-content .inventory-cell-detail,
+  .kpi {
+    --card-light: var(--light-a);
+    --card-base: var(--surface);
+    background:
+      radial-gradient(
+        ellipse at top left,
+        color-mix(in srgb, var(--card-light) var(--wash-strength), transparent),
+        transparent 64%
+      ),
+      var(--card-base);
+    border-color: color-mix(in srgb, var(--card-light) var(--edge-strength), var(--line));
+    box-shadow:
+      inset 0 1px color-mix(in srgb, var(--card-light) var(--highlight-strength), transparent),
+      0 5px 21px color-mix(in srgb, var(--card-light) var(--glow-strength), transparent),
+      var(--shadow);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .main-content
+    :is(
+      .group-breakdown.panel,
+      .insights,
+      .inventory-module,
+      .chart-container[aria-labelledby='distribution-heading']
+    ),
+  .kpi-products {
+    --card-light: var(--light-c);
+  }
+
+  .main-content :is(.target-settings, .inventory-module:has(#comparison-heading)),
+  .kpi-a_share {
+    --card-light: var(--light-a);
+  }
+
+  .main-content [aria-labelledby='library-heading'] {
+    --card-light: var(--light-blue);
+  }
+
+  .kpi-total {
+    --card-base: var(--active);
+  }
+
+  .main-content .chart-container {
+    background: var(--surface);
+  }
+
+  @media (hover: hover) {
+    .main-content .panel:not(.export-panel):hover,
+    .main-content .inventory-metrics > div:hover,
+    .main-content .inventory-cell-detail:hover,
+    .kpi:hover {
+      border-color: color-mix(
+        in srgb,
+        var(--card-light) calc(var(--edge-strength) + 15%),
+        var(--line)
+      );
+      box-shadow:
+        inset 0 1px
+          color-mix(in srgb, var(--card-light) calc(var(--highlight-strength) + 10%), transparent),
+        0 7px 25px
+          color-mix(in srgb, var(--card-light) calc(var(--glow-strength) + 7%), transparent),
+        var(--shadow);
+    }
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -277,3 +277,146 @@
     display: none;
   }
 }
+
+@media (min-width: 861px) {
+  .guide-page {
+    --guide-blue-start: #eaf1ff;
+    --guide-violet-start: #eee7fc;
+    --guide-cyan-start: #e2f5f6;
+    --guide-amber-start: #fcf1df;
+    --guide-finish: #fbfaff;
+    --guide-well: #f0f4fd;
+    --guide-formula: #eee9f9;
+  }
+
+  :root[data-theme='dark'] .guide-page {
+    --guide-blue-start: #193452;
+    --guide-violet-start: #27203e;
+    --guide-cyan-start: #10333e;
+    --guide-amber-start: #3c3021;
+    --guide-finish: #102036;
+    --guide-well: #0c1b2d;
+    --guide-formula: #241f3c;
+  }
+
+  .guide-page .guide-blue,
+  .guide-application {
+    --guide-light: var(--light-blue);
+    --guide-start: var(--guide-blue-start);
+  }
+
+  .guide-page .guide-violet,
+  .guide-class.tone-A,
+  .guide-method-card {
+    --guide-light: var(--light-a);
+    --guide-start: var(--guide-violet-start);
+  }
+
+  .guide-page .guide-cyan,
+  .guide-class.tone-C,
+  .guide-method-movement,
+  .guide-method-period {
+    --guide-light: var(--light-c);
+    --guide-start: var(--guide-cyan-start);
+  }
+
+  .guide-class.tone-B,
+  .guide-method-simulation,
+  .guide-limits {
+    --guide-light: var(--light-b);
+    --guide-start: var(--guide-amber-start);
+  }
+
+  .guide-page .guide-hero,
+  .guide-page .guide-tabs [aria-selected='true'] {
+    background: linear-gradient(120deg, var(--guide-blue-start), var(--guide-violet-start));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--light-blue) var(--edge-strength), transparent),
+      0 0 20px color-mix(in srgb, var(--light-a) var(--glow-strength), transparent);
+  }
+
+  .guide-page .guide-hero-bars i {
+    box-shadow: 0 0 11px color-mix(in srgb, var(--light-a) var(--edge-strength), transparent);
+  }
+
+  .guide-page .guide-hero-bars i:nth-child(4) {
+    box-shadow: 0 0 11px color-mix(in srgb, var(--light-b) var(--edge-strength), transparent);
+  }
+
+  .guide-page .guide-hero-bars i:nth-child(5) {
+    box-shadow: 0 0 11px color-mix(in srgb, var(--light-c) var(--edge-strength), transparent);
+  }
+
+  .main-content
+    .guide-page
+    :is(
+      .guide-feature,
+      .guide-class,
+      .guide-panel,
+      .guide-method-card,
+      .guide-application,
+      .guide-limits
+    ) {
+    background: linear-gradient(140deg, var(--guide-start), var(--guide-finish));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--guide-light) var(--edge-strength), transparent),
+      inset 0 1px color-mix(in srgb, var(--guide-light) var(--highlight-strength), transparent),
+      0 4px 20px color-mix(in srgb, var(--guide-light) var(--glow-strength), transparent);
+    transition: box-shadow 160ms ease;
+  }
+
+  .guide-page :is(.guide-feature, .guide-class) {
+    border-color: transparent;
+    border-top-color: var(--guide-light);
+  }
+
+  .main-content .guide-page .guide-panel {
+    --card-light: var(--guide-light);
+    border-color: color-mix(in srgb, var(--guide-light) var(--edge-strength), var(--line));
+    box-shadow:
+      inset 3px 0 var(--guide-light),
+      0 4px 20px color-mix(in srgb, var(--guide-light) var(--glow-strength), transparent);
+  }
+
+  .guide-page :is(.section-icon, .guide-class .group-badge) {
+    box-shadow:
+      inset 0 0 0 1px
+        color-mix(
+          in srgb,
+          var(--guide-light, var(--light-a)) var(--highlight-strength),
+          transparent
+        ),
+      0 0 10px
+        color-mix(in srgb, var(--guide-light, var(--light-a)) var(--glow-strength), transparent);
+  }
+
+  .guide-page .callout,
+  .guide-page .guide-step {
+    background: var(--guide-well);
+    border-color: color-mix(
+      in srgb,
+      var(--guide-light, var(--light-blue)) var(--edge-strength),
+      var(--line)
+    );
+    border-radius: 8px;
+  }
+
+  .guide-page .formula {
+    background: var(--guide-formula);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--light-a) var(--edge-strength), transparent);
+    font-family: Georgia, serif;
+    text-align: center;
+  }
+
+  @media (hover: hover) {
+    .main-content
+      .guide-page
+      :is(.guide-feature, .guide-class, .guide-method-card, .guide-application):hover {
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--guide-light) calc(var(--edge-strength) + 15%), transparent),
+        0 6px 24px
+          color-mix(in srgb, var(--guide-light) calc(var(--glow-strength) + 8%), transparent);
+    }
+  }
+}
