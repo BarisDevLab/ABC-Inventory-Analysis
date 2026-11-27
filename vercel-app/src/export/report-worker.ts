@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../core/user-error';
 import { createExcelReport, createExcelTemplate } from './excel-report';
 import type { Analysis } from '../core/abc';
 
@@ -10,6 +11,6 @@ export async function handleReportRequest(request: ReportRequest): Promise<Repor
     const bytes = request.kind === 'template' ? await createExcelTemplate() : await createExcelReport(request.analysis);
     return { ok: true, buffer: bytes.slice().buffer };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Excel dosyası hazırlanamadı. Lütfen yeniden deneyin.' };
+    return { ok: false, message: userErrorMessage(error, 'Excel dosyası hazırlanamadı. Lütfen yeniden deneyin.') };
   }
 }

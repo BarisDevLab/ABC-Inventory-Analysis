@@ -31,7 +31,9 @@ export default defineConfig(({ command, mode }) => ({
   }],
   worker: { format: 'es' },
   build: {
-    manifest: true,
+    // The diagnostic asset graph is useful for local verification only.
+    manifest: mode !== 'deployment',
+    sourcemap: false,
     // Native dynamic imports work with connect-src 'none'; Vite fetch-based
     // modulepreload polyfills would request scripts through the blocked channel.
     modulePreload: false,

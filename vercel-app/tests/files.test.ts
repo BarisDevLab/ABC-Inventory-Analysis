@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import reference from './fixtures/file-golden.json';
@@ -67,6 +68,17 @@ describe('Tarayıcı dosya giriş sözleşmesi ve gizlilik', () => {
     expect(calculateAbc(await readInventoryFile(combined.subarray(2,-2),'slice.csv')).total).toBe(2);
     expect(combined).toEqual(before);
   });
+  it('seyrek XLSX koordinatlarını boş hücreleri koruyarak matrise aktarır', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Stok');
+    sheet.addRow([...FIELDS]);
+    sheet.getCell('A4').value = 'Vida';
+    sheet.getCell('C4').value = 25;
+    const input = new Uint8Array(await workbook.xlsx.writeBuffer());
+    const table = await readInventoryFile(input, 'sparse.xlsx');
+    expect(table.rows).toEqual([[null, null, null], [null, null, null], ['Vida', null, 25]]);
+  });
+
   it('xlsx alt görünümünü doğru okur', async () => {
     const raw = bytes('xlsx-demo.xlsx'), wrapped = new Uint8Array(raw.length + 8);
     wrapped.set(raw, 4);
@@ -79,6 +91,14 @@ describe('Tarayıcı dosya giriş sözleşmesi ve gizlilik', () => {
       view.setUint16(i + 8, view.getUint16(i + 8,true) | 1,true); break;
     }
     await expect(readInventoryFile(raw,'encrypted.xlsx')).rejects.toThrow('parola koruması olmayan');
+  });
+  it.each([8, 12])('ZIP son kaydındaki tutarsız alanı reddeder (%i)', async field => {
+    const raw = bytes('xlsx-demo.xlsx');
+    const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    const end = raw.byteLength - 22;
+    expect(view.getUint32(end, true)).toBe(0x06054b50);
+    view.setUint16(end + field, view.getUint16(end + field, true) ^ 1, true);
+    await expect(readInventoryFile(raw, 'invalid.xlsx')).rejects.toThrow('Excel dosyası okunamadı');
   });
   it('bildirilen açılmış ZIP boyutunu yüklemeden sınırlar', async () => {
     const raw = bytes('xlsx-demo.xlsx'), view = new DataView(raw.buffer);

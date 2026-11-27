@@ -58,6 +58,14 @@ describe('Excel raporu ve şablon referansları', () => {
 });
 
 describe('Tam analiz ve formül güvenliği', () => {
+  it('beklenmeyen üretici hatasındaki özel ayrıntıyı açığa çıkarmaz', async () => {
+    const analysis = new Proxy(calculateAbc(sampleData()), {
+      get() { throw new Error('Özel çalışma kitabı ayrıntısı'); },
+    });
+    await expect(handleReportRequest({ kind: 'report', analysis })).resolves.toEqual({
+      ok: false, message: 'Excel dosyası hazırlanamadı. Lütfen yeniden deneyin.',
+    });
+  });
   it('boş analiz anlaşılır hata verir', async () => {
     const empty={...calculateAbc(sampleData()),rows:[]};
     await expect(createExcelReport(empty)).rejects.toThrow('ürün içeren geçerli bir analiz');

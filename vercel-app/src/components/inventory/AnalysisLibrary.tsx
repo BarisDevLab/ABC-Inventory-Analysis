@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../../core/user-error';
 import { displayError, useLocale } from '../../ui/locale';
 import { useEffect, useRef, useState } from 'react';
 import type { Analysis } from '../../core/abc';
@@ -73,9 +74,10 @@ export function AnalysisLibrary({
                 'Tarayıcı bu işlemi tamamlayamadı. Yerel depolama veya dosya izinlerini kontrol edin.',
                 'The browser could not complete this operation. Check local storage or file permissions.',
               )
-            : error instanceof Error
-              ? error.message
-              : t('İşlem tamamlanamadı.', 'The operation could not be completed.'),
+            : userErrorMessage(
+                error,
+                t('İşlem tamamlanamadı.', 'The operation could not be completed.'),
+              ),
         );
       }
     } finally {

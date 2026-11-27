@@ -1,3 +1,4 @@
+import { browserCall, classifyRequest, inspectHeaders } from './browser-review-security.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -42,7 +43,7 @@ async function request(key, data) {
     globalThis.importScripts = () => { throw new Error('Expected an ESM worker'); };
     globalThis.postMessage = (message, transfer) => parentPort.postMessage(message, transfer);
     await import(workerData);
-    parentPort.on('message', data => globalThis.onmessage({ data }));
+    parentPort.on('message', data => globalThis.onmessage({ data, origin: '', source: null, isTrusted: true, ports: [] }));
   `;
   const worker = new Worker(new URL('data:text/javascript,' + encodeURIComponent(bootstrap)), { workerData: entry });
   try {
@@ -67,3 +68,18 @@ const template = await request(excelWorker, { kind: 'template' });
 assert.equal(template.ok, true, template.message);
 assert.equal(new DataView(template.buffer).getUint32(0), 0x504b0304);
 console.log('Production module workers: CSV, XLSX, template and lazy asset graph verified.');
+
+const marker = 'synthetic-private-marker';
+const callback = value => value;
+const call = browserCall('receiver', callback, [marker]);
+assert(!call.functionDeclaration.includes(marker));
+assert.deepEqual(call.arguments, [{ value: marker }]);
+
+const origin = 'https://test.example';
+const event = classifyRequest(origin, { url: origin + '/assets/example.js?q=' + marker, method: 'POST', postData: marker });
+assert(event.sameOrigin && !event.readOnly && !event.staticResource);
+assert(!JSON.stringify(event).includes(marker));
+const headers = inspectHeaders({ 'set-cookie': marker, 'authorization': marker });
+assert.deepEqual(headers, { standard: false, crossOrigin: false });
+assert(!JSON.stringify(headers).includes(marker));
+console.log('Browser review: call arguments remain separate and network diagnostics contain only classifications.');

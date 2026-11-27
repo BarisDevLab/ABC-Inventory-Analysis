@@ -34,4 +34,8 @@ describe('Üretim güvenlik politikası',()=>{
     for(const name of ['camera','microphone','geolocation','usb','serial','hid','display-capture'])expect(headers['permissions-policy']).toContain(`${name}=()`);
     expect(directives['upgrade-insecure-requests']).toEqual([]);
   });
+  it('pencere bağlamını ve statik kaynakların siteler arası kullanımını sınırlar',()=>{
+    expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+    expect(headers['cross-origin-resource-policy']).toBe('same-origin');
+  });
 });
