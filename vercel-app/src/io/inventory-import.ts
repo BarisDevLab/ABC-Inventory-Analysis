@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../core/user-error';
 import { FIELDS, SKU_FIELD, calculateAbc, normalizeNumberDigits, parseNumber } from '../core/abc';
 import type { Analysis, Cell, InputTable, Targets } from '../core/abc';
 import { CsvStructureError, FileImportError, readImportSheet, strip } from './read-file';
@@ -157,6 +158,6 @@ export async function prepareImport(
     };
     return { preview, result: { source, analysis: calculateAbc(source, targets), warnings } };
   } catch (error) {
-    return { preview, message: error instanceof Error ? error.message : 'Dosya analiz edilemedi.' };
+    return { preview, message: userErrorMessage(error, 'Dosya analiz edilemedi.') };
   }
 }

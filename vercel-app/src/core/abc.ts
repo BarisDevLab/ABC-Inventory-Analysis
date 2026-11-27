@@ -1,3 +1,4 @@
+import { UserInputError } from './user-error';
 import unicode from './unicode-data.json';
 import { DEFAULT_TARGETS, validateTargets } from './targets';
 import type { Targets } from './targets';
@@ -122,7 +123,7 @@ export function summarizeGroups(rows: readonly AnalysisRow[], total: number): Gr
 export function analysisInsights(rows: readonly AnalysisRow[]): Insights {
   const total = pythonSum(rows.map(row => row.value));
   if (!rows.length || total <= 0 || !Number.isFinite(total)) {
-    throw new Error('Yorum oluşturmak için pozitif toplam değerli analiz gereklidir.');
+    throw new UserInputError('Yorum oluşturmak için pozitif toplam değerli analiz gereklidir.');
   }
   const ranked = [...rows].sort((a, b) => b.value - a.value);
   return {
@@ -149,42 +150,42 @@ export function engineeringCommentary(insights: Insights): string[] {
 export function calculateAbc(source: InputTable, selected: Targets = DEFAULT_TARGETS): Analysis {
   const targets = validateTargets(selected);
   const columns = source.columns.map(pythonStrip);
-  if (new Set(columns).size !== columns.length) throw new Error('Tekrarlanan sütun başlıkları var.');
+  if (new Set(columns).size !== columns.length) throw new UserInputError('Tekrarlanan sütun başlıkları var.');
   const missing = FIELDS.filter(field => !columns.includes(field));
-  if (missing.length) throw new Error('Eksik sütunlar: ' + missing.join(', '));
-  if (!source.rows.length) throw new Error('Dosyada ürün bulunamadı.');
+  if (missing.length) throw new UserInputError('Eksik sütunlar: ' + missing.join(', '));
+  if (!source.rows.length) throw new UserInputError('Dosyada ürün bulunamadı.');
   const indices = FIELDS.map(field => columns.indexOf(field));
   const cells = source.rows.map(row => indices.map(index => row[index]));
   if (cells.some(row => row.some(value => value == null || (typeof value === 'number' && Number.isNaN(value))))) {
-    throw new Error('Boş hücreler var. Lütfen bütün alanları doldurun.');
+    throw new UserInputError('Boş hücreler var. Lütfen bütün alanları doldurun.');
   }
   const products = cells.map(row => pythonStrip(pythonString(row[0])));
-  if (products.some(name => !name)) throw new Error('Ürün adı boş bırakılamaz.');
+  if (products.some(name => !name)) throw new UserInputError('Ürün adı boş bırakılamaz.');
   const skuIndex = source.hasSku ? columns.indexOf(SKU_FIELD) : -1;
-  if (source.hasSku && skuIndex === -1) throw new Error('Ürün kodu sütunu bulunamadı.');
+  if (source.hasSku && skuIndex === -1) throw new UserInputError('Ürün kodu sütunu bulunamadı.');
   const codes = skuIndex < 0 ? null : source.rows.map(row => {
     const code = row[skuIndex];
     return code == null ? '' : pythonStrip(pythonString(code));
   });
-  if (codes?.some(code => !code)) throw new Error('SKU eşleştirildiğinde tüm ürün kodları doldurulmalıdır.');
-  if (codes && new Set(codes).size !== codes.length) throw new Error('Tekrarlanan ürün kodları var.');
+  if (codes?.some(code => !code)) throw new UserInputError('SKU eşleştirildiğinde tüm ürün kodları doldurulmalıdır.');
+  if (codes && new Set(codes).size !== codes.length) throw new UserInputError('Tekrarlanan ürün kodları var.');
   if (!codes && new Set(products.map(normalizeProduct)).size !== products.length) {
-    throw new Error('Tekrarlanan ürün adları var. Her ürünü tek satırda belirtin.');
+    throw new UserInputError('Tekrarlanan ürün adları var. Her ürünü tek satırda belirtin.');
   }
   const numeric = [1, 2].map(index => {
     const values = cells.map(row => parseNumber(row[index]));
-    if (values.some(value => !Number.isFinite(value))) throw new Error(`'${FIELDS[index]}' sütununda geçersiz sayı var.`);
-    if (values.some(value => value < 0)) throw new Error(`'${FIELDS[index]}' negatif olamaz.`);
+    if (values.some(value => !Number.isFinite(value))) throw new UserInputError(`'${FIELDS[index]}' sütununda geçersiz sayı var.`);
+    if (values.some(value => value < 0)) throw new UserInputError(`'${FIELDS[index]}' negatif olamaz.`);
     return values;
   });
   const ranked = products.map((product, index) => ({
     product, ...(codes ? { sku: codes[index] } : {}), quantity: numeric[0][index], price: numeric[1][index],
     value: numeric[0][index] * numeric[1][index], index,
   }));
-  if (ranked.some(row => !Number.isFinite(row.value))) throw new Error('Yıllık değer hesaplamasında çok büyük bir sayı oluştu.');
+  if (ranked.some(row => !Number.isFinite(row.value))) throw new UserInputError('Yıllık değer hesaplamasında çok büyük bir sayı oluştu.');
   ranked.sort((a, b) => b.value - a.value || a.index - b.index);
   const total = pythonSum(ranked.map(row => row.value));
-  if (!Number.isFinite(total) || total <= 0) throw new Error('Toplam yıllık değer sıfırdan büyük olmalıdır.');
+  if (!Number.isFinite(total) || total <= 0) throw new UserInputError('Toplam yıllık değer sıfırdan büyük olmalıdır.');
   let cumulative = 0;
   const below = (before: number, threshold: number) => before < threshold && Math.abs(before - threshold) > BOUNDARY_TOLERANCE;
   const rows: AnalysisRow[] = ranked.map(({ index: _index, ...row }) => {

@@ -80,6 +80,14 @@ describe('Tarayıcı dosya giriş sözleşmesi ve gizlilik', () => {
     }
     await expect(readInventoryFile(raw,'encrypted.xlsx')).rejects.toThrow('parola koruması olmayan');
   });
+  it.each([8, 12])('ZIP son kaydındaki tutarsız alanı reddeder (%i)', async field => {
+    const raw = bytes('xlsx-demo.xlsx');
+    const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    const end = raw.byteLength - 22;
+    expect(view.getUint32(end, true)).toBe(0x06054b50);
+    view.setUint16(end + field, view.getUint16(end + field, true) ^ 1, true);
+    await expect(readInventoryFile(raw, 'invalid.xlsx')).rejects.toThrow('Excel dosyası okunamadı');
+  });
   it('bildirilen açılmış ZIP boyutunu yüklemeden sınırlar', async () => {
     const raw = bytes('xlsx-demo.xlsx'), view = new DataView(raw.buffer);
     for (let i = 0; i < raw.length - 46; i++) if (view.getUint32(i,true) === 0x02014b50) {

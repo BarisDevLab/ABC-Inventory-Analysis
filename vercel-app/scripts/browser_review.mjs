@@ -5,8 +5,9 @@ import { mkdir,readFile,writeFile,readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 const root=process.cwd(),base=process.env.ABC_REVIEW_URL??'http://127.0.0.1:4175';
-if(!['http://127.0.0.1:4175','https://abc-inventory-analysis.vercel.app'].includes(base) && !/^https:\/\/abc-inventory-analysis-[a-z0-9-]+\.vercel\.app$/.test(base))throw new Error('Unexpected review origin');
+if(!/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(base) && base!=='https://abc-inventory-analysis.vercel.app' && !/^https:\/\/abc-inventory-analysis-[a-z0-9-]+\.vercel\.app$/.test(base))throw new Error('Unexpected review origin');
 const production=base.startsWith('https:');
+const desktopOnly=process.env.ABC_REVIEW_DESKTOP_ONLY==='1';
 const run=resolve(root,production?'.tmp/live-review':'.tmp/ui-review',new Date().toISOString().replace(/[:.]/g,'-'));
 await mkdir(resolve(run,'downloads'),{recursive:true});
 const checks=[],errors=[],requests=[],downloads=[],diagnostics=[];
@@ -28,7 +29,7 @@ function send(method,params={},sessionId=session){return new Promise((resolve,re
 async function poll(fn,label,timeout=30000){const start=Date.now();while(Date.now()-start<timeout){try{const value=await fn();if(value)return value;}catch{ /* Retry while the browser is starting or navigating. */ }await delay(150);}throw new Error(`Timed out: ${label}`);}
 async function evaluate(expression){const response=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(response.exceptionDetails)throw new Error(response.exceptionDetails.text+' '+response.exceptionDetails.exception?.description);return response.result.value;}
 const wait=(expression,label=expression,timeout=30000)=>poll(()=>evaluate(`Boolean(${expression})`),label,timeout);
-const click=text=>evaluate(`(()=>{const button=Array.from(document.querySelectorAll('button')).find(el=>el.textContent.trim()===${JSON.stringify(text)}&&!el.disabled&&el.getBoundingClientRect().width);if(!button)throw new Error('Missing button: '+${JSON.stringify(text)});button.click();return true;})()`);
+const click=text=>evaluate(`(()=>{const button=Array.from(document.querySelectorAll('button')).find(el=>(el.textContent.trim()===${JSON.stringify(text)}||el.getAttribute('aria-label')===${JSON.stringify(text)})&&!el.disabled&&el.getBoundingClientRect().width);if(!button)throw new Error('Missing button: '+${JSON.stringify(text)});button.click();return true;})()`);
 const route=hash=>evaluate(`(location.hash=${JSON.stringify(hash)},true)`);
 const set=(selector,value)=>evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input),'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
 async function viewport(width,height,mobile=false){await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile});await send('Emulation.setTouchEmulationEnabled',{enabled:mobile});await delay(500);}
@@ -152,7 +153,7 @@ try {
     await screenshot(`05c-desktop-${count}`,'.chart-container');
   }
   await upload(longFile);await wait("document.querySelector('[data-kpi=products]').dataset.value==='60'&&document.querySelector('.plot-host').data[0].y.length===60");
-  for(const [width,height,label] of [[820,1180,'tablet'],[390,844,'mobile'],[360,800,'small-mobile']]){
+  if(!desktopOnly) for(const [width,height,label] of [[820,1180,'tablet'],[390,844,'mobile'],[360,800,'small-mobile']]){
     await viewport(width,height,true);await screenshot(`06-${label}-dashboard`,'.dashboard-hero');
     assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${label}: no horizontal page overflow`);
     const compact=await evaluate("document.querySelector('.chart-toolbar label input').checked");if(!compact)await evaluate("document.querySelector('.chart-toolbar label input').click()");
@@ -170,8 +171,8 @@ try {
   }
   await viewport(1440,1000);const tiny=resolve(run,'tiny.csv');await writeFile(tiny,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\nHassas parça;1;2e-300\nİkinci;1;4e-301');await upload(tiny);await wait("document.querySelector('[data-kpi=products]').dataset.value==='2'");
   await wait("document.querySelector('.plot-host').data[0].y[0]===2e-300");assert(await evaluate("document.querySelector('.plot-host').data[0].customdata[0][2]!=='0,00'"),'Tiny values retain nonzero tooltip');await screenshot('10-desktop-tiny','.chart-container');
-  const unsafe=resolve(run,'unsafe-name.csv');await writeFile(unsafe,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n<img src=x onerror="window.__injected=1">;1;10');await upload(unsafe);await wait("document.querySelector('[data-kpi=products]').dataset.value==='1'");
-  assert(await evaluate("!document.querySelector('img[src=x]')&&!window.__injected"),'User product markup is text, not executable DOM');
+  const markup=resolve(run,'literal-name.csv');await writeFile(markup,'Ürün;Yıllık Tüketim;Birim Fiyat (TL)\n<b>Örnek ürün</b>;1;10');await upload(markup);await wait("document.querySelector('[data-kpi=products]').dataset.value==='1'");
+  assert(await evaluate("document.body.textContent.includes('<b>Örnek ürün</b>')&&!Array.from(document.querySelectorAll('b')).some(el=>el.textContent==='Örnek ürün')"),'User product markup is text, not executable DOM');
   await click('Analizi temizle');assert(await evaluate("document.querySelectorAll('[data-kpi]').length===0"),'Clear returns to empty state');
 
   if (base !== 'https://abc-inventory-analysis.vercel.app') {
@@ -230,9 +231,11 @@ try {
     await wait(`document.querySelector('${comparison} + details').textContent.includes('1 ürünün sınıfı değişiyor')`);
     assert(await evaluate(total('1.254,00 TL')),'Scenario leaves the primary dashboard unchanged');
 
-    await viewport(390,844,true);
-    assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),'Expanded inventory modules fit the mobile viewport');
-    await viewport(1440,1000);
+    if(!desktopOnly){
+      await viewport(390,844,true);
+      assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),'Expanded inventory modules fit the mobile viewport');
+      await viewport(1440,1000);
+    }
     await route('analiz-gecmisi');
     await wait("document.querySelector('#library-heading')");
     await clickSelector(library+' summary');
@@ -254,6 +257,7 @@ try {
     await click('Tüm geçmişi sil');
     await click('Silme işlemini onayla');
     await wait(`document.querySelector('${history}').textContent.includes('Henüz kayıtlı analiz yok.')`);
+    assert(await evaluate("indexedDB.databases().then(items=>!items.some(item=>item.name==='abc-inventory-user-history'))"),'Clearing history deletes the database and refreshing the list does not recreate it');
     await clickSelector(library+' summary');
     await upload(resolve(run,'downloads','abc-analiz-paketi.json'),library+' input[type=file]');
     await wait(total('1.254,00 TL'));
@@ -317,13 +321,15 @@ try {
     await wait("document.documentElement.lang==='en'&&document.querySelector('.inventory-panel:not([hidden]) .inventory-results').textContent.includes('Policy comparison')");
     if(await evaluate("document.documentElement.dataset.theme==='light'"))await clickSelector('.theme-toggle');
     assert(await evaluate("document.documentElement.dataset.theme==='dark'"),'English results and dark theme preserve the simulation');
-    await viewport(390,844,true);
-    for (const hash of ['genel-bakis','analiz','stok-karar-destegi','donemsel-karsilastirma','senaryo','stok-optimizasyonu','fsn-ved','maliyet-simulasyonu','analiz-gecmisi','rehber']) {
-      await route(hash);
-      await wait(`document.querySelector('nav a[aria-current=page]')?.hash==='#${hash}'&&[...document.querySelectorAll('main h1')].some(heading=>heading.checkVisibility())`);
-      assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${hash}: mobile page fits in English dark mode`);
+    if(!desktopOnly){
+      await viewport(390,844,true);
+      for (const hash of ['genel-bakis','analiz','stok-karar-destegi','donemsel-karsilastirma','senaryo','stok-optimizasyonu','fsn-ved','maliyet-simulasyonu','analiz-gecmisi','rehber']) {
+        await route(hash);
+        await wait(`document.querySelector('nav a[aria-current=page]')?.hash==='#${hash}'&&[...document.querySelectorAll('main h1')].some(heading=>heading.checkVisibility())`);
+        assert(await evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),`${hash}: mobile page fits in English dark mode`);
+      }
+      await screenshot('12-mobile-guide-en-dark','.guide-tabs');
     }
-    await screenshot('12-mobile-guide-en-dark','.guide-tabs');
 
   }
   assert(errors.length===0,'No page runtime errors or blocked application requests');assert(!requests.some(url=>/^https?:/.test(url)&&!url.startsWith(base+'/')),'No external page requests');
@@ -334,6 +340,11 @@ try {
   assert(networkRecords.filter(record=>/^https?:/.test(record.url)).every(record=>{const url=new URL(record.url);return !url.search&&(/^\/$|^\/favicon\.ico$|^\/fonts\/geist-latin(?:-ext)?\.woff2$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname));}),'Only static resource URLs without query payloads requested');
   const headers=Object.fromEntries(Object.entries(responseHeaders[0]??{}).map(([key,value])=>[key.toLowerCase(),value]));
   assert(headers['content-security-policy']?.includes("connect-src 'none'")&&headers['content-security-policy']?.includes("frame-ancestors 'none'")&&headers['x-frame-options']==='DENY'&&headers['x-content-type-options']==='nosniff'&&headers['referrer-policy']==='no-referrer'&&!!headers['permissions-policy'],'Security response headers delivered to real browser');
+  if(!production){
+    assert(headers['cross-origin-opener-policy']==='same-origin'&&headers['cross-origin-resource-policy']==='same-origin','Cross-origin protections apply to the production build');
+    assert(await evaluate("Object.keys(localStorage).every(key=>['abc:language','abc:theme'].includes(key))&&sessionStorage.length===0&&document.cookie===''"),'Only non-inventory preferences persist outside IndexedDB');
+    assert(await evaluate("Promise.all([caches.keys(),navigator.serviceWorker.getRegistrations(),indexedDB.databases()]).then(groups=>groups.every(entries=>entries.length===0))"),'No cache, service worker registration or history database remains');
+  }
   result.success=true;
 }catch(error){result.success=false;result.failure=error.stack;console.error(error.stack);try{result.failurePage=await evaluate('document.documentElement.outerHTML.slice(0,5000)');result.failureState=await evaluate(`[...document.querySelectorAll('.plot-host,[role=alert],main h1')].map(el=>({class:el.className,visible:el.checkVisibility(),rect:el.getBoundingClientRect().toJSON(),data:el.data?.length,layout:el.layout?.xaxis?.range,fullLayout:el._fullLayout?.xaxis?.range,dragMode:el._fullLayout?.dragmode,alert:el.getAttribute('role')==='alert'?el.textContent:null}))`);await screenshot('failure');}catch{ /* The browser may already be unavailable. */ }}
 finally {

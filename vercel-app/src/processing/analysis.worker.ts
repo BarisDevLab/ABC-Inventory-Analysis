@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { userErrorMessage } from '../core/user-error';
 import { runAnalysisRequest } from './operations';
 import type { AnalysisRequest, AnalysisResponse } from './operations';
 
@@ -9,7 +10,7 @@ self.onmessage = async (event: MessageEvent<AnalysisRequest>) => {
   } catch (error) {
     self.postMessage({
       ok: false,
-      message: error instanceof Error ? error.message : 'Veriler işlenemedi.',
+      message: userErrorMessage(error, 'Veriler işlenemedi.'),
     } satisfies AnalysisResponse);
   }
 };

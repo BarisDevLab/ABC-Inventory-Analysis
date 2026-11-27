@@ -1,3 +1,4 @@
+import { UserInputError } from './user-error';
 import { GROUPS, normalizeProduct } from './abc';
 import type { Analysis, AnalysisRow, Group } from './abc';
 
@@ -33,7 +34,7 @@ export function compareAnalyses(previous: Analysis, current: Analysis): Comparis
     for (const row of rows) {
       const id = bySku ? row.sku! : normalizeProduct(row.product);
       if (products.has(id)) {
-        throw new Error('Dönemler adla eşleştirilemiyor. Yinelenen ürün adları için her iki dönemde de benzersiz ürün kodu seçin.');
+        throw new UserInputError('Dönemler adla eşleştirilemiyor. Yinelenen ürün adları için her iki dönemde de benzersiz ürün kodu seçin.');
       }
       products.set(id, row);
     }

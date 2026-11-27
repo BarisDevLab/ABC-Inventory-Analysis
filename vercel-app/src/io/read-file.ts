@@ -1,3 +1,4 @@
+import { UserInputError } from '../core/user-error';
 import type { Cell, InputTable, Targets, Analysis } from '../core/abc';
 import { calculateAbc, DEFAULT_TARGETS, FIELDS } from '../core/abc';
 import data from './file-decoding-data.json';
@@ -12,7 +13,7 @@ const EMPTY_ERROR = 'Dosya boş. Başlıkları ve en az bir ürün satırını e
 const naValues = new Set(data.na_values);
 const pythonWhitespace = new Set(unicode.whitespace);
 
-export class FileImportError extends Error {
+export class FileImportError extends UserInputError {
   constructor(message: string) { super(message); this.name = 'FileImportError'; }
 }
 
@@ -177,20 +178,31 @@ async function checkZip(bytes: Uint8Array): Promise<void> {
   }
   if (end < 0) throw new FileImportError(XLSX_ERROR);
   const count = view.getUint16(end + 10, true);
-  if (count > 10000 || view.getUint16(end + 4, true) || view.getUint16(end + 6, true)) throw new FileImportError(XLSX_ERROR);
-  let offset = view.getUint32(end + 16, true), inflated = 0, actualTotal = 0;
-  const directoryStart=offset;
-  if (offset === 0xffffffff) throw new FileImportError(XLSX_ERROR);
+  const directoryStart = view.getUint32(end + 16, true);
+  const directorySize = view.getUint32(end + 12, true);
+  if (!count || count > 10000 || count !== view.getUint16(end + 8, true)
+      || view.getUint16(end + 4, true) || view.getUint16(end + 6, true)
+      || directoryStart + directorySize !== end || directorySize < count * 46) {
+    throw new FileImportError(XLSX_ERROR);
+  }
+  let offset = directoryStart, inflated = 0, actualTotal = 0;
+  const localEntries = new Set<number>();
   for (let index = 0; index < count; index++) {
     if (offset + 46 > end || view.getUint32(offset, true) !== 0x02014b50 || (view.getUint16(offset + 8, true) & 1)) throw new FileImportError(XLSX_ERROR);
     inflated += view.getUint32(offset + 24, true);
     if (inflated > FILE_LIMITS.inflatedBytes) throw new FileImportError('Excel dosyasının açılmış boyutu çok büyük. Daha küçük bir dosya seçin.');
     const compressedSize=view.getUint32(offset+20,true),declaredSize=view.getUint32(offset+24,true);
     const method=view.getUint16(offset+10,true),local=view.getUint32(offset+42,true);
-    if(local+30>directoryStart||view.getUint32(local,true)!==0x04034b50
+    const nameSize = view.getUint16(offset + 28, true);
+    const next = offset + 46 + nameSize + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
+    if (!nameSize || next > end || view.getUint16(offset + 34, true) || localEntries.has(local)
+      || local+30>directoryStart||view.getUint32(local,true)!==0x04034b50
       ||(view.getUint16(local+6,true)&1)||view.getUint16(local+8,true)!==method)throw new FileImportError(XLSX_ERROR);
+    localEntries.add(local);
     const start=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true);
-    if(start+compressedSize>directoryStart)throw new FileImportError(XLSX_ERROR);
+    if (view.getUint16(local + 26, true) !== nameSize || start + compressedSize > directoryStart
+      || !bytes.subarray(offset + 46, offset + 46 + nameSize)
+        .every((byte, index) => byte === bytes[local + 30 + index])) throw new FileImportError(XLSX_ERROR);
     if(method===0){
       if(compressedSize!==declaredSize)throw new FileImportError(XLSX_ERROR);
       actualTotal+=compressedSize;
@@ -210,9 +222,9 @@ async function checkZip(bytes: Uint8Array): Promise<void> {
       finally{reader.releaseLock();}
       if(actualSize!==declaredSize)throw new FileImportError(XLSX_ERROR);
     }else throw new FileImportError(XLSX_ERROR);
-    offset += 46 + view.getUint16(offset + 28, true) + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
-    if (offset > end) throw new FileImportError(XLSX_ERROR);
+    offset = next;
   }
+  if (offset !== end) throw new FileImportError(XLSX_ERROR);
 }
 
 function excelValue(value: CellValue | undefined): Cell {

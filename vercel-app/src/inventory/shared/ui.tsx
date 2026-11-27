@@ -72,6 +72,7 @@ export function ModuleForm<T>({
   return (
     <>
       <form
+        autoComplete="off"
         className="inventory-form"
         onChange={clearResult}
         onReset={() => {

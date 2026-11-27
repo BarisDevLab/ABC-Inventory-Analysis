@@ -1,3 +1,4 @@
+import { UserInputError } from '../core/user-error';
 import { analysisSource, calculateAbc, FIELDS, GROUPS, SKU_FIELD, pythonSum, validateTargets } from '../core/abc';
 import type { Analysis, Group } from '../core/abc';
 import type { Workbook, Worksheet } from 'exceljs';
@@ -13,20 +14,20 @@ const EMPTY_ERROR = 'Excel raporu oluşturmak için ürün içeren geçerli bir 
 const CONSISTENCY_ERROR = 'Rapor için filtrelenmemiş, değiştirilmemiş tam analiz gereklidir. Analizi yeniden oluşturun.';
 
 function fullAnalysis(input: Analysis): Analysis {
-  if (!input || !Array.isArray(input.rows) || !input.rows.length) throw new Error(EMPTY_ERROR);
+  if (!input || !Array.isArray(input.rows) || !input.rows.length) throw new UserInputError(EMPTY_ERROR);
   try { validateTargets(input.targets); }
-  catch { throw new Error('Excel raporu için hedef payların toplamı %100 olmalıdır.'); }
+  catch { throw new UserInputError('Excel raporu için hedef payların toplamı %100 olmalıdır.'); }
   // The caller must pass the original analysis, never a chart's filtered rows.
   if (!input.insights || input.rows.length !== GROUPS.reduce((count, group) => count + input.insights.counts[group], 0)) {
-    throw new Error(CONSISTENCY_ERROR);
+    throw new UserInputError(CONSISTENCY_ERROR);
   }
-  if (input.rows.length > 100_000) throw new Error('Excel raporu en fazla 100.000 ürün içerebilir.');
+  if (input.rows.length > 100_000) throw new UserInputError('Excel raporu en fazla 100.000 ürün içerebilir.');
   const analysis = calculateAbc(analysisSource(input.rows), input.targets);
   if (analysis.total !== input.total || analysis.rows.some((row, index) => {
     const original = input.rows[index];
     return row.product !== original.product || row.sku !== original.sku || row.group !== original.group || row.value !== original.value
       || row.share !== original.share || row.cumulative !== original.cumulative;
-  })) throw new Error(CONSISTENCY_ERROR);
+  })) throw new UserInputError(CONSISTENCY_ERROR);
   return analysis;
 }
 
