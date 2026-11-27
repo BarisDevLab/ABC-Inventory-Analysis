@@ -1,25 +1,59 @@
-# Inventory Intelligence
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="vercel-app/public/brand-logo-light.svg" />
+  <img src="vercel-app/public/brand-logo-full.svg" width="700" alt="Envanter Zekâsı · Inventory Intelligence" />
+</picture>
 
-Inventory Intelligence, stok değerini, talep değişkenliğini ve ikmal kararlarını aynı çalışma alanında inceleyen bir tarayıcı uygulamasıdır. Türkçe ve İngilizce arayüz, açık ve koyu tema, klavyeyle gezinme ve mobil ekran desteği sunar.
+# Envanter Zekâsı
 
-[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [Teknik kılavuz](vercel-app/README.md)
+**Bütünleşik Stok Karar Destek Sistemi**
 
-## İşlevler
+Stok değerini, talep değişkenliğini ve ikmal politikalarını tarayıcıda inceleyin. Excel veya CSV dosyasıyla başlayın ya da uygulamanın sentetik örnek verisini açın.
 
-- **Genel bakış ve ABC analizi.** Excel veya CSV yükleyin. Çalışma sayfasını, başlık satırını, sütunları ve sayı biçimini seçin. Değer yoğunlaşmasını Pareto grafiğinde, ürün dökümünde ve Excel raporunda inceleyin.
-- **XYZ ve ABC-XYZ.** Eşit dönemlerin talebinden değişkenlik sınıfını hesaplayın. Güncel ABC sınıfıyla ürün kodu veya ürün adı üzerinden eşleştirin.
-- **Dönemsel karşılaştırma ve senaryo analizi.** İki dönemin değerlerini, ürün ekleme ve çıkarmalarını, sınıf geçişlerini görün. Alternatif ABC eşiklerini güncel veri üzerinde deneyin.
-- **Stok optimizasyonu.** EOQ, yeniden sipariş noktası ve emniyet stokunu işletme girdilerinizden hesaplayın.
-- **FSN, VED ve maliyet simülasyonu.** Hareket sıklığını ve operasyonel kritiklik düzeyini sınıflandırın. Sabit parti ve hedefe tamamlama politikalarını aynı talep serisiyle karşılaştırın.
-- **Analiz geçmişi ve rehber.** Sürümlü JSON analiz paketi aktarın, dilediğiniz analizi tarayıcı geçmişine kaydedin ve örneklerle hesaplama yöntemlerini inceleyin.
+[Canlı uygulama](https://abc-inventory-analysis.vercel.app) · [English](README.en.md) · [Teknik kılavuz](vercel-app/README.md)
+[Tam logo](vercel-app/public/brand-logo-full.svg) · [Şeffaf](vercel-app/public/brand-logo-transparent.svg) · [Açık tema](vercel-app/public/brand-logo-light.svg) · [Koyu tema](vercel-app/public/brand-logo-dark.svg) · [Favicon](vercel-app/public/favicon.svg)
 
-## Kurulum
+## Uygulamadan görüntüler
+
+![Türkçe koyu temada sentetik envanter özeti ve değer dağılımı](docs/screenshots/overview-tr-dark.png)
+
+![İngilizce açık temada ABC Pareto grafiği ve grup hedefleri](docs/screenshots/abc-en-light.png)
+
+Görüntüler yerel üretim derlemesinde uygulamanın sentetik örnek verisiyle alındı.
+
+## Analiz modülleri
+
+| Modül | Kullanım |
+| --- | --- |
+| ABC ve Pareto | Yıllık parasal tüketim değerine göre ürünleri sıralayın. Grup paylarını ve kümülatif değeri inceleyin. |
+| XYZ | Eşit dönemlerdeki talebin değişim katsayısıyla değişkenlik sınıfı belirleyin. |
+| ABC-XYZ | Ekonomik önem ve talep değişkenliğini SKU veya ürün adı üzerinden dokuz hücreli matriste birleştirin. |
+| Dönemsel karşılaştırma | Eşdeğer iki dönemin parasal farklarını, eklenen ve çıkan ürünleri ve sınıf geçişlerini izleyin. |
+| Senaryo analizi | Aynı envantere alternatif ABC hedefleri uygulayın ve sınıf geçişlerini karşılaştırın. |
+| EOQ | Yıllık ilgili maliyeti en aza indiren teorik sipariş miktarını ve maliyet eğrilerini görün. |
+| Yeniden sipariş noktası | Tedarik süresindeki beklenen talep ve emniyet stokundan sipariş eşiğini hesaplayın. |
+| Emniyet stoku | Sabit veya değişken tedarik süresi için normal model ya da gözlemlere dayalı ampirik model kullanın. |
+| FSN | Pozitif stok çıkışı görülen dönemlerin sıklığına göre hareketi sınıflandırın. |
+| VED | Operasyon ve güvenlik etkisine göre kritiklik düzeyi belirleyin ve gerekçesini kaydedin. |
+| Stok maliyeti simülasyonu | Aynı talep serisinde sabit parti ve hedefe tamamlama politikalarının maliyetini ve karşılama oranını karşılaştırın. |
+
+Uygulama ayrıca ABC Excel raporu, grafik görseli, sürümlü JSON paketi, isteğe bağlı yerel analiz geçmişi ve iki dilli yöntem rehberi sağlar.
+
+## Mimari ve gizlilik
+
+React ve TypeScript arayüzü Vite ile statik uygulamaya derlenir. Hesaplama modülleri kullanıcı arayüzünden ayrıdır. Web Worker’lar dosya işleme, ABC, dönem ve senaryo hesapları ile Excel raporlamayı yürütür. Plotly grafikleri, ExcelJS çalışma kitaplarını işler. GitHub Actions kalite kontrollerini çalıştırır.
+
+Dosya ve analiz verileri tarayıcıda işlenir. Analiz geçmişine yalnızca açık kaydetme işlemiyle IndexedDB kaydı eklenir ve kayıtlar silinebilir. İndirmeler tarayıcıda oluşturulur. Kaynaklar aynı kökenden sunulur ve üretim güvenlik politikası uygulama ağ bağlantılarını kısıtlar.
+
+- [Akademik doğrulama ve model sınırlamaları](ENGINEERING_VALIDATION.md)
+- [Güvenlik denetimi ve doğrulama kapsamı](SECURITY_AUDIT.md)
+
+## Yerel geliştirme
 
 Node.js 24.x (en az 24.11.1) ve npm gerekir.
 
 ```sh
 cd vercel-app
-npm ci
+npm ci --ignore-scripts
 npm run dev
 ```
 
@@ -30,31 +64,7 @@ npm run lint
 npm run format:check
 npm run build
 npm run verify:production
-npm audit --audit-level=moderate
+npm audit
 ```
 
-React, TypeScript ve Vite ile derlenen statik uygulamada hesaplama modülleri arayüzden bağımsızdır. Dosya okuma, ABC, dönem ve senaryo hesapları, JSON paketleme ve Excel üretimi Web Worker’da çalışır. Ekranlar gerektiğinde yüklenir. Excel okuma ve üretim worker’ları aynı ExcelJS dosyasını paylaşır. Plotly, grafik görünüm alanına yaklaşınca yüklenir. GitHub Actions kalite kontrollerini çalıştırır. Vercel proje kökü `vercel-app`, derleme çıktısı `dist` dizinidir.
-
-## Hesaplama yöntemleri
-
-| Modül | Yöntem |
-| --- | --- |
-| ABC | Yıllık tüketim × birim fiyat. Azalan değer sırasındaki önceki kümülatif pay, ürünün sınıfını belirler. %80 ve %95’e tam eşit başlangıç, varsayılan eşiklerde sırasıyla B ve C’ye girer. Eşiği geçen ürün başlangıç grubunda kalır. Sıfır değerli ürünler C’ye atanır. |
-| XYZ / ABC-XYZ | CV = örneklem standart sapması / ortalama. X ve Y üst sınırları ilgili sınıfa dahildir. Sıfır talepli serinin CV’si tanımsızdır. Matris iki geçerli sınıfı birleştirir. |
-| Dönem / senaryo | Her iki dönem güncel ABC hedefleriyle sınıflandırılır. Eşleştirme iki dosyada da SKU varsa büyük/küçük harfe duyarlı kodla, aksi durumda benzersiz normalleştirilmiş adla yapılır. Senaryo, aynı veri üzerinde alternatif A/B/C hedefleriyle hesaplanır. |
-| EOQ / ROP | EOQ = √(2DS/H). İlgili yıllık maliyet DS/Q + HQ/2’dir. ROP = dönemsel ortalama talep × aynı birimdeki tedarik süresi + emniyet stoku. |
-| Emniyet stoku | Sabit ve bağımsız değişken tedarik süresi için normal modeller ve gözlenen çevrim talebine dayalı ampirik model. |
-| FSN / VED | FSN, pozitif stok çıkışı görülen dönemlerin oranını kullanır. VED, operasyon ve güvenlik etkilerinin en yükseğini kullanır. |
-| Simülasyon | Dönem başında teslimat ve sipariş, ardından talep. Eksik talep kayıp satış olarak sayılır. Maliyet, sipariş, dönem sonu stok ve eksik karşılama kalemlerinden oluşur. |
-
-[Model varsayımları ve girdi birimleri](vercel-app/src/inventory/README.md)
-
-## Veri ve gizlilik
-
-ABC dosyasının temel alanları ürün, yıllık tüketim ve TL birim fiyatıdır. İsteğe bağlı SKU her satırda benzersiz olmalıdır. Karşılaştırılan dönemlerde aynı para birimi, miktar birimi ve dönem uzunluğunu kullanın. Uygulama döviz veya ölçü birimi dönüşümü yapmaz. Talep geçmişi, tedarik süresi, maliyet ve kritiklik verilerini ilgili formlara girin. Gerçek sıfırları belirtin ve eksik gözlemleri tamamlayın.
-
-Dosyalar tarayıcıda işlenir. Uygulama stok kayıtlarını sunuculara göndermez. Tema ve dil tercihleri cihazda hatırlanır. Analiz verileri, kullanıcı açıkça kaydettiğinde, bu siteye ait tarayıcı geçmişinde saklanır. En fazla 10 kaydı tek tek veya topluca silebilirsiniz. JSON indirilen dosyayı, kullandığınız cihazda sakladığınız diğer iş dosyaları gibi koruyun. JSON paketi güncel ABC kaynağı ve hedeflerini kapsar. Diğer modüllerin form verileri sayfa yenilenince temizlenir.
-
-Giriş dosyaları 20 MiB ve 100.000 satırla sınırlıdır. Tam sınırlar ve ZIP doğrulama kuralları teknik kılavuzda yer alır. EOQ ve emniyet stoku modelleri seçilen varsayımlara duyarlıdır. Simülasyon tarihsel bir talep serisi ve sabit tedarik süresi kullanır. Excel şablonu ve rapor başlıkları mevcut dosyalarla uyumluluk için Türkçedir.
-
-[Sınırlar ve güvenlik başlıkları](vercel-app/README.md#güvenlik-ve-gizlilik)
+Yerel üretim çıktısını görmek için `npm run preview` çalıştırın.
