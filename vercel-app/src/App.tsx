@@ -247,7 +247,7 @@ function Dashboard({
   const fileName = isDemo ? t('Örnek stok verisi', 'Sample inventory') : name;
   const title = t(workspacePages[page][1], workspacePages[page][2]);
   useEffect(() => {
-    document.title = `${title} | Inventory Intelligence`;
+    document.title = `${title} | Envanter Zekâsı`;
   }, [title]);
   const dashboard = page === 'overview' || page === 'analysis';
   const inventoryPage =
@@ -290,9 +290,9 @@ function Dashboard({
       </span>
       <span>
         <strong>
-          Inventory
+          Envanter
           <br />
-          Intelligence
+          Zekâsı
         </strong>
       </span>
     </>
@@ -357,7 +357,7 @@ function Dashboard({
           <a
             href="#genel-bakis"
             className="brand desktop-brand"
-            aria-label="Inventory Intelligence"
+            aria-label="Envanter Zekâsı"
             onClick={() => setPage('overview')}
           >
             {brand}
