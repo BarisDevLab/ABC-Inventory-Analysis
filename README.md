@@ -42,6 +42,10 @@ GitHub Actions, `main` dalını hedefleyen PR’larda ve `main` güncellemelerin
 
 Her ürün tek satırda olmalıdır. Tüketim ve birim fiyat sonlu, negatif olmayan sayılardır. CSV için UTF-8 ve Windows Türkçe (CP1254) kodlamaları ile virgül, noktalı virgül ve sekme ayraçları desteklenir. `1234.56` ve `1.234,56` aynı değeri ifade eder. Tek başına kullanılan virgül veya nokta ondalık ayıracıdır. Binlik gruplaması için `1 234` veya `1.234,00` yazın. Excel’de sayısal hücreler kullanabilirsiniz.
 
+## Stok karar desteği
+
+Uygulamadaki **Stok karar desteği** alanında XYZ, ABC-XYZ, EOQ, ROP, emniyet stoku, FSN, VED ve stok maliyeti simülasyonu bulunur. Dönemsel talep, stok hareketi, kritiklik ve maliyet verilerini ilgili forma girin. ABC-XYZ, yüklediğiniz ABC dosyasının sonuçlarını XYZ analiziyle birleştirir. [Yöntemler ve entegrasyon sözleşmeleri](vercel-app/src/inventory/README.md)
+
 ## ABC hesaplama yöntemi
 
 Her ürünün yıllık değeri tüketim miktarı ile birim fiyatın çarpımıdır. Ürün payı, yıllık değerin genel toplama bölünüp 100 ile çarpılmasıyla bulunur. Genel toplam pozitif ve sonlu olmalıdır.

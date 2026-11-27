@@ -11,15 +11,27 @@ import { AnalysisInsights } from './components/AnalysisInsights';
 import { GuidePage } from './components/GuidePage';
 import { ReportDownload } from './components/ReportDownload';
 import { ChartsPanel } from './components/ChartsPanel';
+import { InventoryWorkspace } from './inventory/InventoryWorkspace';
+
+const pageLabels = {
+  analysis: 'Analiz Paneli',
+  guide: 'ABC Rehberi',
+  inventory: 'Stok karar desteği',
+} as const;
+
+function pageFromHash(hash: string): keyof typeof pageLabels {
+  if (hash === '#rehber') return 'guide';
+  if (hash === '#stok-karar-destegi') return 'inventory';
+  return 'analysis';
+}
 
 export default function App() {
-  const [page, setPage] = useState(() =>
-    window.location.hash === '#rehber' ? 'guide' : 'analysis',
-  );
+  const [page, setPage] = useState(() => pageFromHash(window.location.hash));
   const [mobileOpen, setMobileOpen] = useState(false),
     [targets, setTargets] = useState<Targets>({ ...DEFAULT_TARGETS });
   const [analysis, setAnalysis] = useState<Analysis | null>(null),
     [source, setSource] = useState<InputTable | null>(null);
+  const [hasUserFile, setHasUserFile] = useState(false);
   const [name, setName] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -28,8 +40,7 @@ export default function App() {
     main = useRef<HTMLElement>(null);
   useEffect(() => {
     const change = () => {
-      if (window.location.hash === '#rehber') setPage('guide');
-      else if (window.location.hash === '#analiz') setPage('analysis');
+      if (window.location.hash !== '#main-content') setPage(pageFromHash(window.location.hash));
       setMobileOpen(false);
     };
     window.addEventListener('hashchange', change);
@@ -40,8 +51,13 @@ export default function App() {
   }, []);
   useEffect(() => {
     main.current?.focus();
-    document.title =
-      page === 'guide' ? 'ABC Analizi Rehberi | BarisDevLab' : 'ABC Stok Analizi | BarisDevLab';
+    const title =
+      page === 'analysis'
+        ? 'ABC Stok Analizi'
+        : page === 'guide'
+          ? 'ABC Analizi Rehberi'
+          : pageLabels.inventory;
+    document.title = `${title} | BarisDevLab`;
   }, [page]);
   useEffect(() => {
     if (mobileOpen) document.querySelector<HTMLAnchorElement>('#sidebar nav a')?.focus();
@@ -51,6 +67,7 @@ export default function App() {
     operation.current = null;
     setBusy(false);
     setAnalysis(null);
+    setHasUserFile(false);
     setSource(null);
     setName('');
     setError('');
@@ -63,6 +80,7 @@ export default function App() {
     const data = sampleData();
     setSource(data);
     setAnalysis(calculateAbc(data, targets));
+    setHasUserFile(false);
     setName('Örnek stok verisi');
     setError('');
     setNotice('Örnek veri yüklendi. 5 ürün analiz edildi.');
@@ -89,6 +107,7 @@ export default function App() {
         setSource(result.source);
         setAnalysis(result.analysis);
         setName(file.name);
+        setHasUserFile(true);
         setNotice(`${file.name} yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
       }
     } catch (error) {
@@ -224,6 +243,16 @@ export default function App() {
             <span aria-hidden="true">▦</span>Analiz Paneli
           </a>
           <a
+            href="#stok-karar-destegi"
+            aria-current={page === 'inventory' ? 'page' : undefined}
+            onClick={() => {
+              setPage('inventory');
+              setMobileOpen(false);
+            }}
+          >
+            <span aria-hidden="true">▩</span>Stok karar desteği
+          </a>
+          <a
             href="#rehber"
             aria-current={page === 'guide' ? 'page' : undefined}
             onClick={() => {
@@ -259,7 +288,7 @@ export default function App() {
         <div className="topbar">
           <span>
             Çalışma alanı <span className="breadcrumb-separator">/</span>{' '}
-            <strong>{page === 'analysis' ? 'Analiz Paneli' : 'ABC Rehberi'}</strong>
+            <strong>{pageLabels[page]}</strong>
           </span>
           <span className="privacy-pill">◈ Veriler cihazınızda kalır</span>
         </div>
@@ -341,6 +370,11 @@ export default function App() {
               </div>
             </section>
           )}
+        </div>
+        <div hidden={page !== 'inventory'}>
+          <InventoryWorkspace
+            abcRows={page === 'inventory' && hasUserFile ? analysis?.rows : undefined}
+          />
         </div>
         {page === 'guide' && (
           <GuidePage
