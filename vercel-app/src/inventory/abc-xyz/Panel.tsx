@@ -89,8 +89,10 @@ export function AbcXyzPanel({ abc, xyz }: { abc: readonly AbcItem[]; xyz: readon
         </thead>
         <tbody>
           {(['A', 'B', 'C'] as const).map((group) => (
-            <tr key={group}>
-              <th scope="row">{group}</th>
+            <tr key={group} className={`tone-${group}`}>
+              <th scope="row">
+                <span className={`group-badge group-${group}`}>{group}</span>
+              </th>
               {matrix.cells
                 .filter((cell) => cell.category.startsWith(group))
                 .map((cell) => (

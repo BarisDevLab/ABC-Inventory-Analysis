@@ -391,3 +391,62 @@
     grid-column: span 2;
   }
 }
+
+@media (min-width: 861px) {
+  .guide-page .guide-hero {
+    background:
+      radial-gradient(
+        ellipse at 95% 92%,
+        color-mix(in srgb, var(--class-a) 23%, transparent),
+        transparent 64%
+      ),
+      linear-gradient(115deg, var(--feature-end), var(--feature));
+  }
+  .guide-hero .section-icon,
+  .guide-flow-step {
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
+  }
+  .guide-page .guide-feature {
+    --guide-light: var(--class-a);
+  }
+  .guide-page .guide-feature.pareto-feature {
+    --guide-light: var(--guide-gold);
+  }
+  .guide-page .guide-class {
+    --guide-light: var(--class-color);
+  }
+  .guide-page .guide-method-card {
+    --guide-light: var(--class-c);
+  }
+  .guide-page .guide-method-card:nth-child(4n + 2) {
+    --guide-light: var(--metric-pink);
+  }
+  .guide-page .guide-method-card:nth-child(4n + 3) {
+    --guide-light: var(--guide-gold);
+  }
+  .guide-page .guide-method-card:nth-child(4n + 4) {
+    --guide-light: var(--class-a);
+  }
+  .main-content
+    .guide-page
+    :is(.guide-feature, .guide-feature:first-child, .guide-class, .guide-method-card) {
+    border: 1px solid color-mix(in srgb, var(--guide-light) 62%, var(--line));
+    background:
+      radial-gradient(
+        ellipse at 96% 96%,
+        color-mix(in srgb, var(--guide-light) 17%, transparent),
+        transparent 58%
+      ),
+      var(--surface);
+    box-shadow: 0 7px 24px color-mix(in srgb, var(--guide-light) 12%, transparent);
+  }
+  .guide-page :is(.guide-feature, .guide-method-card) .section-icon {
+    color: color-mix(in srgb, var(--guide-light) 56%, var(--ink));
+    background: color-mix(in srgb, var(--guide-light) 12%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--guide-light) 46%, var(--line));
+  }
+  .main-content .guide-page :is(.guide-feature, .guide-class, .guide-method-card):hover {
+    border-color: var(--guide-light);
+    box-shadow: 0 7px 27px color-mix(in srgb, var(--guide-light) 20%, transparent);
+  }
+}

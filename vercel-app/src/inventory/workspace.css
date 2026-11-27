@@ -250,3 +250,104 @@
   overflow: auto;
   overflow-wrap: anywhere;
 }
+
+@media (min-width: 861px) {
+  .inventory-matrix tbody .button {
+    border-color: color-mix(in srgb, var(--class-color) 34%, var(--line));
+    background: color-mix(in srgb, var(--class-soft) 25%, var(--surface));
+  }
+  .inventory-matrix tbody .button:hover,
+  .inventory-matrix tbody .button[aria-pressed='true'] {
+    border-color: var(--class-color);
+    background: var(--class-soft);
+  }
+  .inventory-bars {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .inventory-bars figcaption {
+    display: flex;
+    align-items: center;
+    gap: 0.52rem;
+    padding-bottom: 0.62rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .inventory-bars figcaption .icon {
+    color: var(--primary);
+  }
+  .inventory-bars li,
+  .inventory-bar-scale {
+    grid-template-columns: minmax(5rem, 1fr) minmax(3rem, 3fr) minmax(4.8rem, auto);
+    gap: 0.65rem;
+  }
+  .inventory-bars li {
+    --series-color: var(--class-a);
+    min-height: 2rem;
+  }
+  .inventory-bars li:nth-child(4n + 2) {
+    --series-color: var(--class-b);
+  }
+  .inventory-bars li:nth-child(4n + 3) {
+    --series-color: var(--class-c);
+  }
+  .inventory-bars li:nth-child(4n + 4) {
+    --series-color: var(--metric-pink);
+  }
+  .inventory-bar {
+    height: 14px;
+    border-radius: 3px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0 calc(25% - 1px),
+        var(--line) calc(25% - 1px) 25%
+      ),
+      var(--soft);
+  }
+  .inventory-bar > span {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--series-color) 76%, var(--surface)),
+      var(--series-color)
+    );
+    border-radius: 2px;
+  }
+  .inventory-bar > span:hover {
+    filter: saturate(1.2) brightness(1.07);
+  }
+  .inventory-bars strong {
+    font-variant-numeric: tabular-nums;
+  }
+  .inventory-bar-scale {
+    display: grid;
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+  .inventory-bar-scale > span {
+    grid-area: 1 / 2;
+  }
+  .inventory-bar-scale > span:last-child {
+    justify-self: end;
+  }
+  @supports (grid-template-columns: subgrid) {
+    .inventory-bars {
+      display: grid;
+      grid-template-columns: minmax(5rem, 1fr) minmax(3rem, 3fr) minmax(4.8rem, max-content);
+      column-gap: 0.65rem;
+    }
+    .inventory-bars figcaption,
+    .inventory-bars ul,
+    .inventory-bars li,
+    .inventory-bar-scale {
+      grid-column: 1 / -1;
+    }
+    .inventory-bars ul,
+    .inventory-bars li,
+    .inventory-bar-scale {
+      display: grid;
+      grid-template-columns: subgrid;
+    }
+  }
+}

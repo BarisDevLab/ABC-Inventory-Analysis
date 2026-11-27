@@ -23,82 +23,87 @@
   font-family: Geist, 'Segoe UI', system-ui, sans-serif;
   font-synthesis: none;
   color-scheme: light;
-  --canvas: #f0f3f1;
+  --canvas: #eef2f8;
   --surface: #ffffff;
-  --soft: #eaf0ed;
-  --ink: #14201c;
-  --muted: #52645c;
-  --line: #d6dfda;
-  --control-line: #b9c9c0;
-  --primary: #08734f;
+  --soft: #eaf0f9;
+  --ink: #101b2c;
+  --muted: #506079;
+  --line: #d3dded;
+  --control-line: #aebfd7;
+  --primary: #1558c1;
   --on-primary: #ffffff;
-  --active: #dceee5;
-  --good: #08734f;
-  --good-bg: #dff2e8;
-  --teal: #176b70;
-  --teal-bg: #dff1f0;
-  --danger: #963b38;
-  --danger-bg: #fbebe7;
-  --amber: #5a675f;
-  --amber-bg: #e6ede9;
-  --rail: #e8eeea;
+  --active: #e4efff;
+  --good: #0d6470;
+  --good-bg: #e1f4f6;
+  --teal: #006a73;
+  --teal-bg: #def6f7;
+  --danger: #a2264c;
+  --danger-bg: #fdeaf0;
+  --amber: #805201;
+  --amber-bg: #fff0cf;
+  --rail: #e7edf8;
   --rail-ink: var(--ink);
   --rail-muted: var(--muted);
   --rail-line: var(--line);
-  --focus: #0a8a66;
-  --class-a: #168566;
-  --class-b: #84958d;
-  --class-c: #20a5aa;
-  --shadow: 0 1px 2px #18362b08, 0 8px 24px #13382c06;
-  --feature: #d5ebdf;
-  --feature-end: #eaf6ef;
-  --feature-text: #193329;
-  --feature-muted: #426053;
-  --feature-line: #325c4a32;
-  --feature-accent: #0d7655;
-  --feature-neutral: #72887e;
-  --feature-teal: #267f82;
-  --feature-sheen: #ffffff8c;
-  --feature-glow: #135a351c;
+  --focus: #1558c1;
+  --class-a: #347cff;
+  --class-b: #ffbc38;
+  --class-c: #10c7cd;
+  --shadow: 0 1px 2px #1429470c, 0 8px 24px #14294708;
+  --feature: #e8f2ff;
+  --feature-end: #f8fbff;
+  --feature-text: #102242;
+  --feature-muted: #455a76;
+  --feature-line: #4483ed44;
+  --feature-accent: #175bc3;
+  --feature-neutral: #d77f00;
+  --feature-teal: #007c85;
+  --feature-sheen: #ffffffbb;
+  --metric-teal: #006f7b;
+  --metric-pink: #ab175e;
+  --metric-blue: #1554c4;
+  --guide-gold: #a76900;
+  --feature-glow: #245ce01a;
   background: var(--canvas);
   color: var(--ink);
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --canvas: #141817;
-  --surface: #1c211f;
-  --soft: #242f2a;
-  --ink: #eef7f2;
-  --muted: #a5b9af;
-  --line: #363f3a;
-  --control-line: #4c6358;
-  --primary: #79e0b4;
-  --on-primary: #102c21;
-  --active: #203c30;
-  --good: #91e1c0;
-  --good-bg: #203c30;
-  --teal: #91e0de;
-  --teal-bg: #203b3b;
-  --danger: #ffb8ae;
-  --danger-bg: #442f2a;
-  --amber: #c4d4cb;
-  --amber-bg: #343f39;
-  --rail: #171c19;
-  --focus: #7ee3b7;
-  --class-a: #45b48e;
-  --class-b: #83968e;
-  --class-c: #49bcc1;
-  --shadow: 0 2px 8px #060c0866;
-  --feature: #122a22;
-  --feature-end: #193d30;
-  --feature-text: #eefff6;
-  --feature-muted: #b0cdbf;
-  --feature-line: #b1f8d02b;
-  --feature-accent: #91f4c6;
-  --feature-neutral: #a3b7ae;
-  --feature-teal: #70ded7;
-  --feature-sheen: #bffff135;
-  --feature-glow: #1e996733;
+  --canvas: #07090e;
+  --surface: #0d121b;
+  --soft: #151e2d;
+  --ink: #f0f5ff;
+  --muted: #a8b8ce;
+  --line: #26354d;
+  --control-line: #465b78;
+  --primary: #79abff;
+  --on-primary: #08192f;
+  --active: #152946;
+  --good: #8ce7ec;
+  --good-bg: #112e38;
+  --teal: #67e8ed;
+  --teal-bg: #0d303a;
+  --danger: #ffabc6;
+  --danger-bg: #3d2331;
+  --amber: #ffd267;
+  --amber-bg: #372b14;
+  --rail: #0a0e17;
+  --focus: #78b8ff;
+  --shadow: 0 2px 9px #02040988;
+  --feature: #101d33;
+  --feature-end: #0d121b;
+  --feature-text: #f1f6ff;
+  --feature-muted: #b0c4e1;
+  --feature-line: #659aff5b;
+  --feature-accent: #77aaff;
+  --feature-neutral: #ffca52;
+  --feature-teal: #43dfe7;
+  --feature-sheen: #81bdff31;
+  --metric-teal: #36e2e7;
+  --metric-pink: #ff5e9f;
+  --metric-blue: #71a9ff;
+  --guide-gold: #ffcf51;
+  --feature-glow: #3269cc29;
 }
 * {
   box-sizing: border-box;
@@ -824,6 +829,19 @@ details p {
   background: var(--teal-bg);
   color: var(--teal);
 }
+.group-A {
+  --badge-color: var(--class-a);
+}
+.group-B {
+  --badge-color: var(--class-b);
+}
+.group-C {
+  --badge-color: var(--class-c);
+}
+.group-badge {
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--badge-color, var(--class-a)) 37%, transparent);
+}
 .tone-A {
   --class-color: var(--class-a);
   --class-soft: var(--active);
@@ -1091,6 +1109,24 @@ input[type='checkbox'] {
   min-width: 0;
   overflow: hidden;
 }
+/* Plotly's dynamically inserted sheet is unavailable under the production CSP. */
+.plot-host .main-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.plot-host .main-svg .draglayer {
+  pointer-events: all;
+}
+.plot-host .cursor-crosshair {
+  cursor: crosshair;
+}
+.plot-host .cursor-move {
+  cursor: move;
+}
+.plot-host .cursor-pointer {
+  cursor: pointer;
+}
 .plot-host:not(.plot-loaded),
 .plot-placeholder {
   border-radius: 8px;
@@ -1313,7 +1349,7 @@ tbody tr:hover > *,
     display: block;
     position: fixed;
     inset: 60px 0 0;
-    background: #080f0cad;
+    background: #05080dad;
     z-index: 4;
   }
 }
@@ -1386,10 +1422,10 @@ tbody tr:hover > *,
 }
 @media (min-width: 861px) {
   :root {
-    --light-a: #168566;
-    --light-b: #84958d;
-    --light-c: #199c9f;
-    --light-blue: #4b7565;
+    --light-a: #397cff;
+    --light-b: #c98721;
+    --light-c: #08939c;
+    --light-blue: #528dff;
     --edge-strength: 13%;
     --glow-strength: 4%;
     --wash-strength: 0%;
@@ -1397,10 +1433,10 @@ tbody tr:hover > *,
   }
 
   :root[data-theme='dark'] {
-    --light-a: #5dd9a8;
-    --light-b: #a0b7ad;
-    --light-c: #5ad0ce;
-    --light-blue: #a7bbaf;
+    --light-a: #458cff;
+    --light-b: #ffc34e;
+    --light-c: #10c7cd;
+    --light-blue: #7ca7ff;
     --edge-strength: 21%;
     --glow-strength: 6%;
     --wash-strength: 1%;

@@ -1,7 +1,7 @@
 import { useLocale } from '../../ui/locale';
 import type { Theme } from '../../ui/locale';
 import { chartStyle } from '../../charts/models';
-import { COLORS } from '../../ui/format';
+import { COLORS, detail } from '../../ui/format';
 import { useMemo } from 'react';
 import { Plot } from '../../charts/Plot';
 import type { Data, Layout } from 'plotly.js';
@@ -12,39 +12,71 @@ import type { EoqInput } from './calculate';
 
 function CostCurve({ input, optimum, theme }: { input: EoqInput; optimum: number; theme: Theme }) {
   const { t, language } = useLocale();
-  const { palette, layout: base } = chartStyle(language, theme);
+  const { palette, axis, layout: base } = chartStyle(language, theme);
   const layout: Partial<Layout> = {
     ...base,
-    height: 360,
-    margin: { l: 75, r: 18, b: 85, t: 18 },
+    height: 385,
+    margin: { l: 81, r: 24, b: 80, t: 48 },
     xaxis: {
+      ...axis,
       title: { text: t('Sipariş miktarı (adet)', 'Order quantity (units)') },
       automargin: true,
       gridcolor: palette.grid,
     },
     yaxis: {
+      ...axis,
       title: { text: t('Yıllık maliyet (TL/yıl)', 'Annual cost (TL/year)') },
       automargin: true,
       gridcolor: palette.grid,
     },
-    legend: { orientation: 'h', y: -0.25 },
+    legend: { orientation: 'h', x: 0, y: 1.04, yanchor: 'bottom' },
+    hovermode: 'closest',
+    shapes: [
+      {
+        type: 'line',
+        x0: optimum,
+        x1: optimum,
+        xref: 'x',
+        y0: 0,
+        y1: 1,
+        yref: 'paper',
+        layer: 'below',
+        line: { color: palette.axis, dash: 'dot', width: 1.5 },
+      },
+    ],
   };
 
   const data = useMemo<Data[]>(() => {
     const points = sampleEoqCosts(input, optimum);
-    return [
-      ['ordering', t('Sipariş', 'Ordering'), COLORS.A],
-      ['holding', t('Elde bulundurma', 'Holding'), COLORS.B],
-      ['total', t('Toplam', 'Total'), COLORS.C],
-    ].map(([key, name, color]) => ({
+    return (
+      [
+        ['ordering', t('Sipariş', 'Ordering'), 'A', 'dash'],
+        ['holding', t('Elde bulundurma', 'Holding'), 'B', 'dot'],
+        ['total', t('Toplam', 'Total'), 'C', 'solid'],
+      ] as const
+    ).map(([key, name, series, dash]) => ({
       type: 'scatter',
       mode: 'lines+markers',
       name,
       x: points.map((point) => point.quantity),
-      y: points.map((point) => point[key as 'ordering' | 'holding' | 'total']),
-      marker: { size: 4, color },
+      y: points.map((point) => point[key]),
+      customdata: points.map((point) => [
+        detail(point.quantity, language),
+        detail(point[key], language),
+      ]),
+      line: {
+        color: theme === 'dark' ? COLORS[series] : palette.edges[series],
+        dash,
+        width: key === 'total' ? 3.2 : 2.2,
+      },
+      marker: {
+        color: COLORS[series],
+        size: points.map((point) => (point.quantity === optimum ? 9 : 4)),
+        line: { color: palette.surface, width: 1 },
+      },
+      hovertemplate: `<b>${name}</b><br>${t('Sipariş miktarı', 'Order quantity')} · %{customdata[0]}<br>${t('Yıllık maliyet', 'Annual cost')} · %{customdata[1]} TL<extra></extra>`,
     }));
-  }, [input, optimum, t]);
+  }, [input, optimum, t, language, theme, palette.edges, palette.surface]);
   return (
     <Plot
       data={data}

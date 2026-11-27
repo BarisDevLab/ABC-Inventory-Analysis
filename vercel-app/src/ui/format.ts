@@ -1,5 +1,5 @@
 import type { Language } from './locale';
-export const COLORS = { A: '#168566', B: '#84958d', C: '#20a5aa' } as const;
+export const COLORS = { A: '#347cff', B: '#ffbc38', C: '#10c7cd' } as const;
 const formatters = new Map<string, Intl.NumberFormat>();
 
 export function number(value: number, digits = 2, language: Language = 'tr') {

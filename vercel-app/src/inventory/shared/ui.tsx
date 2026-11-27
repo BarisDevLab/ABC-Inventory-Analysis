@@ -188,21 +188,34 @@ export function BarChart({
 }) {
   const { detail } = useLocale();
   const id = useId();
+  const formatValue = format ?? detail;
   const max = values.reduce((largest, [, value]) => Math.max(largest, value), 0);
   return (
     <figure className="inventory-bars" aria-labelledby={id}>
-      <figcaption id={id}>{title}</figcaption>
+      <figcaption id={id}>
+        <Icon name="bars" /> {title}
+      </figcaption>
       <ul>
         {values.map(([label, value]) => (
           <li key={label}>
-            <span>{label}</span>
-            <span className="inventory-bar" aria-hidden="true">
+            <span className="inventory-bar-label">{label}</span>
+            <span
+              className="inventory-bar"
+              aria-hidden="true"
+              title={`${label} · ${formatValue(value)}`}
+            >
               <span style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
             </span>
-            <strong>{(format ?? detail)(value)}</strong>
+            <strong>{formatValue(value)}</strong>
           </li>
         ))}
       </ul>
+      {max > 0 && (
+        <div className="inventory-bar-scale" aria-hidden="true">
+          <span>{formatValue(0)}</span>
+          <span>{formatValue(max)}</span>
+        </div>
+      )}
     </figure>
   );
 }

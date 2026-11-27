@@ -1,4 +1,4 @@
-import type { Data, Layout } from 'plotly.js';
+import type { Data, Layout, LayoutAxis } from 'plotly.js';
 import type { Analysis, AnalysisRow, Group } from '../core/abc';
 import { COLORS, detail, escapeHtml, number, percent } from '../ui/format';
 import type { Language, Theme } from '../ui/locale';
@@ -7,27 +7,44 @@ export function visibleRows(analysis: Analysis, groups: readonly Group[], first:
   return analysis.rows.slice(first - 1, last).filter(row => groups.includes(row.group));
 }
 
-const dark = { surface: '#1c211f', text: '#e2f1e9', grid: '#363f3a', hover: '#25362e' };
-const light = { surface: '#ffffff', text: '#23352c', grid: '#e1e9e4', hover: '#eff6f2' };
+const dark = {
+  surface: '#0D121B', text: '#f0f5ff', muted: '#adbed7',
+  grid: '#24344b', axis: '#566b87', hover: '#16243a', hoverEdge: '#6099ed',
+  highlight: '#ff75af', edges: { A: '#7aabff', B: '#ffd57a', C: '#61e2e7' },
+};
+const light = {
+  surface: '#ffffff', text: '#192940', muted: '#4d6381',
+  grid: '#e0e8f4', axis: '#a2b4cf', hover: '#f7faff', hoverEdge: '#8faede',
+  highlight: '#b82969', edges: { A: '#1b57be', B: '#976000', C: '#087d86' },
+};
 
 export function chartStyle(language: Language, theme: Theme) {
   const palette = theme === 'dark' ? dark : light;
   const t = (tr: string, en: string) => language === 'en' ? en : tr;
   const fmt = (value: number) => detail(value, language);
+  const axis: Partial<LayoutAxis> = {
+    automargin: true, showline: true, linecolor: palette.axis, tickcolor: palette.axis,
+    ticks: 'outside', ticklen: 4, tickfont: { color: palette.muted, size: 11 },
+    gridcolor: palette.grid, zerolinecolor: palette.axis,
+  };
   const layout: Partial<Layout> = {
     paper_bgcolor: palette.surface, plot_bgcolor: palette.surface,
     font: { family: 'Geist, system-ui, sans-serif', color: palette.text, size: 12 },
     separators: language === 'en' ? '.,' : ',.',
-    hoverlabel: { bgcolor: palette.hover, bordercolor: COLORS.A, font: { color: palette.text, size: 13 }, namelength: -1 },
+    hoverlabel: {
+      align: 'left', bgcolor: palette.hover, bordercolor: palette.hoverEdge,
+      font: { color: palette.text, size: 13, family: 'Geist, system-ui, sans-serif' },
+      namelength: -1,
+    },
   };
-  return { palette, layout, t, fmt };
+  return { palette, layout, axis, t, fmt };
 }
 
 export function paretoModel(
   rows: readonly AnalysisRow[], targets: Analysis['targets'], compact: boolean,
   mode: 'zoom' | 'pan', revision: number, language: Language = 'tr', theme: Theme = 'light',
 ): { data: Data[]; layout: Partial<Layout> } {
-  const { palette, layout, t, fmt } = chartStyle(language, theme);
+  const { palette, layout, axis, t, fmt } = chartStyle(language, theme);
   const x = rows.map((_, index) => index);
   const maximum = rows[0]?.value ?? 0;
   const custom = rows.map(row => [
@@ -46,39 +63,42 @@ export function paretoModel(
   const scale = compact && maximum >= 1000 ? 1000 : 1;
   const interval = Math.max(1, Math.ceil(rows.length / (compact ? 4 : 8)));
   const shown = x.filter(index => index % interval === 0);
-  const lineColor = theme === 'dark' ? '#b3f3e7' : '#176b69';
+  const lineColor = palette.highlight;
   const percentageTicks = [0, 20, 40, 60, 80, 100];
   return {
     data: [
-      { type: 'bar', x, y: rows.map(row => row.value), name: t('Yıllık değer', 'Annual value'), width: .66,
-        marker: { color: rows.map(row => COLORS[row.group]) }, customdata: custom, hovertemplate: hover },
+      { type: 'bar', x, y: rows.map(row => row.value), name: t('Yıllık değer', 'Annual value'), width: .72,
+        marker: {
+          color: rows.map(row => COLORS[row.group]),
+          line: { color: rows.map(row => palette.edges[row.group]), width: rows.length <= 80 ? 1 : 0 },
+        }, customdata: custom, hovertemplate: hover },
       { type: 'scatter', x, y: rows.map(row => row.cumulative), yaxis: 'y2', name: t('Kümülatif pay', 'Cumulative share'),
         mode: rows.length <= 35 ? 'lines+markers' : 'lines', line: { color: lineColor, width: 3 },
-        marker: { size: 5 }, customdata: custom, hovertemplate: hover },
+        marker: { size: 7, color: palette.surface, line: { color: lineColor, width: 2 } }, customdata: custom, hovertemplate: hover },
       ...[
-        { threshold: targets.a, label: 'A/B', color: COLORS.B },
-        { threshold: targets.a + targets.b, label: 'B/C', color: COLORS.C },
+        { threshold: targets.a, label: 'A/B', color: palette.edges.B },
+        { threshold: targets.a + targets.b, label: 'B/C', color: palette.edges.C },
       ].map(({ threshold, label, color }) => ({
         type: 'scatter' as const, x: [-.5, rows.length - .5], y: [threshold, threshold],
         yaxis: 'y2', mode: 'lines' as const, line: { color, width: 1.3, dash: 'dash' as const },
         name: `${label} · ${percent(threshold, language, Number.isInteger(threshold) ? 0 : 2)}`, hoverinfo: 'skip' as const,
       })),
     ],
-    layout: { ...layout, height: compact ? 440 : 390, dragmode: mode, hovermode: 'closest',
-      uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 60, t: 45, b: compact ? 110 : 85 },
-      legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.12, font: { size: 10 } },
-      xaxis: { range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,
+    layout: { ...layout, height: compact ? 440 : 415, dragmode: mode, hovermode: 'closest',
+      uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 69, t: 56, b: compact ? 110 : 75 },
+      legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.04, yanchor: 'bottom', font: { size: compact ? 10 : 11 } },
+      xaxis: { ...axis, range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,
         ticktext: shown.map(index => {
           const name = Array.from(rows[index].product);
           const limit = compact ? 10 : 17;
           return escapeHtml(name.length > limit ? name.slice(0, limit).join('') + '…' : name.join(''));
         }), tickangle: compact ? -35 : -25, showgrid: false, automargin: true,
         title: compact ? undefined : { text: t('Ürünler · Azalan yıllık değer', 'Products · Descending annual value') } },
-      yaxis: { range: [0, upper], tickmode: 'array', tickvals: ticks,
+      yaxis: { ...axis, range: [0, upper], tickmode: 'array', tickvals: ticks,
         ticktext: ticks.map(value => fmt(value / scale)), gridcolor: palette.grid, zerolinecolor: palette.grid,
         title: { text: scale === 1000 ? t('Bin TL', 'Thousands of TL') : compact ? 'TL' : t('Yıllık değer (TL)', 'Annual value (TL)') },
         automargin: true },
-      yaxis2: { overlaying: 'y', side: 'right', range: [0, 100], tickmode: 'array', tickvals: percentageTicks,
+      yaxis2: { ...axis, overlaying: 'y', side: 'right', range: [0, 100], tickmode: 'array', tickvals: percentageTicks,
         ticktext: percentageTicks.map(value => percent(value, language, 0)), showgrid: false,
         title: compact ? undefined : { text: t('Kümülatif pay (%)', 'Cumulative share (%)') }, automargin: true },
     },
@@ -89,8 +109,8 @@ export function distributionModel(analysis: Analysis, language: Language = 'tr',
   const { palette, layout, t, fmt } = chartStyle(language, theme);
   return {
     data: [{ type: 'pie', labels: analysis.summary.map(group => group.group),
-      values: analysis.summary.map(group => group.value), hole: .76, sort: false, direction: 'clockwise', rotation: 90,
-      marker: { colors: analysis.summary.map(group => COLORS[group.group]), line: { color: palette.surface, width: 3 } },
+      values: analysis.summary.map(group => group.value), hole: .70, sort: false, direction: 'clockwise', rotation: 90,
+      marker: { colors: analysis.summary.map(group => COLORS[group.group]), line: { color: palette.surface, width: 2 } },
       textinfo: 'none',
       customdata: analysis.summary.map(group => [fmt(group.value), number(group.count, 0, language), fmt(group.share)]),
       hovertemplate: t('Grup', 'Group') + ' %{label}<br>' + t('Yıllık değer', 'Annual value') + ': %{customdata[0]} TL<br>' +
