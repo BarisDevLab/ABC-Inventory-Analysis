@@ -4,7 +4,8 @@ import data from './file-decoding-data.json';
 import unicode from '../core/unicode-data.json';
 import type { CellValue } from 'exceljs';
 
-export const FILE_LIMITS = Object.freeze({ bytes: 20 * 1024 * 1024, inflatedBytes: 100 * 1024 * 1024, rows: 100_000, columns: 1000, cells: 1_000_000 });
+import { FILE_LIMITS } from "./limits";
+export { FILE_LIMITS } from "./limits";
 const CSV_ERROR = 'CSV dosyası okunamadı. Sütun ayraçlarını ve satır uzunluklarını kontrol edin.';
 const XLSX_ERROR = 'Excel dosyası okunamadı. Geçerli ve parola koruması olmayan bir .xlsx dosyası seçin.';
 const EMPTY_ERROR = 'Dosya boş. Başlıkları ve en az bir ürün satırını ekleyin.';

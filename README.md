@@ -53,3 +53,7 @@ Pareto filtresi hesaplanmış kümülatif yüzdeleri korur. Tablolar, dağılım
 ## Güvenlik ve gizlilik
 
 Dosyalar yalnızca tarayıcı belleğinde işlenir. Uygulama kullanıcı dosyalarını yüklemez, kalıcı olarak saklamaz veya analitik servise iletmez. Üretimde CSP, `connect-src 'none'` ve diğer güvenlik başlıkları uygulanır. Dosya boyutu, çalışma sayfası boyutları ve açılmış ZIP verisi sınırlandırılır. Excel çıktısında ürün adları metin hücresi olarak yazılır. [Sınırlar ve teknik ayrıntılar](vercel-app/README.md#güvenlik-ve-gizlilik)
+
+## Dashboard ve performans
+
+Arayüz Türkçe ve İngilizce kullanılabilir. Tema ve dil tercihleri cihazda hatırlanır. Stok kayıtları ve analiz sonuçları oturum belleğinde kalır. Stok dökümünde ürün adına veya ABC grubuna göre arama yapabilirsiniz. Büyük Pareto grafiklerinde sıra aralığı düğmeleriyle tüm ürünlere ulaşabilirsiniz. [Performans ölçümleri ve doğrulama](vercel-app/README.md#performans)

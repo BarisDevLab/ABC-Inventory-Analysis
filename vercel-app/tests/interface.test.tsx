@@ -20,6 +20,7 @@ vi.mock('../src/charts/Plot', () => ({
 vi.mock('../src/export/download', () => ({ downloadExcel: vi.fn(async () => {}) }));
 vi.mock('../src/processing/client', () => ({ processAnalysis: vi.fn() }));
 beforeEach(() => {
+  window.localStorage.clear();
   window.history.replaceState(null, '', '/');
   vi.mocked(processAnalysis).mockImplementation(async (request: AnalysisRequest) => {
     // Excel parsing itself is covered by files.test.ts and the real-browser run.
@@ -148,7 +149,7 @@ describe('Gerçek React ekran entegrasyonu', () => {
     expect(screen.getAllByRole('tab').length).toBe(4);
     fireEvent.click(screen.getByRole('tab', { name: 'Çözümlü Örnekler' }));
     expect(screen.getByText('Örnek 2 · Hedefler değişirse ne olur?')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '← Analiz paneline dön' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Analiz paneline dön' }));
     expect(document.querySelector('[data-kpi=total]')?.getAttribute('data-value')).toBe(
       '304.000,00 TL',
     );
@@ -236,4 +237,49 @@ describe('Gerçek React ekran entegrasyonu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sonraki' }));
     expect(screen.getAllByRole('row').length).toBe(21);
   });
+});
+
+it('switching languages and theme preserves the active inventory and localises numbers', () => {
+  render(<App />);
+  demo();
+  fireEvent.change(screen.getByLabelText('Arayüz dili'), { target: { value: 'en' } });
+  expect(document.documentElement.lang).toBe('en');
+  expect(screen.getByRole('heading', { name: 'Inventory overview' })).toBeTruthy();
+  expect(document.querySelector('[data-kpi=total]')?.getAttribute('data-value')).toBe(
+    '304,000.00 TL',
+  );
+  expect(screen.getByRole('button', { name: 'Download Excel report' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Dark theme' }));
+  expect(document.documentElement.dataset.theme).toBe('dark');
+  expect(window.localStorage.getItem('abc:theme')).toBe('dark');
+  fireEvent.click(screen.getByRole('link', { name: 'ABC guide' }));
+  expect(screen.getByRole('tab', { name: 'Worked examples' })).toBeTruthy();
+});
+
+it('search respects Turkish product spelling and does not change the full analysis', async () => {
+  const input = sampleData();
+  input.rows[0][0] = 'VİDA Ünite';
+  const analysis = calculateAbc(input);
+  render(<ResultsTables analysis={analysis} />);
+  fireEvent.change(screen.getByLabelText('Ürün ara'), { target: { value: 'vida ünite' } });
+  await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(2));
+  expect(screen.getByRole('rowheader', { name: 'VİDA Ünite' })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('ABC grubu'), { target: { value: 'C' } });
+  expect(screen.getByRole('status').textContent).toContain('eşleşen ürün yok');
+  expect(analysis.rows).toHaveLength(5);
+});
+
+it('charts cap the number of rendered ranks while preserving access to later products', () => {
+  const source = sampleData();
+  source.rows = Array.from({ length: 510 }, (_, i) => [`Ürün ${i}`, 510 - i, 1]);
+  const analysis = calculateAbc(source);
+  render(<ChartsPanel analysis={analysis} />);
+  const bars = () =>
+    vi
+      .mocked(Plot)
+      .mock.calls.filter(([props]) => props.label.includes('Pareto'))
+      .at(-1)![0].data[0] as { y: number[] };
+  expect(bars().y).toHaveLength(500);
+  fireEvent.click(screen.getByRole('button', { name: 'Sonraki aralık' }));
+  expect(bars().y).toEqual(analysis.rows.slice(500).map((row) => row.value));
 });

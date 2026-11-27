@@ -1,54 +1,133 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { calculateAbc, sampleData } from '../core/abc';
+import { useLocale } from '../ui/locale';
+import { groupPolicies } from './AnalysisInsights';
 import { ProductTable } from './ResultsTables';
-import { money } from '../ui/format';
-const first = calculateAbc(sampleData()),
-  second = calculateAbc(sampleData(), { a: 70, b: 20, c: 10 });
-const topics = [
-  'Genel Bakış',
-  'Hesaplama Adımları',
-  'Çözümlü Örnekler',
-  'Mühendislik Uygulamaları',
-];
-export const policies = [
-  {
-    group: 'A',
-    title: 'Yüksek öncelik',
-    description: 'Ayrıntılı tedarik planlama ve sık stok kontrolü.',
-  },
-  {
-    group: 'B',
-    title: 'Dengeli kontrol',
-    description: 'Düzenli gözden geçirme, periyodik sayım ve dengeli sipariş politikaları.',
-  },
-  { group: 'C', title: 'Yalın takip', description: 'Daha basit, düşük maliyetli stok izleme.' },
-];
+
+function GuideExamples() {
+  const { t, money } = useLocale();
+  const [first, second] = useMemo(
+    () => [calculateAbc(sampleData()), calculateAbc(sampleData(), { a: 70, b: 20, c: 10 })],
+    [],
+  );
+  return (
+    <article className="panel guide-panel">
+      <h2>{t('Çözümlü ABC Analizi Örneği', 'Worked ABC example')}</h2>
+      <h3>{t('Örnek 1 · %80 / %15 / %5', 'Example 1 · 80% / 15% / 5%')}</h3>
+      <ProductTable
+        rows={first.rows}
+        caption={t('Birinci çözümlü örnek', 'First worked example')}
+      />
+      <p>
+        {t('Toplam yıllık tüketim değeri', 'Total annual usage value')}{' '}
+        <strong>{money(first.total)}</strong>
+      </p>
+      <p className="callout">
+        {t(
+          'Sensör %69,08’de başladığı için kümülatif değeri %80’in üzerine çıkarsa da A grubunda kalır.',
+          'Sensör starts at 69.08%, so it stays in group A even though it pushes the cumulative share above 80%.',
+        )}
+      </p>
+      <h3>
+        {t('Örnek 2 · Hedefler değişirse ne olur?', 'Example 2 · What if we change the targets?')}
+      </h3>
+      <p>
+        {t(
+          'A/B/C hedefleri %70 / %20 / %10, sınırlar %70 ve %90 olur.',
+          'A/B/C targets are 70% / 20% / 10%, giving thresholds of 70% and 90%.',
+        )}
+      </p>
+      <ProductTable
+        rows={second.rows}
+        caption={t('İkinci çözümlü örnek', 'Second worked example')}
+      />
+      <p>
+        {t(
+          'Sensör %69,08’de başlar ve A’da kalır. Kayış %88,82 ile B’de, Vida %96,71 ile C’dedir. Bu örnekte ürünler aynı gruplarda kalır.',
+          'Sensör starts at 69.08% and remains in A. Kayış starts at 88.82% in B and Vida starts at 96.71% in C. The groups stay the same in this example.',
+        )}
+      </p>
+      <p className="caption">
+        {t(
+          'Örnekler yüklediğiniz veriyi ve hedeflerinizi değiştirmez.',
+          'The examples leave your uploaded inventory and targets unchanged.',
+        )}
+      </p>
+    </article>
+  );
+}
+
 export function GuidePage({ onReturn }: { onReturn: () => void }) {
+  const { t, percent } = useLocale();
   const [tab, setTab] = useState(0);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const topics = [
+    t('Genel Bakış', 'Overview'),
+    t('Hesaplama Adımları', 'Calculation'),
+    t('Çözümlü Örnekler', 'Worked examples'),
+    t('Mühendislik Uygulamaları', 'Applications'),
+  ];
+  const policies = groupPolicies(t);
+  const steps = [
+    [
+      t('Yıllık tüketim değerini hesaplayın', 'Calculate annual usage value'),
+      t(
+        'Yıllık tüketim miktarını birim fiyatla çarpın. Örneğin 500 adet rulman × 120 TL = 60.000 TL.',
+        'Multiply annual usage by unit price. For example, 500 bearings × 120 TL = 60,000 TL.',
+      ),
+      'Dᵢ = Qᵢ × Pᵢ',
+    ],
+    [
+      t('Ürünleri sıralayın', 'Rank the products'),
+      t(
+        'Yıllık değere göre azalan sırada dizin. Eşit değerde giriş sırası korunur.',
+        'Rank products by descending value. Equal values retain their input order.',
+      ),
+    ],
+    [
+      t('Değer payını bulun', 'Calculate value share'),
+      t(
+        'Ürün değerini toplam değere bölüp 100 ile çarpın. 60.000 TL, 300.000 TL toplamın %20’sidir.',
+        'Divide the product’s value by the total and multiply by 100. 60,000 TL is 20% of 300,000 TL.',
+      ),
+      'Sᵢ (%) = (Dᵢ / ΣDⱼ) × 100',
+    ],
+    [
+      t('Kümülatif payı bulun', 'Calculate cumulative share'),
+      t(
+        'Azalan değer sırasındaki ürün paylarını sırayla toplayın.',
+        'Add the product shares in descending value order.',
+      ),
+      'Kᵢ = Σⱼ₌₁…ᵢ Sⱼ',
+    ],
+    [
+      t('ABC grubunu atayın', 'Assign an ABC group'),
+      t(
+        'Varsayılan hedefler %80, %15 ve %5’tir. Gruplar, ürün eklenmeden önceki kümülatif paya göre belirlenir. Sınırı aşan ürün başladığı grupta kalır. Sıfır değerli ürünler C grubuna atanır.',
+        'Default targets are 80%, 15%, and 5%. Assign the group using the cumulative share before adding the product. A product that crosses a threshold stays in its starting group. Zero-value products belong to C.',
+      ),
+    ],
+  ];
   return (
     <>
-      <header className="page-hero">
-        <span className="eyebrow">ABC ANALİZİ / EĞİTİM MERKEZİ</span>
-        <h1>
-          Ekonomik önceliği
-          <br />
-          <span>anlamaya başlayın.</span>
-        </h1>
-        <p>Formüller, çözümlü örnekler ve mühendislik uygulamalarıyla stok yönetimini öğrenin.</p>
-        <div className="hero-tags">
-          <span>Yöntemi tanıyın</span>
-          <span>Hesaplamayı inceleyin</span>
-          <span>Kontrol politikanızı belirleyin</span>
+      <header className="page-hero dashboard-hero">
+        <div>
+          <h1>{t('ABC analizi rehberi', 'ABC analysis guide')}</h1>
+          <p>
+            {t(
+              'Yöntemi, hesaplama adımlarını ve stok kontrolünde nasıl kullanıldığını öğrenin.',
+              'Learn the method, follow the calculations, and apply the results to stock control.',
+            )}
+          </p>
         </div>
       </header>
-      <div className="guide-tabs" role="tablist" aria-label="Rehber konuları">
+      <div className="guide-tabs" role="tablist" aria-label={t('Rehber konuları', 'Guide topics')}>
         {topics.map((topic, index) => (
           <button
             ref={(element) => {
               buttons.current[index] = element;
             }}
-            key={topic}
+            key={index}
             id={`guide-tab-${index}`}
             role="tab"
             tabIndex={tab === index ? 0 : -1}
@@ -56,17 +135,15 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
             aria-controls={`guide-panel-${index}`}
             onClick={() => setTab(index)}
             onKeyDown={(event) => {
-              const next =
-                event.key === 'ArrowRight'
-                  ? (index + 1) % 4
-                  : event.key === 'ArrowLeft'
-                    ? (index + 3) % 4
-                    : event.key === 'Home'
-                      ? 0
-                      : event.key === 'End'
-                        ? 3
-                        : null;
-              if (next !== null) {
+              const last = topics.length - 1;
+              const positions: Record<string, number> = {
+                ArrowRight: (index + 1) % topics.length,
+                ArrowLeft: (index + last) % topics.length,
+                Home: 0,
+                End: last,
+              };
+              const next = positions[event.key];
+              if (typeof next === 'number') {
                 event.preventDefault();
                 setTab(next);
                 buttons.current[next]?.focus();
@@ -77,255 +154,102 @@ export function GuidePage({ onReturn }: { onReturn: () => void }) {
           </button>
         ))}
       </div>
-      <section
-        role="tabpanel"
-        id={`guide-panel-${tab}`}
-        aria-labelledby={`guide-tab-${tab}`}
-        tabIndex={0}
-        className="guide-content"
-      >
-        {tab === 0 && (
-          <>
-            <article className="panel guide-panel blue">
-              <span className="eyebrow">01 / YÖNTEM</span>
-              <h2>ABC Analizi Nedir?</h2>
-              <p>
-                ABC analizi, stok kalemlerinin yıllık parasal tüketim değerlerine göre
-                sınıflandırılmasını sağlayan bir envanter yönetimi yöntemidir. İşletmelerde bütün
-                stok kalemleri aynı ekonomik öneme sahip değildir.
-              </p>
-              <p>
-                Bazı ürünler toplam yıllık tüketim değerinin büyük kısmını oluştururken, çok sayıda
-                ürün daha küçük bir değer payına sahip olabilir. Temel amaç,{' '}
-                <strong>
-                  sınırlı yönetim ve kontrol kaynaklarını ekonomik etkisi yüksek stoklara öncelik
-                  verecek şekilde kullanmaktır.
-                </strong>
-              </p>
-              <div className="callout">
-                Her stok kalemini aynı sıklıkta kontrol etmek yerine, ürünleri ekonomik önemlerine
-                göre farklı stok politikalarıyla takip edin.
-              </div>
-            </article>
-            <article className="panel guide-panel violet">
-              <span className="eyebrow">02 / TEMEL İLKE</span>
-              <h2>Pareto İlkesi</h2>
-              <p>
-                Pareto yaklaşımı, birçok sistemde sonuçların önemli bir bölümünün sınırlı sayıdaki
-                etkenden kaynaklanabileceğini ifade eder. Stok yönetiminde az sayıdaki ürün, toplam
-                parasal tüketim değerinin büyük kısmına sahip olabilir.
-              </p>
-              <p>
-                <strong>%80–20 dağılımı kesin bir matematiksel zorunluluk değildir.</strong>{' '}
-                Sektöre, ürün yapısına ve tüketim özelliklerine göre farklı dağılımlar ortaya
-                çıkabilir.
-              </p>
-              <div className="callout">
-                %80–20 bir başlangıç yaklaşımıdır; gerçekleşen dağılımı işletmenizin verileri
-                belirler.
-              </div>
-            </article>
-            <h2>ABC Grupları</h2>
-            <div className="group-cards">
-              {policies.map((policy, index) => (
-                <article className={`group-card group-card-${policy.group}`} key={policy.group}>
-                  <div>
-                    <strong>{policy.group}</strong>
-                    <span>Hedef %{[80, 15, 5][index]}</span>
-                  </div>
-                  <h3>{['Yüksek', 'Orta', 'Düşük'][index]} ekonomik öncelik</h3>
-                  <p>
-                    Toplam yıllık parasal değerin{' '}
-                    {['yaklaşık ilk %80', 'yaklaşık sonraki %15', 'yaklaşık son %5'][index]}'lik
-                    bölümüne karşılık gelen ürünler.
-                  </p>
-                  <small>STOK KONTROL STRATEJİSİ</small>
-                  <p>{policy.description}</p>
-                </article>
-              ))}
-            </div>
-            <p className="caption">
-              Bunlar varsayılan parasal değer hedefleridir; ürün sayısı oranları değildir.
-            </p>
-            <article className="panel">
-              <h2>Grup Bazlı Kontrol Politikaları</h2>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Grup</th>
-                      <th>Kontrol düzeyi</th>
-                      <th>Önerilen yaklaşım</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+      {topics.map((_, index) => (
+        <section
+          key={index}
+          role="tabpanel"
+          id={`guide-panel-${index}`}
+          aria-labelledby={`guide-tab-${index}`}
+          className="guide-content"
+          tabIndex={0}
+          hidden={index !== tab}
+        >
+          {index === tab && (
+            <>
+              {tab === 0 && (
+                <>
+                  <article className="panel guide-panel">
+                    <h2>{t('ABC Analizi Nedir?', 'What is ABC analysis?')}</h2>
+                    <p>
+                      {t(
+                        'ABC analizi, stok kalemlerini yıllık parasal tüketim değerine göre sınıflandırır. Böylece sınırlı stok kontrolü kaynakları ekonomik etkisi yüksek ürünlere ayrılabilir.',
+                        'ABC analysis classifies inventory by annual usage value so that stock control effort can focus on products with greater economic impact.',
+                      )}
+                    </p>
+                    <h3>{t('Pareto İlkesi', 'The Pareto principle')}</h3>
+                    <p>
+                      {t(
+                        'Az sayıda ürün toplam değerin büyük bölümünü oluşturabilir. %80–20 bir başlangıç yaklaşımıdır. Gerçek dağılımı verileriniz belirler.',
+                        'A small number of products may account for most of the value. The 80/20 split is a starting point. Your data determines the actual distribution.',
+                      )}
+                    </p>
+                  </article>
+                  <div className="group-cards">
                     {policies.map((policy, index) => (
-                      <tr key={policy.group}>
-                        <th>{policy.group}</th>
-                        <td>{['Yüksek', 'Orta', 'Daha basit'][index]}</td>
-                        <td>{policy.description}</td>
-                      </tr>
+                      <article key={policy.group} className="panel">
+                        <span className={`group-badge group-${policy.group}`}>{policy.group}</span>
+                        <h3>{policy.title}</h3>
+                        <small>
+                          {t('Varsayılan hedef', 'Default target')} {percent([80, 15, 5][index], 0)}
+                        </small>
+                        <p>{policy.description}</p>
+                      </article>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </article>
-          </>
-        )}
-        {tab === 1 && (
-          <article className="panel guide-panel violet">
-            <span className="eyebrow">04 / HESAPLAMA</span>
-            <h2>ABC Analizi Nasıl Yapılır?</h2>
-            <details open>
-              <summary>Adım 1 — Yıllık tüketim değeri</summary>
-              <p>Her stok kaleminin yıllık kullanım miktarı ile birim fiyatı çarpılır.</p>
-              <div
-                className="formula"
-                aria-label="Yıllık değer eşittir yıllık miktar çarpı birim fiyat"
-              >
-                D<sub>i</sub> = Q<sub>i</sub> × P<sub>i</sub>
-              </div>
-              <p>D: yıllık parasal tüketim değeri · Q: yıllık tüketim miktarı · P: birim fiyat.</p>
-              <div className="callout">500 adet rulman × 120 TL = 60.000 TL</div>
-            </details>
-            <details>
-              <summary>Adım 2 — Ürünleri sıralama</summary>
-              <p>
-                Ürünlerin yıllık tüketim değerleri büyükten küçüğe sıralanır. En yüksek değerli
-                ürünler başa gelir. Eşit değerde giriş sırası korunur.
-              </p>
-            </details>
-            <details>
-              <summary>Adım 3 — Değer payını hesaplama</summary>
-              <div className="formula">
-                Pay<sub>i</sub> (%) = (D<sub>i</sub> / ΣD<sub>j</sub>) × 100
-              </div>
-              <p>
-                Bir ürünün yıllık değeri 60.000 TL, toplam değer 300.000 TL ise ürünün payı %20
-                olur.
-              </p>
-            </details>
-            <details>
-              <summary>Adım 4 — Kümülatif pay</summary>
-              <div className="formula">
-                K<sub>i</sub> = Σ<sub>j=1…i</sub> Pay<sub>j</sub>
-              </div>
-              <p>
-                Sıralanmış ürünlerin değer payları sırayla toplanır; her ürünün birikimli oranı
-                hesaplanır.
-              </p>
-            </details>
-            <details>
-              <summary>Adım 5 — ABC sınıflandırması</summary>
-              <p>
-                Varsayılan hedefler A: %80, B: %15, C: %5; kümülatif sınırlar %80 ve %95'tir. Her
-                ürün kendi payı eklenmeden <strong>önceki kümülatif paya</strong> göre
-                sınıflandırılır. Sınırı aşsa da başladığı grupta kalır. Sıfır yıllık değerli ürünler
-                C grubundadır. Ürünler bölünmediği için gerçekleşen paylar hedeflerden farklı
-                olabilir.
-              </p>
-            </details>
-          </article>
-        )}
-        {tab === 2 && (
-          <article className="panel guide-panel cyan">
-            <span className="eyebrow">05 / ÇÖZÜMLÜ ÖRNEKLER</span>
-            <h2>Çözümlü ABC Analizi Örneği</h2>
-            <p>
-              Bir işletmenin Motor, Rulman, Sensör, Kayış ve Vida stoklarını inceleyelim. Her iki
-              örnek de aynı TypeScript çekirdeğiyle hesaplanır.
-            </p>
-            <h3>Örnek 1 · %80 / %15 / %5</h3>
-            <ProductTable rows={first.rows} caption="Birinci çözümlü örnek" />
-            <p className="example-total">
-              Toplam yıllık tüketim değeri <strong>{money(first.total)}</strong>
-            </p>
-            <div className="callout">
-              Sensör %69,08'de başladığı için kümülatif değeri %80'in üzerine çıkarsa da A grubunda
-              kalır.
-            </div>
-            <h3>Örnek 2 · Hedefler değişirse ne olur?</h3>
-            <p>A/B/C hedefleri %70 / %20 / %10; sınırlar %70 ve %90 olur.</p>
-            <ProductTable rows={second.rows} caption="İkinci çözümlü örnek" />
-            <p>
-              Sensör %69,08'de başladığı için A'dadır. Kayış %88,82'de başladığı için B; Vida
-              %96,71'de başladığı için C'dir. Hedefler değişse de bu örnekte ürünler bölünmediğinden
-              gruplar aynı kalır.
-            </p>
-            <p className="caption">
-              Eğitim örnekleri yüklediğiniz veriyi ve uygulanmış hedeflerinizi değiştirmez.
-            </p>
-          </article>
-        )}
-        {tab === 3 && (
-          <>
-            <article className="panel guide-panel blue">
-              <span className="eyebrow">06 / GRAFİĞİ OKUMA</span>
-              <h2>Pareto Grafiği Nasıl Okunur?</h2>
-              <p>
-                Sütunlar yıllık tüketim değerlerini, sütun renkleri A/B/C gruplarını, mercan çizgi
-                kümülatif payı, kesikli çizgiler hedef sınırlarını gösterir. Ürünler soldan sağa
-                yüksek değerden düşük değere sıralanır.
-              </p>
-              <h3>Etkileşimli Grafik Araçları</h3>
-              <ol>
-                <li>Fareyle alan seçerek veya tekerlekle yakınlaştırın.</li>
-                <li>Kaydır seçeneğiyle grafiği sürükleyin.</li>
-                <li>Ürün gruplarını ve sıralama aralığını filtreleyin.</li>
-                <li>Üzerine gelerek tüm ayrıntıları görün; mobilde dokunun.</li>
-                <li>Görünümü sıfırlayın veya PNG olarak indirin.</li>
-              </ol>
-              <p>
-                Grafik filtreleri sınıflandırmayı ve kümülatif yüzdeleri yeniden hesaplamaz.
-                Tablolar ve rapor tam analizden üretilir.
-              </p>
-            </article>
-            <h2>Endüstri Mühendisliğinde Kullanımı</h2>
-            <div className="applications">
-              {[
-                ['Stok Yönetimi', 'Stok kontrol sıklığının ekonomik öneme göre belirlenmesi.'],
-                [
-                  'Satın Alma Yönetimi',
-                  'Yüksek değerli ürünlerin tedarik süreçlerinin önceliklendirilmesi.',
-                ],
-                [
-                  'Depo Yönetimi',
-                  'Sayım ve takip yöntemlerinin ABC gruplarına göre farklılaştırılması.',
-                ],
-                [
-                  'Üretim Planlama',
-                  'Önemli malzemelerin tüketim ve maliyetlerinin takip edilmesi.',
-                ],
-                [
-                  'Tedarik Zinciri Yönetimi',
-                  'Kontrol kaynaklarının ekonomik önceliği yüksek ürünlere yönlendirilmesi.',
-                ],
-              ].map(([title, description]) => (
-                <article className="panel" key={title}>
-                  <h3>{title}</h3>
-                  <p>{description}</p>
+                  </div>
+                </>
+              )}
+              {tab === 1 && (
+                <article className="panel guide-panel">
+                  <h2>{t('ABC Analizi Nasıl Yapılır?', 'How is ABC analysis calculated?')}</h2>
+                  {steps.map(([title, text, formula], index) => (
+                    <details key={index} open={index === 0}>
+                      <summary>{title}</summary>
+                      {formula && <p className="formula">{formula}</p>}
+                      <p>{text}</p>
+                    </details>
+                  ))}
                 </article>
-              ))}
-            </div>
-            <article className="panel limitations">
-              <span className="eyebrow">08 / SINIRLAMALAR</span>
-              <h2>ABC Analizinin Sınırlamaları</h2>
-              <p>
-                ABC analizi yalnızca yıllık parasal tüketim değerine dayanır. Ekonomik değeri düşük
-                bir ürün üretim için kritik olabilir. Tedarik süresi, talep değişkenliği, stok
-                tükenme riski, üretim için kritiklik, tedarikçi güvenilirliği, güvenlik ve kalite
-                gereksinimleri ayrıca değerlendirilmelidir.
-              </p>
-              <p>
-                Diğer stok yönetimi yöntemleriyle birlikte kullanıldığında daha kapsamlı karar
-                desteği sağlar.
-              </p>
-            </article>
-          </>
-        )}
-      </section>
+              )}
+              {tab === 2 && <GuideExamples />}
+              {tab === 3 && (
+                <article className="panel guide-panel">
+                  <h2>{t('Pareto Grafiği Nasıl Okunur?', 'How to read the Pareto chart')}</h2>
+                  <p>
+                    {t(
+                      'Sütunlar yıllık tüketim değerini, renkler A/B/C gruplarını, çizgi kümülatif payı, kesikli çizgiler hedef sınırlarını gösterir. Ürünler yüksekten düşük değere sıralanır.',
+                      'Bars show annual usage value, colours show A/B/C groups, the line shows cumulative share, and dashed lines mark target thresholds. Products run from highest to lowest value.',
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'Yakınlaştırın, kaydırın veya ürün grubu ve sıra aralığını seçin. Ayrıntılar için grafiğin üzerine gelin veya mobilde dokunun. Görünümü sıfırlayabilir ya da PNG olarak indirebilirsiniz. Filtreler tam analizi değiştirmez.',
+                      'Zoom, pan, or select product groups and a rank range. Hover or tap for details. Reset the view or download it as a PNG. Filters leave the full analysis unchanged.',
+                    )}
+                  </p>
+                  <h3>
+                    {t('Endüstri Mühendisliğinde Kullanımı', 'Industrial engineering applications')}
+                  </h3>
+                  <p>
+                    {t(
+                      'Stok kontrolü ve depo sayım sıklığını belirlemek, satın alma ve tedarik faaliyetlerini önceliklendirmek, üretimde önemli malzemelerin maliyetini izlemek için kullanılabilir.',
+                      'Use ABC to set inventory review and cycle-count frequencies, prioritise purchasing and replenishment, and monitor material costs in production.',
+                    )}
+                  </p>
+                  <h3>{t('ABC Analizinin Sınırlamaları', 'Limitations of ABC analysis')}</h3>
+                  <p>
+                    {t(
+                      'Yıllık tüketim değeri operasyonel kritiklik hakkında tek başına bilgi vermez. Tedarik süresi, talep değişkenliği, stok tükenme riski, tedarikçi güvenilirliği, güvenlik ve kalite gereksinimlerini ayrıca değerlendirin.',
+                      'Annual usage value alone cannot describe operational criticality. Also consider lead time, demand variability, stockout risk, supplier reliability, safety, and quality requirements.',
+                    )}
+                  </p>
+                </article>
+              )}
+            </>
+          )}
+        </section>
+      ))}
       <button className="button secondary back-button" onClick={onReturn}>
-        ← Analiz paneline dön
+        {t('Analiz paneline dön', 'Return to dashboard')}
       </button>
     </>
   );

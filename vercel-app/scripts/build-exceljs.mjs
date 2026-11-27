@@ -25,6 +25,12 @@ const workspace=join(root,'.tmp/exceljs-build',sourceSha256);
 await mkdir(workspace,{recursive:true});await mkdir(generated,{recursive:true});await mkdir(dirname(notices),{recursive:true});
 await cp(join(excelRoot,'lib'),join(workspace,'lib'),{recursive:true});
 await cp(join(excelRoot,'LICENSE'),join(workspace,'LICENSE'));
+// Vite's supported browsers already provide these APIs. Keep ExcelJS's own
+// Workbook and enum exports, leaving legacy global polyfills out of the worker.
+const browserEntry = join(workspace, 'lib/exceljs.browser.js');
+const upstreamEntry = await readFile(browserEntry, 'utf8');
+const modernEntry = upstreamEntry.replace(/^require\('(?:core-js\/modules\/[^']+|regenerator-runtime\/runtime)'\);\r?\n/gm, '');
+await writeFile(browserEntry, modernEntry);
 const browserUuid=join(uuidRoot,'dist/cjs-browser/index.js');
 await readFile(browserUuid); // Fail closed if the reviewed package layout changes.
 await writeFile(join(workspace,'package.json'),JSON.stringify({name:'abc-exceljs-browser-source',version:excel.version,license:'MIT',browser:{uuid:browserUuid}}));

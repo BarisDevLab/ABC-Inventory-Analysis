@@ -2,55 +2,74 @@ import { memo, useMemo, useRef, useState } from 'react';
 import type { PlotlyHTMLElement } from 'plotly.js';
 import type { Analysis, Group } from '../core/abc';
 import { GROUPS } from '../core/abc';
-import { visibleRows, paretoModel, distributionModel } from '../charts/models';
+import { visibleRows, paretoModel, distributionModel, PARETO_WINDOW_SIZE } from '../charts/models';
 import { Plot, downloadPng } from '../charts/Plot';
+import { useLocale } from '../ui/locale';
+import type { Theme } from '../ui/locale';
 import { GroupTable } from './ResultsTables';
-export const ChartsPanel = memo(function ChartsPanel({ analysis }: { analysis: Analysis }) {
+
+export const ChartsPanel = memo(function ChartsPanel({
+  analysis,
+  theme = 'light',
+}: {
+  analysis: Analysis;
+  theme?: Theme;
+}) {
+  const { language, t, number, percent } = useLocale();
   const [groups, setGroups] = useState<Group[]>([...GROUPS]);
   const [range, setRange] = useState({
     length: analysis.rows.length,
     first: 1,
     last: analysis.rows.length,
   });
+  const [windowIndex, setWindowIndex] = useState(0);
   const [compact, setCompact] = useState(
-      () =>
-        typeof window.matchMedia === 'function' && window.matchMedia('(max-width:640px)').matches,
-    ),
-    [mode, setMode] = useState<'zoom' | 'pan'>('zoom'),
-    [revision, setRevision] = useState(0),
-    [error, setError] = useState(''),
-    [saving, setSaving] = useState(false);
-  const pareto = useRef<PlotlyHTMLElement | null>(null),
-    donut = useRef<PlotlyHTMLElement | null>(null);
+    () => window.matchMedia?.('(max-width:640px)').matches ?? false,
+  );
+  const [mode, setMode] = useState<'zoom' | 'pan'>('zoom');
+  const [revision, setRevision] = useState(0);
+  const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const pareto = useRef<PlotlyHTMLElement | null>(null);
+  const donut = useRef<PlotlyHTMLElement | null>(null);
   const length = analysis.rows.length;
-  // A new inventory size gets its full range in the same render, not a second
-  // effect-driven Plotly redraw with the previous inventory's range first.
   const current = range.length === length ? range : { length, first: 1, last: length };
-  const rangeFirst = Math.min(current.first, length),
-    rangeLast = Math.max(rangeFirst, Math.min(current.last, length));
+  const pages = Math.ceil((current.last - current.first + 1) / PARETO_WINDOW_SIZE);
+  const page = Math.min(range.length === length ? windowIndex : 0, pages - 1);
+  const first = current.first + page * PARETO_WINDOW_SIZE;
+  const last = Math.min(current.last, first + PARETO_WINDOW_SIZE - 1);
   const rows = useMemo(
-    () => visibleRows(analysis, groups, rangeFirst, rangeLast),
-    [analysis, groups, rangeFirst, rangeLast],
+    () => visibleRows(analysis, groups, first, last),
+    [analysis, groups, first, last],
   );
   const prepared = useMemo(
-    () => paretoModel(rows, analysis.targets, compact, 'zoom', 0),
-    [rows, analysis.targets, compact],
+    () => paretoModel(rows, analysis.targets, compact, 'zoom', 0, language, theme),
+    [rows, analysis.targets, compact, language, theme],
   );
   const model = useMemo(
     () => ({
       data: prepared.data,
-      layout: { ...prepared.layout, dragmode: mode, uirevision: String(revision) },
+      layout: { ...prepared.layout, dragmode: mode, uirevision: `${first}:${last}:${revision}` },
     }),
-    [prepared, mode, revision],
+    [prepared, mode, first, last, revision],
   );
-  const distribution = useMemo(() => distributionModel(analysis), [analysis]);
+  const distribution = useMemo(
+    () => distributionModel(analysis, language, theme),
+    [analysis, language, theme],
+  );
+
+  function changeRange(first: number, last: number) {
+    setRange({ length, first, last });
+    setWindowIndex(0);
+  }
+
   async function save(node: PlotlyHTMLElement | null, name: string) {
-    setError('');
+    setError(false);
     setSaving(true);
     try {
       await downloadPng(node, name);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'PNG indirilemedi.');
+    } catch {
+      setError(true);
     } finally {
       setSaving(false);
     }
@@ -59,21 +78,23 @@ export const ChartsPanel = memo(function ChartsPanel({ analysis }: { analysis: A
     <>
       <section className="panel chart-container" aria-labelledby="pareto-heading">
         <div className="panel-heading">
-          <div>
-            <span className="eyebrow">02 / PARETO ANALİZİ</span>
-            <h2 id="pareto-heading">Değerin yoğunlaştığı ürünler</h2>
-          </div>
-          <span className="subtle-label">Ekonomik öncelik sınırları</span>
+          <h2 id="pareto-heading">{t('Değerin yoğunlaştığı ürünler', 'Pareto analysis')}</h2>
+          <span className="subtle-label">
+            {t('Ekonomik öncelik sınırları', 'Value thresholds')}
+          </span>
         </div>
         <div className="chart-controls">
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="control-heading">Gösterilecek ABC grupları</legend>
+          <fieldset>
+            <legend className="control-heading">
+              {t('Gösterilecek ABC grupları', 'Show ABC groups')}
+            </legend>
             <div className="group-filters">
               {GROUPS.map((group) => (
                 <label key={group}>
                   <input
                     type="checkbox"
                     checked={groups.includes(group)}
+                    aria-label={t(`${group} grubu`, `Group ${group}`)}
                     onChange={(event) =>
                       setGroups(
                         event.target.checked
@@ -88,65 +109,89 @@ export const ChartsPanel = memo(function ChartsPanel({ analysis }: { analysis: A
             </div>
           </fieldset>
           <div>
-            <span className="control-heading">Ürün sıralama aralığı · {length} ürün</span>
+            <span className="control-heading">
+              {t('Ürün sıralama aralığı', 'Product rank range')}
+            </span>
             <div className="range-controls">
               <label>
-                İlk ürün
+                {t('İlk ürün', 'First product')}
                 <input
                   type="number"
                   min={1}
                   max={length}
-                  value={rangeFirst}
+                  value={current.first}
                   onChange={(event) => {
-                    const next = Math.max(1, Math.min(length, Number(event.target.value) || 1));
-                    setRange({ length, first: next, last: Math.max(next, rangeLast) });
+                    const next = Math.max(
+                      1,
+                      Math.min(length, Math.trunc(event.target.valueAsNumber || 1)),
+                    );
+                    changeRange(next, Math.max(next, current.last));
                   }}
                 />
               </label>
-              <span>—</span>
               <label>
-                Son ürün
+                {t('Son ürün', 'Last product')}
                 <input
                   type="number"
-                  min={rangeFirst}
+                  min={current.first}
                   max={length}
-                  value={rangeLast}
+                  value={current.last}
                   onChange={(event) =>
-                    setRange({
-                      length,
-                      first: rangeFirst,
-                      last: Math.max(
-                        rangeFirst,
-                        Math.min(length, Number(event.target.value) || rangeFirst),
+                    changeRange(
+                      current.first,
+                      Math.max(
+                        current.first,
+                        Math.min(length, Math.trunc(event.target.valueAsNumber || current.first)),
                       ),
-                    })
+                    )
                   }
                 />
               </label>
             </div>
           </div>
+          {pages > 1 && (
+            <div className="chart-window">
+              <span className="control-heading" aria-live="polite">
+                {t('Çizilen sıra aralığı', 'Rendered ranks')} {number(first, 0)}–{number(last, 0)}
+              </span>
+              <div className="tabs">
+                <button
+                  disabled={page === 0}
+                  onClick={() => {
+                    setRange(current);
+                    setWindowIndex(page - 1);
+                  }}
+                >
+                  {t('Önceki aralık', 'Previous range')}
+                </button>
+                <button
+                  disabled={page === pages - 1}
+                  onClick={() => {
+                    setRange(current);
+                    setWindowIndex(page + 1);
+                  }}
+                >
+                  {t('Sonraki aralık', 'Next range')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="chart-toolbar">
-          <button
-            className={mode === 'zoom' ? 'active' : ''}
-            aria-pressed={mode === 'zoom'}
-            onClick={() => setMode('zoom')}
-          >
-            Yakınlaştır
+          <button aria-pressed={mode === 'zoom'} onClick={() => setMode('zoom')}>
+            {t('Yakınlaştır', 'Zoom')}
           </button>
-          <button
-            className={mode === 'pan' ? 'active' : ''}
-            aria-pressed={mode === 'pan'}
-            onClick={() => setMode('pan')}
-          >
-            Kaydır
+          <button aria-pressed={mode === 'pan'} onClick={() => setMode('pan')}>
+            {t('Kaydır', 'Pan')}
           </button>
-          <button onClick={() => setRevision(revision + 1)}>Görünümü sıfırla</button>
+          <button onClick={() => setRevision(revision + 1)}>
+            {t('Görünümü sıfırla', 'Reset view')}
+          </button>
           <button
             disabled={saving || !rows.length}
             onClick={() => save(pareto.current, 'abc_pareto_analizi')}
           >
-            PNG indir
+            {t('PNG indir', 'Download PNG')}
           </button>
           <label>
             <input
@@ -154,52 +199,76 @@ export const ChartsPanel = memo(function ChartsPanel({ analysis }: { analysis: A
               checked={compact}
               onChange={(event) => setCompact(event.target.checked)}
             />
-            Kompakt grafik
+            {t('Kompakt grafik', 'Compact chart')}
           </label>
         </div>
         {rows.length ? (
           <Plot
             data={model.data}
             layout={model.layout}
-            label="Ürün değerleri ve kümülatif pay Pareto grafiği"
+            label={t(
+              'Ürün değerleri ve kümülatif pay Pareto grafiği',
+              'Pareto chart of product values and cumulative share',
+            )}
             onReady={(node) => {
               pareto.current = node;
             }}
           />
         ) : (
           <div className="plot-placeholder" role="status">
-            Bu seçimde gösterilecek ürün yok. Filtreleri değiştirin.
+            {t(
+              'Bu seçimde gösterilecek ürün yok. Filtreleri değiştirin.',
+              'No products in this selection. Change the filters or range.',
+            )}
           </div>
         )}
-        <div className="chart-note">
-          {rows.length} / {length} ürün gösteriliyor. Kümülatif yüzdeler ve ABC sınıfları filtreyle
-          yeniden hesaplanmaz; tam veri kümesindeki paylar korunur.
-        </div>
+        <p className="chart-note">
+          {t(
+            `${number(rows.length, 0)} / ${number(length, 0)} ürün gösteriliyor. Kümülatif paylar ve ABC sınıfları tam veri kümesinden alınır.`,
+            `Showing ${number(rows.length, 0)} of ${number(length, 0)} products. Cumulative shares and groups come from the full analysis.`,
+          )}
+        </p>
+        {pages > 1 && (
+          <p className="caption">
+            {t(
+              'Grafik bir seferde en çok 500 sıra çizer. Diğer ürünlere aralık düğmeleriyle ulaşabilirsiniz.',
+              'The chart draws up to 500 ranks at a time. Use the range controls to reach the remaining products.',
+            )}
+          </p>
+        )}
         <details className="format-help">
-          <summary>Grafik inceleme araçları nasıl kullanılır?</summary>
+          <summary>
+            {t('Grafik inceleme araçları nasıl kullanılır?', 'How do I use the chart controls?')}
+          </summary>
           <p>
-            Yakınlaştır: alan seçin veya fare tekerleğini kullanın. Kaydır: sürükleyin. Görünümü
-            sıfırla: başlangıç eksenlerini geri getirir, filtreleri değiştirmez. Çift tıklama da
-            eksenleri sıfırlar. Bilgi kutuları ürün, grup, miktar, fiyat, değer ve payları gösterir.
-            PNG indir grafiğin mevcut görünümünü kaydeder.
+            {t(
+              'Fare tekerleği veya alan seçimiyle yakınlaştırın. Kaydır modunda sürükleyin. Çift tıklama veya Görünümü sıfırla başlangıç eksenlerini geri getirir. PNG grafiğin mevcut görünümünü kaydeder.',
+              'Zoom with the scroll wheel or drag to select a region. Drag in pan mode. Double-click or use Reset view to restore the axes. PNG saves the current view.',
+            )}
           </p>
         </details>
-        {error && <p role="alert">{error}</p>}
+        {error && (
+          <p role="alert">
+            {t(
+              'PNG indirilemedi. Grafik hazır olduğunda yeniden deneyin.',
+              'Could not download the PNG. Try again when the chart is ready.',
+            )}
+          </p>
+        )}
       </section>
       <section className="panel chart-container" aria-labelledby="distribution-heading">
         <div className="panel-heading">
-          <div>
-            <span className="eyebrow">03 / GRUP DAĞILIMI</span>
-            <h2 id="distribution-heading">Parasal değer ve ürün dağılımı</h2>
-          </div>
-          <span className="subtle-label">Gerçekleşen paylar</span>
+          <h2 id="distribution-heading">
+            {t('Parasal değer ve ürün dağılımı', 'Value and product distribution')}
+          </h2>
         </div>
         <div className="distribution-grid">
           <div>
             <Plot
               data={distribution.data}
               layout={distribution.layout}
-              label="ABC parasal değer dağılımı"
+              kind="donut"
+              label={t('ABC parasal değer dağılımı', 'ABC value distribution')}
               onReady={(node) => {
                 donut.current = node;
               }}
@@ -209,16 +278,19 @@ export const ChartsPanel = memo(function ChartsPanel({ analysis }: { analysis: A
               disabled={saving}
               onClick={() => save(donut.current, 'abc_deger_dagilimi')}
             >
-              Dağılım grafiğini PNG indir
+              {t('Dağılım grafiğini PNG indir', 'Download distribution PNG')}
             </button>
           </div>
           <div>
-            <h3>ABC grup karşılaştırması</h3>
-            <p className="caption">Parasal değer payını ve ürün sayısını birlikte değerlendirin.</p>
+            <h3>{t('ABC grup karşılaştırması', 'ABC group comparison')}</h3>
             <GroupTable analysis={analysis} />
             <p className="caption">
-              A %{analysis.targets.a} / B %{analysis.targets.b} / C %{analysis.targets.c} hedefleri
-              ürünler bölünmeden uygulanır; gerçekleşen paylar farklı olabilir.
+              A {percent(analysis.targets.a, 0)} / B {percent(analysis.targets.b, 0)} / C{' '}
+              {percent(analysis.targets.c, 0)} ·{' '}
+              {t(
+                'Gerçekleşen paylar hedeflerden farklı olabilir.',
+                'Actual shares may differ from the targets.',
+              )}
             </p>
           </div>
         </div>

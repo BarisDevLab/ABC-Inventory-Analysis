@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { calculateAbc, DEFAULT_TARGETS, sampleData, validateTargets } from './core/abc';
 import type { Analysis, InputTable, Targets } from './core/abc';
-import { FILE_LIMITS } from './io/read-file';
+import { FILE_LIMITS } from './io/limits';
 import { processAnalysis } from './processing/client';
 import { UploadWorkspace } from './components/UploadWorkspace';
 import { TargetSettings } from './components/TargetSettings';
@@ -11,9 +11,48 @@ import { AnalysisInsights } from './components/AnalysisInsights';
 import { GuidePage } from './components/GuidePage';
 import { ReportDownload } from './components/ReportDownload';
 import { ChartsPanel } from './components/ChartsPanel';
+import { DashboardPreferences, WorkspaceNav } from './components/WorkspaceNav';
+import type { Page } from './components/WorkspaceNav';
+import { displayError, LanguageContext, preference, savePreference, useLocale } from './ui/locale';
+import type { Language, Theme } from './ui/locale';
 
 export default function App() {
-  const [page, setPage] = useState(() =>
+  const [language, setLanguage] = useState(() =>
+    preference<Language>('language', ['tr', 'en'], 'tr'),
+  );
+  const [theme, setTheme] = useState(() =>
+    preference<Theme>(
+      'theme',
+      ['light', 'dark'],
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    ),
+  );
+  useEffect(() => {
+    document.documentElement.lang = language;
+    savePreference('language', language);
+  }, [language]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    savePreference('theme', theme);
+  }, [theme]);
+  return (
+    <LanguageContext.Provider value={language}>
+      <Dashboard theme={theme} onTheme={setTheme} onLanguage={setLanguage} />
+    </LanguageContext.Provider>
+  );
+}
+
+function Dashboard({
+  theme,
+  onTheme,
+  onLanguage,
+}: {
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
+  onLanguage: (language: Language) => void;
+}) {
+  const { language, t, number } = useLocale();
+  const [page, setPage] = useState<Page>(() =>
     window.location.hash === '#rehber' ? 'guide' : 'analysis',
   );
   const [mobileOpen, setMobileOpen] = useState(false),
@@ -23,13 +62,14 @@ export default function App() {
   const [name, setName] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState<'cleared' | 'loaded' | 'targets' | 'recalculated' | ''>('');
+  const [isDemo, setIsDemo] = useState(false);
   const operation = useRef<AbortController | null>(null),
     main = useRef<HTMLElement>(null);
   useEffect(() => {
     const change = () => {
       if (window.location.hash === '#rehber') setPage('guide');
-      else if (window.location.hash === '#analiz') setPage('analysis');
+      else if (window.location.hash === '#analiz' || !window.location.hash) setPage('analysis');
       setMobileOpen(false);
     };
     window.addEventListener('hashchange', change);
@@ -40,9 +80,17 @@ export default function App() {
   }, []);
   useEffect(() => {
     main.current?.focus();
-    document.title =
-      page === 'guide' ? 'ABC Analizi Rehberi | BarisDevLab' : 'ABC Stok Analizi | BarisDevLab';
   }, [page]);
+  useEffect(() => {
+    document.title =
+      language === 'tr'
+        ? page === 'guide'
+          ? 'ABC Analizi Rehberi | BarisDevLab'
+          : 'ABC Stok Analizi | BarisDevLab'
+        : page === 'guide'
+          ? 'ABC Analysis Guide | BarisDevLab'
+          : 'ABC Inventory Analysis | BarisDevLab';
+  }, [language, page]);
   useEffect(() => {
     if (mobileOpen) document.querySelector<HTMLAnchorElement>('#sidebar nav a')?.focus();
   }, [mobileOpen]);
@@ -53,8 +101,9 @@ export default function App() {
     setAnalysis(null);
     setSource(null);
     setName('');
+    setIsDemo(false);
     setError('');
-    setNotice('Analiz temizlendi. Yeni bir dosya yükleyebilirsiniz.');
+    setNotice('cleared');
   }
   function demo() {
     operation.current?.abort();
@@ -65,7 +114,8 @@ export default function App() {
     setAnalysis(calculateAbc(data, targets));
     setName('Örnek stok verisi');
     setError('');
-    setNotice('Örnek veri yüklendi. 5 ürün analiz edildi.');
+    setIsDemo(true);
+    setNotice('loaded');
   }
   async function loadFile(file: File) {
     operation.current?.abort();
@@ -89,7 +139,8 @@ export default function App() {
         setSource(result.source);
         setAnalysis(result.analysis);
         setName(file.name);
-        setNotice(`${file.name} yüklendi. ${result.analysis.rows.length} ürün analiz edildi.`);
+        setIsDemo(false);
+        setNotice('loaded');
       }
     } catch (error) {
       if (!controller.signal.aborted)
@@ -111,7 +162,7 @@ export default function App() {
     }
     if (!source) {
       setTargets(next);
-      setNotice('Hedefler güncellendi.');
+      setNotice('targets');
       return;
     }
     const controller = new AbortController();
@@ -127,7 +178,7 @@ export default function App() {
       if (!controller.signal.aborted) {
         setTargets(next);
         setAnalysis(result.analysis);
-        setNotice('Hedefler güncellendi. Tüm analiz yeniden hesaplandı.');
+        setNotice('recalculated');
       }
     } catch (error) {
       if (!controller.signal.aborted)
@@ -143,6 +194,46 @@ export default function App() {
       }
     }
   }
+  const menu = useRef<HTMLButtonElement>(null);
+  const rail = useRef<HTMLElement>(null);
+  const fileName = isDemo ? t('Örnek stok verisi', 'Sample inventory') : name;
+  const title =
+    page === 'analysis' ? t('Analiz Paneli', 'Dashboard') : t('ABC Rehberi', 'ABC guide');
+  const count = number(analysis?.rows.length ?? 0, 0);
+  const notices = {
+    cleared: t(
+      'Analiz temizlendi. Yeni bir dosya yükleyebilirsiniz.',
+      'Analysis cleared. You can upload a new file.',
+    ),
+    loaded: t(
+      `${fileName} yüklendi. ${count} ürün analiz edildi.`,
+      `${fileName} loaded. Products analysed: ${count}.`,
+    ),
+    targets: t('Hedefler güncellendi.', 'Targets updated.'),
+    recalculated: t(
+      'Hedefler güncellendi. Tüm analiz yeniden hesaplandı.',
+      'Targets updated. The full analysis was recalculated.',
+    ),
+  };
+  const brand = (
+    <>
+      <span className="brand-mark" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span>
+        <strong>ABC</strong>
+        <small>{t('Stok analizi', 'Inventory analysis')}</small>
+      </span>
+    </>
+  );
+
+  function dismissMenu() {
+    setMobileOpen(false);
+    menu.current?.focus();
+  }
+
   return (
     <div
       className="app-shell"
@@ -150,17 +241,19 @@ export default function App() {
         if (!mobileOpen) return;
         if (event.key === 'Escape') {
           event.preventDefault();
-          setMobileOpen(false);
-          document.querySelector<HTMLButtonElement>('.menu-toggle')?.focus();
+          dismissMenu();
         }
         if (event.key === 'Tab') {
-          const controls = Array.from(
-            document.querySelectorAll<HTMLElement>(
-              '.menu-toggle,#sidebar a,#sidebar button:not(:disabled),#sidebar input:not(:disabled)',
+          const controls = [
+            menu.current,
+            ...Array.from(
+              rail.current?.querySelectorAll<HTMLElement>(
+                'a, button:not(:disabled), input:not(:disabled)',
+              ) ?? [],
             ),
-          ).filter((element) => element.getBoundingClientRect().width > 0);
+          ].filter((element) => element && element.getBoundingClientRect().width > 0);
           const first = controls[0],
-            last = controls[controls.length - 1];
+            last = controls.at(-1);
           if (event.shiftKey && document.activeElement === first) {
             event.preventDefault();
             last?.focus();
@@ -172,154 +265,123 @@ export default function App() {
       }}
     >
       <a className="skip-link" href="#main-content">
-        İçeriğe geç
+        {t('İçeriğe geç', 'Skip to content')}
       </a>
       <header className="mobile-header">
         <a className="brand" href="#analiz">
-          <span className="brand-mark">▥</span>
-          <span>
-            ABC <b>Stok Analizi</b>
-          </span>
+          {brand}
         </a>
         <button
+          ref={menu}
           className="menu-toggle"
           aria-expanded={mobileOpen}
           aria-controls="sidebar"
-          aria-label={mobileOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+          aria-label={mobileOpen ? t('Menüyü kapat', 'Close menu') : t('Menüyü aç', 'Open menu')}
           onClick={() => setMobileOpen(!mobileOpen)}
         >
-          {mobileOpen ? '✕' : '☰'}
+          {mobileOpen ? '×' : '☰'}
         </button>
       </header>
-      {mobileOpen && (
-        <button
-          className="nav-backdrop"
-          aria-label="Menüyü kapat"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-      <aside
-        id="sidebar"
-        className={`sidebar ${mobileOpen ? 'is-open' : ''}`}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') setMobileOpen(false);
-        }}
-      >
-        <a href="#analiz" className="brand desktop-brand">
-          <span className="brand-mark">▥</span>
-          <span>
-            ABC Stok Analizi<small>ENVANTER / KARAR DESTEK</small>
-          </span>
+      {mobileOpen && <div className="nav-backdrop" aria-hidden="true" onClick={dismissMenu} />}
+      <aside ref={rail} id="sidebar" className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
+        <a href="#analiz" className="brand desktop-brand" onClick={() => setPage('analysis')}>
+          {brand}
         </a>
-        <span className="nav-heading">ÇALIŞMA ALANI</span>
-        <nav aria-label="Ana gezinme">
-          <a
-            href="#analiz"
-            aria-current={page === 'analysis' ? 'page' : undefined}
-            onClick={() => {
-              setPage('analysis');
-              setMobileOpen(false);
-            }}
-          >
-            <span aria-hidden="true">▦</span>Analiz Paneli
-          </a>
-          <a
-            href="#rehber"
-            aria-current={page === 'guide' ? 'page' : undefined}
-            onClick={() => {
-              setPage('guide');
-              setMobileOpen(false);
-            }}
-          >
-            <span aria-hidden="true">▤</span>ABC Rehberi
-          </a>
-        </nav>
+        <span className="nav-heading">{t('Çalışma alanı', 'Workspace')}</span>
+        <WorkspaceNav
+          page={page}
+          onNavigate={(next) => {
+            if (next === page && mobileOpen) menu.current?.focus();
+            setPage(next);
+            setMobileOpen(false);
+          }}
+        />
         <TargetSettings targets={targets} busy={busy} onApply={apply} />
         <div className="sidebar-status">
-          <span className="nav-heading">VERİ DURUMU</span>
+          <span className="nav-heading">{t('Veri durumu', 'Data status')}</span>
           <p>
-            <span className={`status-dot ${!name ? 'inactive' : ''}`} />
-            {name ? 'Dosya yüklü' : 'Dosya bekleniyor'}
+            <span aria-hidden="true" className={`status-dot ${!name ? 'inactive' : ''}`} />
+            {name ? t('Veri hazır', 'Data ready') : t('Dosya bekleniyor', 'Waiting for a file')}
           </p>
-          {name ? (
-            <small className="file-name">{name}</small>
-          ) : (
-            <small>Excel veya CSV ile başlayın.</small>
-          )}
-          <p className="caption">
-            Sayfalar arasında veriniz korunur. Yenileme sonrası veriler temizlenir.
-          </p>
+          {fileName && <small className="file-name">{fileName}</small>}
         </div>
-        <footer className="sidebar-footer">
-          <span>BARISDEVLAB</span>
-          <small>Envanter analitiği · v0.5</small>
-        </footer>
+        <footer className="sidebar-footer">BarisDevLab</footer>
       </aside>
-      <main id="main-content" ref={main} tabIndex={-1} className="main-content">
+      <main id="main-content" ref={main} tabIndex={-1} className="main-content" inert={mobileOpen}>
         <div className="topbar">
-          <span>
-            Çalışma alanı <span className="breadcrumb-separator">/</span>{' '}
-            <strong>{page === 'analysis' ? 'Analiz Paneli' : 'ABC Rehberi'}</strong>
-          </span>
-          <span className="privacy-pill">◈ Veriler cihazınızda kalır</span>
+          <div className="breadcrumb">
+            {t('Çalışma alanı', 'Workspace')} <span aria-hidden="true">/</span>{' '}
+            <strong>{title}</strong>
+          </div>
+          <DashboardPreferences theme={theme} onTheme={onTheme} onLanguage={onLanguage} />
         </div>
         <div hidden={page !== 'analysis'}>
-          <header className="page-hero">
-            <span className="eyebrow">
-              <span className="live-dot" /> STOK YÖNETİMİNDE EKONOMİK ÖNCELİK
-            </span>
-            <h1>
-              Verilerinizi anlayın.
-              <br />
-              <span>Önceliklerinizi belirleyin.</span>
-            </h1>
-            <p>
-              Stoklarınızı yıllık parasal tüketim değerine göre A, B ve C gruplarına ayırın.
-              Ekonomik etkiyi görün, kontrol kaynaklarınızı doğru planlayın.
-            </p>
-            <div className="hero-tags">
-              <span>ABC sınıflandırması</span>
-              <span>Etkileşimli grafikler</span>
-              <span>Excel raporlama</span>
+          <header className="page-hero dashboard-hero">
+            <div>
+              <h1>{t('Stok öncelikleri', 'Inventory priorities')}</h1>
+              <p>
+                {t(
+                  'Yıllık tüketim değerine göre stoklarınızı sınıflandırın ve kontrol önceliklerini belirleyin.',
+                  'Classify your inventory by annual usage value and identify which products need the most oversight.',
+                )}
+              </p>
             </div>
+            <span className="privacy-pill">
+              <span aria-hidden="true">◈</span>{' '}
+              {t('Veriler cihazınızda kalır', 'Data stays on your device')}
+            </span>
           </header>
+          {analysis && (
+            <section className="overview" aria-labelledby="overview-heading">
+              <div className="section-heading">
+                <h2 id="overview-heading">{t('Envanter özeti', 'Inventory overview')}</h2>
+                <span className="subtle-label">
+                  {t(`${count} ürün · Tam analiz`, `${count} products · Full analysis`)}
+                </span>
+              </div>
+              <KpiOverview analysis={analysis} />
+            </section>
+          )}
           <UploadWorkspace
             busy={busy}
-            name={name}
+            name={fileName}
             onFile={loadFile}
             onDemo={demo}
             onClear={clear}
           />
           {busy && (
             <div className="notice" role="status">
-              Veriler arka planda işleniyor…{' '}
+              {t('Veriler arka planda işleniyor…', 'Processing your inventory…')}{' '}
               <button className="text-button" onClick={clear}>
-                İşlemi iptal et
+                {t('İşlemi iptal et', 'Cancel operation')}
               </button>
             </div>
           )}
           {error && (
             <div className="notice error" role="alert">
-              {error}
-              {analysis && <span> Önceki geçerli analiz korunuyor.</span>}
+              {displayError(
+                error,
+                language,
+                'Could not analyse the inventory. Check the file or targets and try again.',
+              )}
+              {analysis && (
+                <span>
+                  {t(
+                    ' Önceki geçerli analiz korunuyor.',
+                    ' The previous analysis is still available.',
+                  )}
+                </span>
+              )}
             </div>
           )}
           {notice && (
             <div className="notice success" role="status">
-              {notice}
+              {notices[notice]}
             </div>
           )}
           {analysis ? (
             <>
-              <div className="section-heading">
-                <div>
-                  <span className="eyebrow">01 / ENVANTERİNİZE GENEL BAKIŞ</span>
-                  <h2>Ekonomik etkinin özeti</h2>
-                </div>
-                <span className="subtle-label">{analysis.rows.length} ürün · Tam analiz</span>
-              </div>
-              <KpiOverview analysis={analysis} />
-              <ChartsPanel analysis={analysis} />
+              <ChartsPanel analysis={analysis} theme={theme} />
               <AnalysisInsights analysis={analysis} />
               <ResultsTables analysis={analysis} />
               <ReportDownload analysis={analysis} />
@@ -329,15 +391,14 @@ export default function App() {
               <div className="empty-symbol" aria-hidden="true">
                 ▥
               </div>
-              <h2>İlk analizinize hazır mısınız?</h2>
-              <p>
-                Dosyanızı yükleyin veya örnek veriyle başlayın. Sonuçlarınız, grafikleriniz ve Excel
-                raporunuz burada görünecek.
-              </p>
               <div>
-                <span>01 · Dosyanızı yükleyin</span>
-                <span>02 · Hedefleri belirleyin</span>
-                <span>03 · Öncelikleri keşfedin</span>
+                <h2>{t('İlk analizinize hazır mısınız?', 'Ready for your first analysis?')}</h2>
+                <p>
+                  {t(
+                    'Dosyanızı yükleyin veya örnek veriyle başlayın. Sonuçlarınız, grafikleriniz ve Excel raporunuz burada görünecek.',
+                    'Upload a file or try the sample. Your results, charts, and Excel report will appear here.',
+                  )}
+                </p>
               </div>
             </section>
           )}
@@ -351,8 +412,8 @@ export default function App() {
           />
         )}
         <footer className="main-footer">
-          <span>ABC STOK ANALİZ SİSTEMİ</span>
-          <span>BarisDevLab · Tarayıcıda hesaplanır</span>
+          <span>BarisDevLab</span>
+          <span>{t('Tarayıcıda hesaplanır', 'Calculated in your browser')}</span>
         </footer>
       </main>
     </div>
