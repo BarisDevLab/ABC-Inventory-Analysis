@@ -32,8 +32,8 @@ export function calculateSafetyStock(input: SafetyStockInput) {
     const { mean, deviation } = demandMoments(samples);
     const index = p * samples.length;
     const lower = Math.floor(index);
-    // Undo multiplication noise when p denotes an exact empirical rank (e.g. 55% of 100).
-    const rank = p === lower / samples.length ? lower : Math.ceil(index);
+    // Compare against the empirical CDF when multiplication rounds onto an integer.
+    const rank = p <= lower / samples.length ? lower : lower + 1;
     const quantile = samples[rank - 1];
     const safetyStock = Math.max(0, quantile - mean);
     return {
