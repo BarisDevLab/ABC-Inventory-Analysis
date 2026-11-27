@@ -105,8 +105,8 @@ export function SafetyStockPanel() {
                 'Lead-time demand and buffer (units)',
               )}
               values={[
-                ['Beklenen talep', result.expectedDemand],
-                ['Emniyet stoku', result.safetyStock],
+                [t('Beklenen talep', 'Expected demand'), result.expectedDemand],
+                [t('Emniyet stoku', 'Safety stock'), result.safetyStock],
               ]}
             />
           </>

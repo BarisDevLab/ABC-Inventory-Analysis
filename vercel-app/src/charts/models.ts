@@ -10,7 +10,7 @@ export function visibleRows(analysis: Analysis, groups: readonly Group[], first:
 const dark = { surface: '#171f2e', text: '#dce5f3', grid: '#344155', hover: '#232f44' };
 const light = { surface: '#ffffff', text: '#293957', grid: '#e2e9f4', hover: '#f1f5fc' };
 
-function chartStyle(language: Language, theme: Theme) {
+export function chartStyle(language: Language, theme: Theme) {
   const palette = theme === 'dark' ? dark : light;
   const t = (tr: string, en: string) => language === 'en' ? en : tr;
   const fmt = (value: number) => detail(value, language);

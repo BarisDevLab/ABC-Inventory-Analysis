@@ -146,7 +146,7 @@ function ComparisonDetails({ comparison }: { comparison: Comparison }) {
                   t('Güncel sınıf', 'Current class'),
                   t('Önceki değer', 'Previous value'),
                   t('Güncel değer', 'Current value'),
-                  'Parasal fark',
+                  t('Parasal fark', 'Value difference'),
                   t('Değişim', 'Change'),
                 ].map((title) => (
                   <th scope="col" key={title}>
@@ -300,7 +300,9 @@ export function ComparisonWorkspace({
   return (
     <section className="panel inventory-module" aria-labelledby="comparison-heading">
       <h1 id="comparison-heading">
-        {mode === 'period' ? t('Dönemsel karşılaştırma', 'Period comparison') : 'Senaryo analizi'}
+        {mode === 'period'
+          ? t('Dönemsel karşılaştırma', 'Period comparison')
+          : t('Senaryo analizi', 'Scenario analysis')}
       </h1>
       <details open hidden={mode !== 'period'}>
         <summary>{t('İki dönem arasında karşılaştır', 'Compare two periods')}</summary>
@@ -391,7 +393,7 @@ export function ComparisonWorkspace({
           }}
         >
           <label>
-            Senaryo A hedefi (%)
+            {t('Senaryo A hedefi (%)', 'Scenario target A (%)')}
             <input
               type="number"
               min="0"
@@ -407,7 +409,7 @@ export function ComparisonWorkspace({
             />
           </label>
           <label>
-            Senaryo B hedefi (%)
+            {t('Senaryo B hedefi (%)', 'Scenario target B (%)')}
             <input
               type="number"
               min="0"
@@ -464,8 +466,8 @@ export function ComparisonWorkspace({
                       t('Mevcut değer', 'Current value'),
                       t('Senaryo değer', 'Scenario value'),
                       t('Değer farkı', 'Value difference'),
-                      'Mevcut pay',
-                      'Senaryo pay',
+                      t('Mevcut pay', 'Current share'),
+                      t('Senaryo pay', 'Scenario share'),
                     ].map((title) => (
                       <th scope="col" key={title}>
                         {title}

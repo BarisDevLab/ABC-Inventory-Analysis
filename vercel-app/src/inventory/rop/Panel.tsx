@@ -57,8 +57,8 @@ export function RopPanel() {
                 'Components of the reorder point (units)',
               )}
               values={[
-                ['Beklenen talep', result.expectedDemand],
-                ['Emniyet stoku', result.safetyStock],
+                [t('Beklenen talep', 'Expected demand'), result.expectedDemand],
+                [t('Emniyet stoku', 'Safety stock'), result.safetyStock],
               ]}
             />
           </>
@@ -81,7 +81,7 @@ export function RopPanel() {
         />
         <Field
           name="safety"
-          label="Emniyet stoku SS (adet)"
+          label={t('Emniyet stoku SS (adet)', 'Safety stock SS (units)')}
           hint={t(
             'Tampon kullanmayan bir politikayı değerlendirmek için 0 girin.',
             'Enter 0 to evaluate a policy without a buffer.',

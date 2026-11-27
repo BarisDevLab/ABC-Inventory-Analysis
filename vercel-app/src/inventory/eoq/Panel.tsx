@@ -1,4 +1,7 @@
 import { useLocale } from '../../ui/locale';
+import type { Theme } from '../../ui/locale';
+import { chartStyle } from '../../charts/models';
+import { COLORS } from '../../ui/format';
 import { useMemo } from 'react';
 import { Plot } from '../../charts/Plot';
 import type { Data, Layout } from 'plotly.js';
@@ -7,30 +10,32 @@ import { Field, Method, Metrics, ModuleForm } from '../shared/ui';
 import { calculateEoq, sampleEoqCosts } from './calculate';
 import type { EoqInput } from './calculate';
 
-function CostCurve({ input, optimum }: { input: EoqInput; optimum: number }) {
-  const { t } = useLocale();
+function CostCurve({ input, optimum, theme }: { input: EoqInput; optimum: number; theme: Theme }) {
+  const { t, language } = useLocale();
+  const { palette, layout: base } = chartStyle(language, theme);
   const layout: Partial<Layout> = {
+    ...base,
+    height: 360,
     margin: { l: 75, r: 18, b: 85, t: 18 },
     xaxis: {
       title: { text: t('Sipariş miktarı (adet)', 'Order quantity (units)') },
       automargin: true,
+      gridcolor: palette.grid,
     },
     yaxis: {
       title: { text: t('Yıllık maliyet (TL/yıl)', 'Annual cost (TL/year)') },
       automargin: true,
+      gridcolor: palette.grid,
     },
     legend: { orientation: 'h', y: -0.25 },
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    font: { color: '#8392a7' },
   };
 
   const data = useMemo<Data[]>(() => {
     const points = sampleEoqCosts(input, optimum);
     return [
-      ['ordering', t('Sipariş', 'Ordering'), '#4f8cff'],
-      ['holding', t('Elde bulundurma', 'Holding'), '#f59e0b'],
-      ['total', t('Toplam', 'Total'), '#159a8c'],
+      ['ordering', t('Sipariş', 'Ordering'), COLORS.A],
+      ['holding', t('Elde bulundurma', 'Holding'), COLORS.B],
+      ['total', t('Toplam', 'Total'), COLORS.C],
     ].map(([key, name, color]) => ({
       type: 'scatter',
       mode: 'lines+markers',
@@ -52,7 +57,7 @@ function CostCurve({ input, optimum }: { input: EoqInput; optimum: number }) {
   );
 }
 
-export function EoqPanel() {
+export function EoqPanel({ theme = 'light' }: { theme?: Theme }) {
   const { t, detail: n } = useLocale();
   return (
     <>
@@ -125,12 +130,14 @@ export function EoqPanel() {
                     t(`${n(result.costs.holding)} TL/yıl`, `${n(result.costs.holding)} TL/year`),
                   ],
                   [
-                    'Toplam ilgili maliyet',
+                    t('Toplam ilgili maliyet', 'Total relevant cost'),
                     t(`${n(result.costs.total)} TL/yıl`, `${n(result.costs.total)} TL/year`),
                   ],
                 ]}
               />
-              {result.kind === 'optimum' && <CostCurve input={input} optimum={result.quantity} />}
+              {result.kind === 'optimum' && (
+                <CostCurve input={input} optimum={result.quantity} theme={theme} />
+              )}
             </>
           );
         }}

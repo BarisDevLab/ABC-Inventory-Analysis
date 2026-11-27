@@ -482,6 +482,7 @@ function Dashboard({
             <Suspense fallback={loading}>
               <InventoryWorkspace
                 page={inventoryPage}
+                theme={theme}
                 abcRows={isDemo ? undefined : analysis?.rows}
               />
             </Suspense>

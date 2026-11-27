@@ -42,7 +42,16 @@ export function AnalysisLibrary({
   const [entries, setEntries] = useState<HistoryKey[] | null>(null);
   const [working, setWorking] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<'exported' | 'saved' | 'deleted' | 'cleared' | ''>('');
+  const notices = {
+    exported: t('Analiz paketi indirildi.', 'The analysis package was downloaded.'),
+    saved: t(
+      'Geçerli analiz bu tarayıcıya kaydedildi.',
+      'The current analysis was saved to this browser.',
+    ),
+    deleted: t('Analiz geçmişten silindi.', 'The analysis was deleted from history.'),
+    cleared: t('Tüm yerel analiz geçmişi silindi.', 'All local analysis history was deleted.'),
+  };
   const [error, setError] = useState('');
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => active.current?.abort(), []);
@@ -84,17 +93,12 @@ export function AnalysisLibrary({
       if (signal.aborted) return;
       if (!save) {
         saveFile(bytes);
-        setNotice('Analiz paketi indirildi.');
+        setNotice('exported');
         return;
       }
       await addHistory(name, bytes);
       setEntries(await listHistory());
-      setNotice(
-        t(
-          'Geçerli analiz bu tarayıcıya kaydedildi.',
-          'The current analysis was saved to this browser.',
-        ),
-      );
+      setNotice('saved');
     });
   }
 
@@ -197,12 +201,7 @@ export function AnalysisLibrary({
                     await deleteHistory();
                     setEntries(await listHistory());
                     setConfirm(false);
-                    setNotice(
-                      t(
-                        'Tüm yerel analiz geçmişi silindi.',
-                        'All local analysis history was deleted.',
-                      ),
-                    );
+                    setNotice('cleared');
                   })
                 }
               >
@@ -248,9 +247,7 @@ export function AnalysisLibrary({
                     run(async () => {
                       await deleteHistory(key);
                       setEntries(await listHistory());
-                      setNotice(
-                        t('Analiz geçmişten silindi.', 'The analysis was deleted from history.'),
-                      );
+                      setNotice('deleted');
                     })
                   }
                 >
@@ -266,7 +263,7 @@ export function AnalysisLibrary({
           {t('Analiz paketi veya geçmiş işleniyor…', 'Working with analysis packages or history…')}
         </p>
       )}
-      {notice && <p role="status">{notice}</p>}
+      {notice && <p role="status">{notices[notice]}</p>}
       {error && (
         <p className="notice error" role="alert">
           {displayError(

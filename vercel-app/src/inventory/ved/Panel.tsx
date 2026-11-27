@@ -78,7 +78,7 @@ export function VedPanel() {
               )}
               columns={[
                 t('Ürün', 'Product'),
-                'Operasyon etkisi',
+                t('Operasyon etkisi', 'Operations impact'),
                 t('Güvenlik etkisi', 'Safety impact'),
                 t('Sınıf', 'Class'),
                 t('Gerekçe', 'Rationale'),

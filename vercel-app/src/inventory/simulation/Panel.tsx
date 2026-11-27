@@ -124,13 +124,13 @@ export function SimulationPanel() {
                 t('Politika', 'Policy'),
                 t('Sipariş sayısı', 'Order count'),
                 t('Sipariş (TL)', 'Ordering (TL)'),
-                'Elde bulundurma (TL)',
+                t('Elde bulundurma (TL)', 'Holding (TL)'),
                 t('Eksik karşılama (TL)', 'Shortage (TL)'),
                 'Toplam (TL)',
                 t('Karşılanamayan (adet)', 'Unfilled (units)'),
                 t('Karşılama oranı', 'Fill rate'),
                 t('Ort. dönem sonu stok (adet)', 'Mean ending stock (units)'),
-                'Son stok (adet)',
+                t('Son stok (adet)', 'Final stock (units)'),
                 t('Açık sipariş (adet)', 'Open orders (units)'),
               ]}
               rows={baseline.map((row) => [
@@ -157,14 +157,16 @@ export function SimulationPanel() {
                   t('Değişen girdi', 'Changed input'),
                   t('Çarpan', 'Multiplier'),
                   t('Politika', 'Policy'),
-                  'Baz maliyet (TL)',
-                  'Senaryo maliyeti (TL)',
-                  'Baz maliyete fark (TL)',
+                  t('Baz maliyet (TL)', 'Baseline cost (TL)'),
+                  t('Senaryo maliyeti (TL)', 'Scenario cost (TL)'),
+                  t('Baz maliyete fark (TL)', 'Difference from baseline (TL)'),
                   t('Karşılama oranı', 'Fill rate'),
                 ]}
                 rows={changes.flatMap(({ driver, factor, results }) =>
                   results.map((row, index) => [
-                    driver === 'demand' ? t('Talep', 'Demand') : 'Elde bulundurma maliyeti',
+                    driver === 'demand'
+                      ? t('Talep', 'Demand')
+                      : t('Elde bulundurma maliyeti', 'Holding cost'),
                     n(factor),
                     row.name,
                     n(baseline[index].total),

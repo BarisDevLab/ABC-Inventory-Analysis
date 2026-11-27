@@ -11,6 +11,7 @@ import { XyzPanel } from './xyz/Panel';
 import type { XyzRow } from './xyz/calculate';
 import './workspace.css';
 import { useLocale } from '../ui/locale';
+import type { Theme } from '../ui/locale';
 import { workspacePages } from '../components/WorkspaceNav';
 
 const modules = {
@@ -32,11 +33,12 @@ const EMPTY_XYZ: readonly XyzRow[] = [];
 
 export interface InventoryWorkspaceProps {
   page: InventoryPage | null;
+  theme: Theme;
   /** Current ABC classifications from a user-provided source. */
   readonly abcRows?: readonly AbcItem[];
 }
 
-export function InventoryWorkspace({ page, abcRows = EMPTY_ABC }: InventoryWorkspaceProps) {
+export function InventoryWorkspace({ page, theme, abcRows = EMPTY_ABC }: InventoryWorkspaceProps) {
   const { t } = useLocale();
   const [selection, setSelection] = useState<Partial<Record<InventoryPage, Module>>>({});
   const visible = keys.filter((key) => modules[key][0] === page);
@@ -55,7 +57,7 @@ export function InventoryWorkspace({ page, abcRows = EMPTY_ABC }: InventoryWorks
     'abc-xyz': active === 'abc-xyz' && (
       <AbcXyzPanel abc={abcRows} xyz={xyz?.withSku === withSku ? xyz.rows : EMPTY_XYZ} />
     ),
-    eoq: <EoqPanel />,
+    eoq: <EoqPanel theme={theme} />,
     rop: <RopPanel />,
     'safety-stock': <SafetyStockPanel />,
     fsn: <FsnPanel />,
