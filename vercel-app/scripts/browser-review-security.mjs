@@ -19,7 +19,7 @@ export function classifyRequest(base, request) {
     sameOrigin,
     readOnly: ['GET', 'HEAD'].includes(request.method) && !request.hasPostData && !request.postData,
     staticResource: !url.search && !url.hash && !url.username && !url.password &&
-      /^\/$|^\/favicon\.ico$|^\/fonts\/geist-latin(?:-ext)?\.woff2$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname),
+      /^\/$|^\/(?:favicon\.ico|brand-mark\.svg)$|^\/fonts\/geist-latin(?:-ext)?\.woff2$|^\/assets\/[A-Za-z0-9_.-]+\.(js|css)$/.test(url.pathname),
     plotly: url.pathname.includes('plotly-basic'),
     excel: /exceljs(?:\.min|-browser)/.test(url.pathname),
     oldExcel: url.pathname.includes('exceljs.min'),

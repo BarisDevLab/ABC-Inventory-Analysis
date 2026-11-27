@@ -246,9 +246,15 @@ function Dashboard({
   const rail = useRef<HTMLElement>(null);
   const fileName = isDemo ? t('Örnek stok verisi', 'Sample inventory') : name;
   const title = t(workspacePages[page][1], workspacePages[page][2]);
+  const productName = t('Envanter Zekâsı', 'Inventory Intelligence');
+  const description = t(
+    'Bütünleşik Stok Karar Destek Sistemi. Tarayıcıda ABC-XYZ analizi, stok optimizasyonu, dönem karşılaştırması ve maliyet simülasyonu.',
+    'Integrated Inventory Decision Support System. Browser-based ABC-XYZ analysis, inventory optimization, period comparison and cost simulation.',
+  );
   useEffect(() => {
-    document.title = `${title} | Envanter Zekâsı`;
-  }, [title]);
+    document.title = `${title} | ${productName}`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+  }, [title, productName, description]);
   const dashboard = page === 'overview' || page === 'analysis';
   const inventoryPage =
     page === 'xyz' || page === 'optimization' || page === 'movement' || page === 'simulation'
@@ -283,16 +289,12 @@ function Dashboard({
   };
   const brand = (
     <>
-      <span className="brand-mark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
+      <img className="brand-mark" src="/brand-mark.svg" alt="" width="34" height="34" />
       <span>
         <strong>
-          Envanter
+          {t('Envanter', 'Inventory')}
           <br />
-          Zekâsı
+          {t('Zekâsı', 'Intelligence')}
         </strong>
       </span>
     </>
@@ -337,7 +339,7 @@ function Dashboard({
         {t('İçeriğe geç', 'Skip to content')}
       </a>
       <header className="mobile-header">
-        <a className="brand" href="#genel-bakis">
+        <a className="brand" href="#genel-bakis" aria-label={productName}>
           {brand}
         </a>
         <button
@@ -357,7 +359,7 @@ function Dashboard({
           <a
             href="#genel-bakis"
             className="brand desktop-brand"
-            aria-label="Envanter Zekâsı"
+            aria-label={productName}
             onClick={() => setPage('overview')}
           >
             {brand}
