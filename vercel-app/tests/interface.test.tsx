@@ -283,3 +283,126 @@ it('charts cap the number of rendered ranks while preserving access to later pro
   fireEvent.click(screen.getByRole('button', { name: 'Sonraki aralık' }));
   expect(bars().y).toEqual(analysis.rows.slice(500).map((row) => row.value));
 });
+
+describe('Stok karar desteği arayüzü', () => {
+  function openModule(name: string) {
+    const navigation = screen.getByRole('navigation', { name: 'Stok karar destek modülleri' });
+    fireEvent.click(within(navigation).getByRole('button', { name }));
+    return within(screen.getByRole('region', { name }));
+  }
+
+  function fillField(panel: ReturnType<typeof within>, label: string | RegExp, value: string) {
+    fireEvent.change(panel.getByRole('textbox', { name: label }), { target: { value } });
+  }
+
+  function calculate(panel: ReturnType<typeof within>) {
+    fireEvent.click(panel.getByRole('button', { name: 'Hesapla' }));
+  }
+
+  it('gerçek dosyadaki ABC ile XYZ sonucunu eşler ve form değişince eski eşleşmeyi kaldırır', async () => {
+    render(<App />);
+    upload('csv-utf-8-comma.csv');
+    await waitFor(() => expect(document.querySelector('[data-kpi=total]')).toBeTruthy());
+    fireEvent.click(screen.getByRole('link', { name: 'Stok karar desteği' }));
+    const xyz = openModule('XYZ');
+    calculate(xyz);
+    expect(xyz.getByRole('alert').textContent).toContain('talep verilerini');
+    fillField(xyz, 'Ürün ve dönemsel talep (adet)', 'Motor;10;10\nRulman;0;0\nYeni ürün;0;25');
+    fillField(xyz, 'X üst sınırı (CV oranı)', '0,25');
+    fillField(xyz, 'Y üst sınırı (CV oranı)', '0,75');
+    calculate(xyz);
+    expect(xyz.getByRole('table').textContent).toContain('Talep yok');
+    const matrix = openModule('ABC-XYZ');
+    expect(matrix.getAllByRole('button')).toHaveLength(9);
+    expect(matrix.getByRole('button', { name: /AX 1 ürün/ }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(matrix.getByText('Motor')).toBeTruthy();
+    expect(matrix.getByText(/XYZ sınıfı oluşmadı/)).toBeTruthy();
+    expect(matrix.getByText('ABC kaydı eksik · 1 ürün')).toBeTruthy();
+    fireEvent.click(matrix.getByRole('button', { name: /CZ 0 ürün/ }));
+    expect(matrix.getByRole('heading', { name: 'CZ · 0 ürün' })).toBeTruthy();
+    fillField(openModule('XYZ'), 'X üst sınırı (CV oranı)', '0,5');
+    expect(openModule('ABC-XYZ').getByRole('button', { name: /AX 0 ürün/ })).toBeTruthy();
+  });
+
+  it('yerleşik ABC örneği matrisi beslemez, modüller boş açılır', () => {
+    render(<App />);
+    demo();
+    fireEvent.click(screen.getByRole('link', { name: 'Stok karar desteği' }));
+    expect(screen.getByRole('heading', { name: 'Stok karar desteği' })).toBeTruthy();
+    const matrix = openModule('ABC-XYZ');
+    expect(matrix.getByText(/kendi stok dosyanızı yükleyin/)).toBeTruthy();
+    expect(matrix.queryByText('Motor')).toBeNull();
+    const eoq = openModule('EOQ');
+    expect((eoq.getByRole('textbox', { name: /Yıllık talep/ }) as HTMLInputElement).value).toBe('');
+    calculate(eoq);
+    expect(eoq.getByRole('alert').textContent).toContain('Yıllık talep');
+  });
+
+  it('EOQ eğrisini oluşturur ve formu temizler', () => {
+    window.history.replaceState(null, '', '/#stok-karar-destegi');
+    render(<App />);
+    const eoq = openModule('EOQ');
+    fillField(eoq, /Yıllık talep/, '1000');
+    fillField(eoq, /Sipariş maliyeti/, '40');
+    fillField(eoq, /Elde bulundurma maliyeti/, '2');
+    calculate(eoq);
+    expect(eoq.getByText('200,00 adet')).toBeTruthy();
+    expect(eoq.getByRole('img', { name: /EOQ yıllık sipariş/ })).toBeTruthy();
+    fireEvent.click(eoq.getByRole('button', { name: 'Temizle' }));
+    expect(eoq.queryByRole('img')).toBeNull();
+  });
+
+  it('ROP, emniyet stoku, FSN, VED ve simülasyon, kendi girdilerinden sonuç gösterir', () => {
+    window.history.replaceState(null, '', '/#stok-karar-destegi');
+    render(<App />);
+    const rop = openModule('ROP');
+    fillField(rop, /Ortalama talep/, '7,5');
+    fillField(rop, /tedarik süresi L/, '2,5');
+    fillField(rop, /Emniyet stoku/, '3');
+    calculate(rop);
+    expect(rop.getByText('21,75 adet')).toBeTruthy();
+
+    const safety = openModule('Emniyet stoku');
+    fireEvent.change(safety.getByRole('combobox', { name: 'İstatistiksel model' }), {
+      target: { value: 'empirical' },
+    });
+    fillField(safety, /servis seviyesi/, '90');
+    fillField(safety, /Tedarik süresi talep gözlemleri/, '0;10;10;30');
+    calculate(safety);
+    expect(safety.getByText('17,50 adet')).toBeTruthy();
+    fireEvent.click(safety.getByRole('button', { name: 'Temizle' }));
+    expect((safety.getByRole('combobox') as HTMLSelectElement).value).toBe('');
+
+    const fsn = openModule('FSN');
+    fillField(fsn, /dönemsel stok çıkışı/, 'Parça;1;0');
+    fillField(fsn, /Hızlı hareket eşiği/, '50');
+    calculate(fsn);
+    expect(within(fsn.getByRole('table')).getByText('F')).toBeTruthy();
+
+    const ved = openModule('VED');
+    fillField(ved, /operasyon etkisi, güvenlik etkisi/, 'Parça;düşük;yüksek;Güvenlik için gerekli');
+    calculate(ved);
+    expect(ved.getByRole('table').textContent).toContain('V · Hayati');
+
+    const simulation = openModule('Maliyet simülasyonu');
+    fillField(simulation, /^Dönemsel talep/, '3;4;7;2');
+    fillField(simulation, /Başlangıç stoku/, '2');
+    fillField(simulation, /Sabit tedarik süresi/, '1');
+    fillField(simulation, /^Sipariş maliyeti/, '2');
+    fillField(simulation, /^Elde bulundurma maliyeti \(/, '1');
+    fillField(simulation, /Karşılanamayan talep maliyeti/, '3');
+    fillField(
+      simulation,
+      /Karşılaştırılacak stok politikaları/,
+      'Sabit parti;Q;2;5\nHedef stok;R;2;8',
+    );
+    fillField(simulation, /^Talep çarpanları/, '0');
+    calculate(simulation);
+    expect(
+      simulation.getByRole('table', { name: 'Politika karşılaştırması' }).textContent,
+    ).toContain('29,00');
+    expect(simulation.getByRole('table', { name: /Duyarlılık/ }).textContent).toContain('25,00');
+  });
+});
