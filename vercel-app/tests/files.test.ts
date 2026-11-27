@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import reference from './fixtures/file-reference.json';
+import reference from './fixtures/file-golden.json';
 import { calculateAbc, FIELDS } from '../src/core/abc';
 import { analyzeInventoryFile, FILE_LIMITS, readInventoryFile } from '../src/io/read-file';
 
@@ -12,29 +11,10 @@ const bytes = (filename: string) => new Uint8Array(readFileSync(new URL(`./fixtu
 const csv = (text: string) => new TextEncoder().encode(text);
 const header = FIELDS.join(';') + '\n';
 
-describe('Python ile CSV/Excel dosya karşılaştırması', () => {
-  it('referans sonuçlar mevcut Python çekirdeğinden üretilmiştir', () => {
-    const core = readFileSync(new URL('../../abc_core.py', import.meta.url));
-    expect(createHash('sha256').update(core).digest('hex')).toBe(reference.metadata.core_sha256);
-  });
+describe('CSV ve Excel okuma referansları', () => {
   for (const test of reference.cases) it(test.name, async () => {
     const read = () => readInventoryFile(bytes(test.filename), test.filename);
-    if (test.intentional_difference === 'duplicate-header') {
-      expect(test.expected).toBeDefined(); // Python silently renames a duplicate header.
-      await expect(read()).rejects.toThrow('Tekrarlanan sütun başlıkları var.');
-    } else if (test.intentional_difference === 'long-row') {
-      expect(test.expected).toBeDefined(); // Python silently makes the first field an index.
-      await expect(read()).rejects.toThrow('CSV dosyası okunamadı.');
-    } else if (test.intentional_difference === 'nul') {
-      expect(test.expected).toBeDefined();
-      await expect(read()).rejects.toThrow('NUL');
-    } else if (test.intentional_difference === 'product-code-inference') {
-      const table = await read();
-      const analysis = calculateAbc(table);
-      expect(test.expected?.products).toEqual(['2', '1']);
-      expect(analysis.rows.map(row => row.product)).toEqual(['002', '001']);
-      expect(analysis.total).toBe(test.expected?.total);
-    } else if (test.error) {
+    if (test.error) {
       await expect(read().then(calculateAbc)).rejects.toThrow(test.error);
     } else {
       const result = calculateAbc(await read());
@@ -109,6 +89,22 @@ describe('Tarayıcı dosya giriş sözleşmesi ve gizlilik', () => {
   });
   it('satır sınırını Türkçe mesajla bildirir', async () => {
     await expect(readInventoryFile(csv(header+'a;1;1\n'.repeat(FILE_LIMITS.rows+1)),'rows.csv')).rejects.toThrow('çok fazla satır');
+  });
+  it('sütun ve toplam hücre sınırlarını ayrı ayrı uygular', async () => {
+    const wideHeader = (columns: number) => [
+      ...FIELDS,
+      ...Array.from({ length: columns - FIELDS.length }, (_, index) => `Ek ${index}`),
+    ].join(';') + '\n';
+    const columns = FILE_LIMITS.columns;
+    await expect(readInventoryFile(csv(wideHeader(columns + 1)), 'columns.csv')).rejects.toThrow('çok fazla');
+
+    const row = 'Vida;1;1' + ';'.repeat(columns - FIELDS.length) + '\n';
+    const atLimit = Math.floor(FILE_LIMITS.cells / columns);
+    const table = await readInventoryFile(csv(wideHeader(columns) + row.repeat(atLimit)), 'at-limit.csv');
+    expect(table.rows).toHaveLength(atLimit);
+    await expect(
+      readInventoryFile(csv(wideHeader(columns) + row.repeat(atLimit + 1)), 'cells.csv'),
+    ).rejects.toThrow('çok fazla');
   });
   it('ZIP merkez dizinindeki sahte küçük açılmış boyutu reddeder', async () => {
     const raw=bytes('xlsx-demo.xlsx'),view=new DataView(raw.buffer);

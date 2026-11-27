@@ -1,8 +1,4 @@
 {
-  "metadata": {
-    "core_sha256": "cb9ab4d38157c33e79c6889ef39392b10d5211721667b0514cd848b6a043365c",
-    "pandas": "3.1.1"
-  },
   "cases": [
     {
       "name": "csv-utf-8-comma",
@@ -355,22 +351,7 @@
     {
       "name": "csv-consistent-long-row",
       "filename": "csv-consistent-long-row.csv",
-      "intentional_difference": "long-row",
-      "expected": {
-        "total": 36.0,
-        "products": [
-          "4",
-          "1"
-        ],
-        "groups": [
-          "A",
-          "B"
-        ],
-        "values": [
-          30.0,
-          6.0
-        ]
-      }
+      "error": "CSV dosyası okunamadı."
     },
     {
       "name": "csv-unclosed-quote",
@@ -390,19 +371,7 @@
     {
       "name": "csv-exact-duplicate-header",
       "filename": "csv-exact-duplicate-header.csv",
-      "intentional_difference": "duplicate-header",
-      "expected": {
-        "total": 2.0,
-        "products": [
-          "a"
-        ],
-        "groups": [
-          "A"
-        ],
-        "values": [
-          2.0
-        ]
-      }
+      "error": "Tekrarlanan sütun başlıkları var."
     },
     {
       "name": "csv-trimmed-duplicate-header",
@@ -520,19 +489,7 @@
     {
       "name": "csv-nul",
       "filename": "csv-nul.csv",
-      "intentional_difference": "nul",
-      "expected": {
-        "total": 2.0,
-        "products": [
-          "a\u0000b"
-        ],
-        "groups": [
-          "A"
-        ],
-        "values": [
-          2.0
-        ]
-      }
+      "error": "NUL"
     },
     {
       "name": "empty",
@@ -672,19 +629,7 @@
     {
       "name": "xlsx-exact-duplicate-header",
       "filename": "xlsx-exact-duplicate-header.xlsx",
-      "intentional_difference": "duplicate-header",
-      "expected": {
-        "total": 6.0,
-        "products": [
-          "Motor"
-        ],
-        "groups": [
-          "A"
-        ],
-        "values": [
-          6.0
-        ]
-      }
+      "error": "Tekrarlanan sütun başlıkları var."
     },
     {
       "name": "xlsx-trimmed-duplicate-header",
@@ -841,12 +786,11 @@
     {
       "name": "xlsx-leading-zero-code",
       "filename": "xlsx-leading-zero-code.xlsx",
-      "intentional_difference": "product-code-inference",
       "expected": {
         "total": 18.0,
         "products": [
-          "2",
-          "1"
+          "002",
+          "001"
         ],
         "groups": [
           "A",

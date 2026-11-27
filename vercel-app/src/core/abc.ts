@@ -1,4 +1,4 @@
-import unicode from './python-unicode.json';
+import unicode from './unicode-data.json';
 
 export const FIELDS = ['Ürün', 'Yıllık Tüketim', 'Birim Fiyat (TL)'] as const;
 export const GROUPS = ['A', 'B', 'C'] as const;
@@ -44,7 +44,7 @@ export function normalizeProduct(value: string): string {
     .map(char => casefold[char] ?? char).join('');
 }
 
-/** Mirrors abc_core.parse_number, including strict whole-string float parsing. */
+/** Parses the inventory number format and validates the entire string. */
 export function parseNumber(value: Cell | undefined): number {
   if (value == null) return NaN;
   if (typeof value === 'number') return value;

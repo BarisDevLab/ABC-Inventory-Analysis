@@ -19,12 +19,11 @@ export function downloadExcel(request: ReportRequest, signal?: AbortSignal): Pro
   if (signal?.aborted) return Promise.reject(new Error('Excel hazırlama iptal edildi.'));
   return new Promise((resolve, reject) => {
     let worker: Worker;
-    let timer: ReturnType<typeof setTimeout>;
     const finish = () => { clearTimeout(timer); worker.terminate(); signal?.removeEventListener('abort', abort); };
     const abort = () => { finish(); reject(new Error('Excel hazırlama iptal edildi.')); };
     try { worker = new Worker(new URL('./excel.worker.ts', import.meta.url), { type: 'module' }); }
     catch { reject(new Error('Excel hazırlama başlatılamadı. Lütfen yeniden deneyin.')); return; }
-    timer = setTimeout(() => { finish(); reject(new Error('Excel hazırlama zaman aşımına uğradı. Daha küçük bir analiz deneyin.')); }, 120_000);
+    const timer = setTimeout(() => { finish(); reject(new Error('Excel hazırlama zaman aşımına uğradı. Daha küçük bir analiz deneyin.')); }, 120_000);
     signal?.addEventListener('abort', abort, { once: true });
     worker.onmessage = (event: MessageEvent<ReportResponse>) => {
       finish();

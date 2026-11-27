@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
-import reference from './fixtures/python-reference.json';
-import unicode from '../src/core/python-unicode.json';
-import { analysisInsights, calculateAbc, normalizeProduct, parseNumber, sampleData, validateTargets } from '../src/core/abc';
+import reference from './fixtures/abc-golden.json';
+import unicode from '../src/core/unicode-data.json';
+import { analysisInsights, calculateAbc, FIELDS, normalizeProduct, parseNumber, sampleData, validateTargets } from '../src/core/abc';
 import type { InputTable } from '../src/core/abc';
 
 function compare(actual: unknown, expected: unknown): void {
@@ -21,11 +19,7 @@ function compare(actual: unknown, expected: unknown): void {
   } else expect(actual).toEqual(expected);
 }
 
-describe('Değiştirilmemiş Python çekirdeği ile karşılaştırma', () => {
-  it('referans sonuçlar mevcut Python kaynak özetiyle eşleşir', () => {
-    const core = readFileSync(new URL('../../abc_core.py', import.meta.url));
-    expect(createHash('sha256').update(core).digest('hex')).toBe(reference.metadata.core_sha256);
-  });
+describe('ABC hesaplama referansları', () => {
   for (const test of reference.cases) {
     it(test.name, () => {
       const calculate = () => calculateAbc(test.source as InputTable, test.targets);
@@ -35,7 +29,7 @@ describe('Değiştirilmemiş Python çekirdeği ile karşılaştırma', () => {
   }
 });
 
-describe('Python sayı ayrıştırma sözleşmesi', () => {
+describe('Sayı ayrıştırma sözleşmesi', () => {
   for (const test of reference.parse_cases) it(JSON.stringify(test.input), () => {
     const actual = parseNumber(test.input);
     if (test.expected === 'NaN') expect(Number.isNaN(actual)).toBe(true);
@@ -46,6 +40,30 @@ describe('Python sayı ayrıştırma sözleşmesi', () => {
 });
 
 describe('TypeScript arayüz sözleşmesi', () => {
+  it('tam eşikte sonraki gruba geçer ve sıfır değerli ürünü C grubuna koyar', () => {
+    const source: InputTable = {
+      columns: [...FIELDS],
+      rows: [['Sıfır', 0, 10], ['B', 3, 5], ['A', 8, 10], ['C', 1, 5]],
+    };
+    const result = calculateAbc(source);
+    expect(result.total).toBe(100);
+    expect(result.rows.map(({ product, share, cumulative, group }) => [product, share, cumulative, group])).toEqual([
+      ['A', 80, 80, 'A'], ['B', 15, 95, 'B'], ['C', 5, 100, 'C'], ['Sıfır', 0, 100, 'C'],
+    ]);
+    expect(result.summary.map(({ group, count, value }) => [group, count, value])).toEqual([
+      ['A', 1, 80], ['B', 1, 15], ['C', 2, 5],
+    ]);
+  });
+  it('hedef eşiğine yakın küçük sapmayı tolere eder ve eşiği aşan ürünü başladığı grupta tutar', () => {
+    const source: InputTable = { columns: [...FIELDS], rows: [['Bir', 80, 1], ['İki', 15, 1], ['Üç', 5, 1]] };
+    for (const [a, groups] of [
+      [80 + 5e-11, ['A', 'B', 'C']],
+      [80 + 2e-10, ['A', 'A', 'B']],
+    ] as const) {
+      const analysis = calculateAbc(source, { a, b: 15, c: 85 - a });
+      expect(analysis.rows.map(row => row.group)).toEqual(groups);
+    }
+  });
   it('C dahil hedef toplamını doğrular', () => {
     expect(() => validateTargets({ a: 80, b: 15, c: 6 })).toThrow('Hedeflerin toplamı %100 olmalıdır.');
     for (const c of [-1, Infinity, NaN]) expect(() => validateTargets({ a: 80, b: 15, c })).toThrow();

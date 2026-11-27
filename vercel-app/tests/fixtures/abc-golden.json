@@ -1,10 +1,4 @@
 {
-  "metadata": {
-    "python": "3.12.10",
-    "pandas": "3.1.1",
-    "unicode": "15.0.0",
-    "core_sha256": "cb9ab4d38157c33e79c6889ef39392b10d5211721667b0514cd848b6a043365c"
-  },
   "cases": [
     {
       "name": "demo",
