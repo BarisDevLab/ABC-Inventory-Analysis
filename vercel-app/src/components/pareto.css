@@ -1,0 +1,75 @@
+.pareto-panel {
+  --pareto-canvas: #fff;
+  --pareto-edge: #e0e6ee;
+}
+:root[data-theme='dark'] .pareto-panel {
+  --pareto-canvas: #090c12;
+  --pareto-edge: #252d3a;
+}
+.pareto-heading-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--primary);
+  border: 1px solid var(--pareto-edge);
+  border-radius: 8px;
+}
+.pareto-panel .chart-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+.pareto-panel .chart-toolbar .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+@media (min-width: 861px) {
+  .main-content .pareto-panel.chart-container {
+    padding: clamp(1rem, 1.65vw, 1.6rem);
+    border: 1px solid var(--pareto-edge);
+    background: var(--pareto-canvas);
+    box-shadow: none;
+  }
+  .pareto-panel .panel-heading {
+    margin-bottom: 1.2rem;
+  }
+  .pareto-panel .panel-heading h2 {
+    font-size: clamp(1.2rem, 1.7vw, 1.65rem);
+  }
+  .pareto-panel .chart-controls {
+    align-items: start;
+    gap: 0.85rem 1.3rem;
+    padding: 0.7rem 0;
+    border-block: 1px solid var(--pareto-edge);
+    border-radius: 0;
+    background: transparent;
+  }
+  .pareto-panel .chart-toolbar {
+    margin: 0.75rem 0 0.5rem;
+  }
+  .pareto-panel .chart-toolbar button:not([aria-pressed='true']) {
+    background: transparent;
+    border-color: var(--pareto-edge);
+  }
+  .pareto-panel .chart-toolbar button:hover:not(:disabled) {
+    background: var(--soft);
+    border-color: var(--control-line);
+  }
+  .pareto-panel .chart-toolbar label {
+    margin-inline-start: auto;
+  }
+  .pareto-panel .chart-note {
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--pareto-edge);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pareto-panel .chart-toolbar button {
+    transition: none;
+  }
+}

@@ -45,16 +45,28 @@ export function paretoModel(
   mode: 'zoom' | 'pan', revision: number, language: Language = 'tr', theme: Theme = 'light',
 ): { data: Data[]; layout: Partial<Layout> } {
   const { palette, layout, axis, t, fmt } = chartStyle(language, theme);
+  const darkTheme = theme === 'dark';
+  const canvas = darkTheme ? '#090c12' : '#ffffff';
+  const grid = darkTheme ? '#202733' : '#e9edf2';
+  const highlight = darkTheme ? '#ff478a' : '#c91859';
+  const paretoLayout: Partial<Layout> & { barcornerradius: number } = {
+    ...layout, paper_bgcolor: canvas, plot_bgcolor: canvas, barcornerradius: 5,
+    hoverlabel: {
+      ...layout.hoverlabel, bgcolor: darkTheme ? '#171e29' : '#ffffff',
+      bordercolor: darkTheme ? '#46556b' : '#bdc8d6',
+    },
+  };
+  const paretoAxis = { ...axis, showline: false, ticks: '' as const };
   const x = rows.map((_, index) => index);
   const maximum = rows[0]?.value ?? 0;
   const custom = rows.map(row => [
     escapeHtml(row.product), row.group, fmt(row.value), fmt(row.share), fmt(row.cumulative), fmt(row.quantity), fmt(row.price),
   ]);
   const hover = [
-    '<b>%{customdata[0]}</b>', t('ABC grubu', 'ABC group') + ': %{customdata[1]}',
+    '<b>%{customdata[0]}</b> · ' + t('Grup', 'Group') + ' %{customdata[1]}',
     t('Yıllık tüketim miktarı', 'Annual usage') + ': %{customdata[5]}',
     t('Birim fiyat', 'Unit price') + ': %{customdata[6]} TL',
-    t('Yıllık değer', 'Annual value') + ': %{customdata[2]} TL',
+    t('Yıllık değer', 'Annual value') + ': <b>%{customdata[2]} TL</b>',
     t('Değer payı', 'Value share') + ': %{customdata[3]}%',
     t('Kümülatif pay', 'Cumulative share') + ': %{customdata[4]}%<extra></extra>',
   ].join('<br>');
@@ -64,42 +76,42 @@ export function paretoModel(
   const scale = compact && maximum >= 1000 ? 1000 : 1;
   const interval = Math.max(1, Math.ceil(rows.length / (compact ? 4 : 8)));
   const shown = x.filter(index => index % interval === 0);
-  const lineColor = palette.highlight;
+  const lineColor = highlight;
   const percentageTicks = [0, 20, 40, 60, 80, 100];
   return {
     data: [
-      { type: 'bar', x, y: rows.map(row => row.value), name: t('Yıllık değer', 'Annual value'), width: .72,
+      { type: 'bar', x, y: rows.map(row => row.value), name: t('Yıllık değer', 'Annual value'), width: .62,
         marker: {
           color: rows.map(row => COLORS[row.group]),
-          line: { color: rows.map(row => palette.edges[row.group]), width: rows.length <= 80 ? 1 : 0 },
+          line: { color: rows.map(row => palette.edges[row.group]), width: !darkTheme && rows.length <= 80 ? .7 : 0 },
         }, customdata: custom, hovertemplate: hover },
       { type: 'scatter', x, y: rows.map(row => row.cumulative), yaxis: 'y2', name: t('Kümülatif pay', 'Cumulative share'),
-        mode: rows.length <= 35 ? 'lines+markers' : 'lines', line: { color: lineColor, width: 3.3 },
-        marker: { size: 8, color: lineColor, line: { color: palette.surface, width: 2 } }, customdata: custom, hovertemplate: hover },
+        mode: rows.length <= 35 ? 'lines+markers' : 'lines', line: { color: lineColor, width: 2.6 },
+        marker: { size: 7, color: canvas, line: { color: lineColor, width: 2 } }, customdata: custom, hovertemplate: hover },
       ...[
         { threshold: targets.a, label: 'A/B', color: palette.edges.B },
         { threshold: targets.a + targets.b, label: 'B/C', color: palette.edges.C },
       ].map(({ threshold, label, color }) => ({
         type: 'scatter' as const, x: [-.5, rows.length - .5], y: [threshold, threshold],
-        yaxis: 'y2', mode: 'lines' as const, line: { color, width: 1.3, dash: 'dash' as const },
+        yaxis: 'y2', mode: 'lines' as const, line: { color, width: 1, dash: 'dot' as const },
         name: `${label} · ${percent(threshold, language, Number.isInteger(threshold) ? 0 : 2)}`, hoverinfo: 'skip' as const,
       })),
     ],
-    layout: { ...layout, height: compact ? 440 : 435, dragmode: mode, hovermode: 'closest',
-      uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 69, t: 56, b: compact ? 110 : 75 },
+    layout: { ...paretoLayout, height: compact ? 440 : 460, dragmode: mode, hovermode: 'closest',
+      uirevision: String(revision), margin: { l: compact ? 45 : 82, r: compact ? 39 : 69, t: 58, b: compact ? 110 : 82 },
       legend: { orientation: 'h', x: 0, y: compact ? -.28 : 1.04, yanchor: 'bottom', font: { size: compact ? 10 : 12 } },
-      xaxis: { ...axis, range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,
+      xaxis: { ...paretoAxis, range: [-.6, rows.length - .4], tickmode: 'array', tickvals: shown,
         ticktext: shown.map(index => {
           const name = Array.from(rows[index].product);
           const limit = compact ? 10 : 17;
           return escapeHtml(name.length > limit ? name.slice(0, limit).join('') + '…' : name.join(''));
         }), tickangle: compact ? -35 : -25, showgrid: false, automargin: true,
         title: compact ? undefined : { text: t('Ürünler · Azalan yıllık değer', 'Products · Descending annual value') } },
-      yaxis: { ...axis, range: [0, upper], tickmode: 'array', tickvals: ticks,
-        ticktext: ticks.map(value => fmt(value / scale)), gridcolor: palette.grid, zerolinecolor: palette.grid,
+      yaxis: { ...paretoAxis, range: [0, upper], tickmode: 'array', tickvals: ticks,
+        ticktext: ticks.map(value => fmt(value / scale)), gridcolor: grid, zerolinecolor: grid,
         title: { text: scale === 1000 ? t('Bin TL', 'Thousands of TL') : compact ? 'TL' : t('Yıllık değer (TL)', 'Annual value (TL)') },
         automargin: true },
-      yaxis2: { ...axis, overlaying: 'y', side: 'right', range: [0, 100], tickmode: 'array', tickvals: percentageTicks,
+      yaxis2: { ...paretoAxis, overlaying: 'y', side: 'right', range: [0, 100], tickmode: 'array', tickvals: percentageTicks,
         ticktext: percentageTicks.map(value => percent(value, language, 0)), showgrid: false,
         title: compact ? undefined : { text: t('Kümülatif pay (%)', 'Cumulative share (%)') }, automargin: true },
     },
