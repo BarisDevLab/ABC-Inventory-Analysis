@@ -6,6 +6,8 @@ import { visibleRows, paretoModel, distributionModel, PARETO_WINDOW_SIZE } from 
 import { Plot, downloadPng } from '../charts/Plot';
 import { useLocale } from '../ui/locale';
 import type { Theme } from '../ui/locale';
+import { Icon } from '../ui/Icon';
+import './pareto.css';
 import { GroupTable } from './ResultsTables';
 
 export const ChartsPanel = memo(function ChartsPanel({
@@ -76,11 +78,19 @@ export const ChartsPanel = memo(function ChartsPanel({
   }
   return (
     <>
-      <section className="panel chart-container" aria-labelledby="pareto-heading">
+      <section className="panel chart-container pareto-panel" aria-labelledby="pareto-heading">
         <div className="panel-heading">
-          <h2 id="pareto-heading">{t('Değerin yoğunlaştığı ürünler', 'Pareto analysis')}</h2>
-          <span className="subtle-label">
-            {t('Ekonomik öncelik sınırları', 'Value thresholds')}
+          <div>
+            <h2 id="pareto-heading">{t('Değerin yoğunlaştığı ürünler', 'Pareto analysis')}</h2>
+            <p>
+              {t(
+                'Yıllık tüketim değeri ve kümülatif pay',
+                'Annual usage value and cumulative share',
+              )}
+            </p>
+          </div>
+          <span className="pareto-heading-icon">
+            <Icon name="signal" />
           </span>
         </div>
         <div className="chart-controls">
@@ -179,18 +189,22 @@ export const ChartsPanel = memo(function ChartsPanel({
         </div>
         <div className="chart-toolbar">
           <button aria-pressed={mode === 'zoom'} onClick={() => setMode('zoom')}>
+            <Icon name="zoom" />
             {t('Yakınlaştır', 'Zoom')}
           </button>
           <button aria-pressed={mode === 'pan'} onClick={() => setMode('pan')}>
+            <Icon name="pan" />
             {t('Kaydır', 'Pan')}
           </button>
           <button onClick={() => setRevision(revision + 1)}>
+            <Icon name="reset" />
             {t('Görünümü sıfırla', 'Reset view')}
           </button>
           <button
             disabled={saving || !rows.length}
             onClick={() => save(pareto.current, 'abc_pareto_analizi')}
           >
+            <Icon name="download" />
             {t('PNG indir', 'Download PNG')}
           </button>
           <label>
